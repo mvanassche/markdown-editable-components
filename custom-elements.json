@@ -1,0 +1,43 @@
+{
+  "version": "experimental",
+  "tags": [
+    {
+      "name": "markdown-document",
+      "path": "./src/markdown-elements.ts",
+      "description": "Markdown document.",
+      "attributes": [
+        {
+          "name": "markdown",
+          "description": "The markdown string value",
+          "type": "string",
+          "default": null
+        }
+      ],
+      "properties": [
+        {
+          "name": "markdown",
+          "description": "The markdown string value",
+          "type": "string",
+          "default": null
+        }
+      ],
+      "slots": [
+        {
+          "name": "",
+          "description": "Any markdown element"
+        }
+      ]
+    },
+    {
+      "name": "markdown-paragraph",
+      "path": "./src/markdown-elements.ts",
+      "description": "Markdown paragraph.",
+      "slots": [
+        {
+          "name": "",
+          "description": "The paragraph text and inline elements"
+        }
+      ]
+    }
+  ]
+}

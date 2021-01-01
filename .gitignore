@@ -1,0 +1,9 @@
+/node_modules/
+/lib/
+/test/
+
+# top level source
+markdown-elements.js
+markdown-elements.js.map
+markdown-elements.d.ts
+markdown-elements.d.ts.map

@@ -3,7 +3,7 @@
   "tags": [
     {
       "name": "markdown-document",
-      "path": "./src/markdown-elements.ts",
+      "path": "./src/markdown-editable-components.ts",
       "description": "Markdown document.",
       "attributes": [
         {
@@ -30,7 +30,7 @@
     },
     {
       "name": "markdown-paragraph",
-      "path": "./src/markdown-elements.ts",
+      "path": "./src/markdown-editable-components.ts",
       "description": "Markdown paragraph.",
       "slots": [
         {

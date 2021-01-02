@@ -1,5 +1,5 @@
-import { Document } from '../markdown-elements.js';
-//import {Paragraph} from '../markdown-elements.js';
+import { Document } from '../markdown-editable-components.js';
+//import {Paragraph} from '../markdown-editable-components.js';
 //import {fixture, html} from '@open-wc/testing';
 
 const assert = chai.assert;
@@ -35,7 +35,7 @@ suite('markdown-document', () => {
   });
 
   test('handles a click', async () => {
-    const el = (await fixture(html`<markdown-elements></markdown-elements>`)) as MyElement;
+    const el = (await fixture(html`<markdown-editable-components></markdown-editable-components>`)) as MyElement;
     const button = el.shadowRoot!.querySelector('button')!;
     button.click();
     await el.updateComplete;

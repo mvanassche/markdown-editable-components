@@ -3,7 +3,7 @@
 /test/
 
 # top level source
-markdown-elements.js
-markdown-elements.js.map
-markdown-elements.d.ts
-markdown-elements.d.ts.map
+markdown-editable-components.js
+markdown-editable-components.js.map
+markdown-editable-components.d.ts
+markdown-editable-components.d.ts.map

@@ -1,10 +1,10 @@
 {
   "name": "markdown-editable-components",
-  "version": "0.0.1",
-  "description": "A simple web component",
+  "version": "0.0.5",
+  "description": "Markdown web components",
   "main": "markdown-editable-components.js",
   "module": "markdown-editable-components.js",
-  "type": "module",
+  "types": "markdown-editable-components.d.ts",
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",

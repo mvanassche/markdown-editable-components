@@ -511,6 +511,72 @@ export class Title1 extends Heading {
   `;
   }
 }
+@customElement('markdown-title-2')
+export class Title2 extends Heading {
+  depth = 2;
+  static styles = css``;
+  render() {
+    return html`
+    <h2>
+      <slot></slot>
+    </h2>
+    <markdown-selection-actions></markdown-selection-actions>
+  `;
+  }
+}
+@customElement('markdown-title-3')
+export class Title3 extends Heading {
+  depth = 3;
+  static styles = css``;
+  render() {
+    return html`
+    <h3>
+      <slot></slot>
+    </h3>
+    <markdown-selection-actions></markdown-selection-actions>
+  `;
+  }
+}
+@customElement('markdown-title-4')
+export class Title4 extends Heading {
+  depth = 4;
+  static styles = css``;
+  render() {
+    return html`
+    <h4>
+      <slot></slot>
+    </h4>
+    <markdown-selection-actions></markdown-selection-actions>
+  `;
+  }
+}
+@customElement('markdown-title-5')
+export class Title5 extends Heading {
+  depth = 5;
+  static styles = css``;
+  render() {
+    return html`
+    <h5>
+      <slot></slot>
+    </h5>
+    <markdown-selection-actions></markdown-selection-actions>
+  `;
+  }
+}
+@customElement('markdown-title-6')
+export class Title6 extends Heading {
+  depth = 6;
+  static styles = css``;
+  render() {
+    return html`
+    <h6>
+      <slot></slot>
+    </h6>
+    <markdown-selection-actions></markdown-selection-actions>
+  `;
+  }
+}
+
 
 /**
  * code block --------------------------------------------------------
@@ -521,9 +587,7 @@ export class CodeBlock extends LeafElement {
   static styles = css``;
   render() {
     return html`
-    <pre><code>
-      <slot></slot>
-  </code></pre>
+    <pre><code><slot></slot></code></pre>
     <markdown-selection-actions></markdown-selection-actions>
   `;
   }
@@ -712,7 +776,7 @@ export class Table extends ContainerElement {
     :host {
       display: table;
       border-collapse: collapse;
-      border: lightgrey 1px solid;
+      /*border: lightgrey 1px solid;*/
     }
   `;
   render() {

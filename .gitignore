@@ -5,5 +5,9 @@
 # top level source
 markdown-editable-components.js
 markdown-editable-components.js.map
-markdown-editable-components.d.ts
+#markdown-editable-components.d.ts
 markdown-editable-components.d.ts.map
+#marked-renderer.js
+marked-renderer.js.map
+#marked-renderer.d.ts
+marked-renderer.d.ts.map

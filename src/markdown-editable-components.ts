@@ -1,9 +1,7 @@
-
-
 import {LitElement, html, customElement, property, css} from 'lit-element';
 //import { md } from './markdown-it-renderer';
 //import { unsafeHTML } from 'lit-html/directives/unsafe-html';
-import { md } from './marked-renderer';
+import { parse } from './marked-renderer';
 
 /*
 inspiration:
@@ -11,6 +9,7 @@ inspiration:
   https://spec.commonmark.org/0.29/
   https://github.com/syntax-tree/mdast
 */
+
 
 
 /**
@@ -51,6 +50,9 @@ export class Document extends LitElement {
   }
 
   @property()
+  parser: ((md: string) => string) = (markdown) => parse(markdown);
+
+  @property()
   get markdown() { return this.getMarkdown(); }
       
   set markdown(markdown: string) { this.renderMarkdown(markdown) }
@@ -62,12 +64,12 @@ export class Document extends LitElement {
    }
 
   public renderMarkdown(markdown: string) {
-    this.innerHTML = md.parse(markdown);
+    this.innerHTML = this.parser(markdown);
   }
 
   public getMarkdown(): string {
     return Array.from(this.children).map((child) => {
-      if(child instanceof MarkdownElement) {
+      if(child instanceof MarkdownLitElement) {
         return child.getMarkdown();
       } else {
         return "";
@@ -91,10 +93,17 @@ export class Document extends LitElement {
 
 }
 
-abstract class MarkdownElement extends LitElement {
+export interface MarkdownElement {
+  getMarkdown(): string
+}
+function isMarkdownElement(x: any): x is MarkdownElement {
+  return 'getMarkdown' in x;
+}
+
+abstract class MarkdownLitElement extends LitElement implements MarkdownElement {
   getMarkdown(): string {
     return Array.from(this.children).map((child) => {
-      if(child instanceof MarkdownElement) {
+      if(isMarkdownElement(child)) {
         return child.getMarkdown();
       } else {
         return '';
@@ -103,14 +112,14 @@ abstract class MarkdownElement extends LitElement {
   }
 }
 
-abstract class InlineElement extends MarkdownElement {
+abstract class InlineElement extends MarkdownLitElement {
   connectedCallback() {
     super.connectedCallback();
     //this.setAttribute("contenteditable", "true");
   }
   getMarkdown(): string {
     return Array.from(this.childNodes).map((child) => {
-      if(child instanceof MarkdownElement) {
+      if(child instanceof MarkdownLitElement) {
         return child.getMarkdown();
       } else {
           return child.textContent;
@@ -119,11 +128,11 @@ abstract class InlineElement extends MarkdownElement {
   }
  } 
 
-abstract class BlockElement extends MarkdownElement {
+abstract class BlockElement extends MarkdownLitElement {
 
 }
 
-abstract class ContainerElement extends MarkdownElement {
+abstract class ContainerElement extends MarkdownLitElement {
 
 }
 
@@ -290,7 +299,7 @@ export class Paragraph extends LeafElement {
   }
   getMarkdown(): string {
     return Array.from(this.childNodes).map((child) => {
-      if(child instanceof MarkdownElement) {
+      if(child instanceof MarkdownLitElement) {
         return child.getMarkdown();
       } else {
         if(child.textContent?.replace(/\s/g, '').length == 0) {
@@ -466,7 +475,7 @@ export class BlockQuote extends ContainerElement {
   getMarkdown(): string {
     return Array.from(this.childNodes).map((child) => {
       // THIS IS WRONG? SHOULD BE EVERY LINE, not every child
-      if(child instanceof MarkdownElement) {
+      if(child instanceof MarkdownLitElement) {
         return '> ' + child.getMarkdown();
       } else {
         return '> ' + child.textContent;
@@ -583,7 +592,7 @@ export class Title6 extends Heading {
  */
 @customElement('markdown-code')
 export class CodeBlock extends LeafElement {
-  // TODO info string as property/attribute
+  // TODO language string as property/attribute
   static styles = css``;
   render() {
     return html`
@@ -592,7 +601,7 @@ export class CodeBlock extends LeafElement {
   `;
   }
   getMarkdown(): string {
-    return '```' + /*info + */ '\n' + super.getMarkdown() + '\n```';
+    return '```' + /*language + */ '\n' + super.getMarkdown() + '\n```';
   }
 }
 
@@ -815,7 +824,7 @@ export class TableRow extends ContainerElement {
   public getMarkdown(): string {
     // TODO prettier output! use longest size etc.
     return '| ' + Array.from(this.children).map((child) => {
-      if(child instanceof MarkdownElement) {
+      if(child instanceof MarkdownLitElement) {
         return child.getMarkdown();
       } else {
         return "";
@@ -859,7 +868,7 @@ export class TableCell extends ContainerElement {
 
   getMarkdown(): string {
     return Array.from(this.childNodes).map((child) => {
-      if(child instanceof MarkdownElement) {
+      if(child instanceof MarkdownLitElement) {
         return child.getMarkdown();
       } else {
         if(child.textContent?.replace(/\s/g, '').length == 0) {

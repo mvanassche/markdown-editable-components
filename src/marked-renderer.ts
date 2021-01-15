@@ -1,11 +1,23 @@
-import { Align, Marked, Renderer } from '@ts-stack/markdown';
+import { Align, Marked, Renderer, MarkedOptions } from '@ts-stack/markdown';
  
-class MyRenderer extends Renderer
+export class MarkdownEditableComponentsRenderer extends Renderer
 {
 
-  code(code: string, lang?: string, _escaped?: boolean): string {
+
+  code(code: string, lang?: string, escaped?: boolean): string {
     // TODO escaped?
-    return `<markdown-code info='${lang}'>${code}</markdown-code>`;
+    if(lang) {
+      let id: string;
+      [id, lang] = this.parseAnchor("code-" + Math.random() + "-", lang);
+      return this.codeWithAnchor(code, lang, id);
+    } else {
+      return this.codeWithAnchor(code, lang, undefined, escaped);
+    }
+  }
+  codeWithAnchor(code: string, lang?: string, id?: string, _escaped?: boolean): string {
+    let langAttr = lang ? `language='${lang}'` : "";
+    let idAttr = id ? `id='${id}'` : "";
+    return `<markdown-code ${langAttr} ${idAttr}>${code}</markdown-code>`;
   }
   blockquote(quote: string): string {
     return `<markdown-quote>${quote}</markdown-quote>`;
@@ -13,9 +25,15 @@ class MyRenderer extends Renderer
   html(html: string): string {
     return `<markdown-html>${html}</markdown-html>`;
   }
-  heading(text: string, level: number, _raw: string)
+  heading(text: string, level: number, raw: string)
   {
-      return `<markdown-title-${level}>${text}</markdown-title-${level}>`;
+    let id: string;
+    [id, text] = this.parseAnchor("heading-", text);
+    return this.headingWithAnchor(text, level, raw, id);
+  }
+  headingWithAnchor(text: string, level: number, _raw: string, id?: string) {
+    let idAttr = id ? `id='${id}'` : "";
+    return `<markdown-title-${level} ${idAttr}>${text}</markdown-title-${level}>`;
   }
   list(body: string, ordered?: boolean): string {
     return `<markdown-list ordered='${ordered}'>${body}</markdown-list>`;
@@ -68,9 +86,34 @@ class MyRenderer extends Renderer
   del(text: string): string;
   text(text: string): string;*/
 
-}
- 
-Marked.setOptions({renderer: new MyRenderer});
- 
 
-export var md = Marked;
+  /*
+https://www.markdownguide.org/extended-syntax/#heading-ids
+https://github.com/syntax-tree/mdast#code
+https://stackoverflow.com/questions/5319754/cross-reference-named-anchor-in-markdown
+https://github.com/ts-stack/markdown#overriding-renderer-methods
+*/
+  parseAnchor(idPrefix: string, text: string): [string, string]
+  {
+    const regexp = /\s*{([^}]+)}$/;
+    const execArr = regexp.exec(text);
+    let id = idPrefix;
+    if(execArr)
+    {
+      text = text.replace(regexp, '');
+      id += execArr[1];
+    }
+    else
+    {
+      id += text.toLocaleLowerCase().replace(/[^\wа-яіїє]+/gi, '-');
+    }
+    return [id, text];
+  }
+
+}
+
+export function parse(markdown: string, renderer?: MarkdownEditableComponentsRenderer): string {
+  let options = new MarkedOptions();
+  options.renderer = renderer != null ? renderer : new MarkdownEditableComponentsRenderer();
+  return Marked.parse(markdown, options);
+}

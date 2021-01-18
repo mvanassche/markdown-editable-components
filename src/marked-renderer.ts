@@ -3,6 +3,9 @@ import { Align, Marked, Renderer, MarkedOptions } from '@ts-stack/markdown';
 export class MarkdownEditableComponentsRenderer extends Renderer
 {
 
+  toc(): string {
+    return `<markdown-toc></markdown-toc>`
+  }
 
   code(code: string, lang?: string, escaped?: boolean): string {
     // TODO escaped?
@@ -19,7 +22,7 @@ export class MarkdownEditableComponentsRenderer extends Renderer
     }
   }
   codeWithAnchor(code: string, lang?: string, id?: string, _escaped?: boolean): string {
-    let langAttr = lang ? `language='${lang}'` : "";
+    let langAttr = lang ? `lang='${lang}'` : "";
     let idAttr = id ? `id='${id}'` : "";
     return `<markdown-code ${langAttr} ${idAttr}>${code}</markdown-code>`;
   }
@@ -53,6 +56,7 @@ export class MarkdownEditableComponentsRenderer extends Renderer
     }
   }
   paragraph(text: string): string {
+    text = text.replaceAll("${toc}", this.toc());
     return `<markdown-paragraph>${text}</markdown-paragraph>`;
   }
   codespan(text: string): string {

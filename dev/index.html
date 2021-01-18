@@ -4,7 +4,10 @@
   <head>
     <meta charset="utf-8">
     <title>&lt;markdown-editable-components> Demo</title>
-    <script type="module" src="../markdown-editable-components.js"></script>
+    <script>
+      exports = {}; // TODO
+    </script>
+    <script src="../../index.js"></script>
     <!--script src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/12.0.4/markdown-it.min.js" integrity="sha512-0DkA2RqFvfXBVeti0R1l0E8oMkmY0X+bAA2i02Ld8xhpjpvqORUcE/UBe+0KOPzi5iNah0aBpW6uaNNrqCk73Q==" crossorigin="anonymous"></script-->
     <script>
       document.addEventListener("DOMContentLoaded", function() {
@@ -29,7 +32,10 @@
   </head>
   <body>
     <markdown-document id="from-dom">
+      <markdown-toc></markdown-toc>
       <markdown-toolbar slot="toolbar"></markdown-toolbar>
+      <markdown-title-1>Title1</markdown-title-1>
+      <markdown-title-2>Title2</markdown-title-2>
       <markdown-paragraph>
         This is child content
         More than one line is still a paragraph and <markdown-code-span>12345</markdown-code-span> is code span
@@ -46,6 +52,14 @@
         </markdown-list-item>
       </markdown-list>
       <markdown-break></markdown-break>
+      <markdown-title-2>Title3</markdown-title-2>
+      <markdown-title-3>Title4</markdown-title-3>
+      <markdown-title-6>Title out</markdown-title-6>
+      <markdown-title-2>Title back</markdown-title-2>
+          <markdown-code lang='js'>
+        console.log("TEST");
+      </markdown-code>
+
       <!--markdown-html>
         <input></input> TODO fix the </input> not showing!!
       </markdown-html-->

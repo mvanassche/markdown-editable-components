@@ -19,6 +19,7 @@
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
+    "allowJs": true,
     "plugins": [
       {
         "name": "ts-lit-plugin",

@@ -2,6 +2,8 @@ import {LitElement, html, customElement, property, css} from 'lit-element';
 //import { md } from './markdown-it-renderer';
 //import { unsafeHTML } from 'lit-html/directives/unsafe-html';
 import { parse } from './marked-renderer';
+//import { hljs } from 'highlight.js';
+import hljs from 'highlight.js';
 
 /*
 inspiration:
@@ -12,16 +14,13 @@ inspiration:
 
 
 
-/**
- * @slot - This element has a slot
- */
 
 @customElement('markdown-document')
 export class Document extends LitElement {
   static styles = css`
     :host {
       display: block;
-      border: solid 1px gray;
+      /*border: solid 1px gray;*/
       padding: 16px;
     }
     .toolbar {
@@ -29,6 +28,12 @@ export class Document extends LitElement {
       z-index: 3;
       top: 0px;
       right: 10%;
+    }
+    .toc {
+      position: absolute;
+      z-index: 3;
+      top: 0px;
+      right: 0%;
     }
   `;
 
@@ -39,6 +44,9 @@ export class Document extends LitElement {
         <div class="toolbar">
           <slot name="toolbar"></slot>
         </div>
+        <div class="toc">
+          <!--slot name="markdown-toc"></slot-->
+        </div>
         <slot></slot>
       </div>
     `;
@@ -47,6 +55,15 @@ export class Document extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.setAttribute("contenteditable", "true");
+  }
+  firstUpdated() {
+    if(this.getAttribute("floating-toc") == "true") {
+      let toc = document.createElement("markdown-toc") as TableOfContent;
+      toc.classList.add("floating");
+      toc.markdownDocument = this;
+      this.shadowRoot?.querySelector(".toc")?.appendChild(toc);
+      // TODO toc reacts to changes
+    }
   }
 
   @property()
@@ -64,6 +81,7 @@ export class Document extends LitElement {
    }
 
   public renderMarkdown(markdown: string) {
+    // TODO do not remove the toolbar!? Or maybe there should be a markdown-editor component above document?
     this.innerHTML = this.parser(markdown);
   }
 
@@ -92,6 +110,85 @@ export class Document extends LitElement {
   }
 
 }
+
+@customElement('markdown-toc')
+export class TableOfContent extends LitElement {
+  static styles = css`
+    :host {
+      display: block;
+    }
+    :host(.floating) {
+      position: absolute;
+      right: 0px;
+      top: 0px;
+    }
+    .level {
+      padding-left: 10px;
+    }
+    .level a {
+      display: block;
+    }
+    .level {
+      font-size: 0.9em;
+    }
+  `;
+
+
+  render() {
+    return html`
+    `;
+  }
+
+  @property({attribute: false})
+  markdownDocument: Document | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    if(!this.markdownDocument) {
+      this.markdownDocument = this.closest('markdown-document');
+      setTimeout(() => this.refresh(), 1000); // TODO base this on some loaded event + change events
+    }
+  }
+  updated(changedProperties: Map<string, string>) { 
+    if(changedProperties.has('markdownDocument')) {
+      this.refresh();
+    }
+   }
+
+
+  refresh() {
+    if(this.markdownDocument != null) {
+      this.shadowRoot!.innerHTML = '';
+      let headings = Array.from(this.markdownDocument.querySelectorAll('*')).filter((element) => element instanceof Heading) as Heading[];
+      var currentDepth = 1;
+      var currentList = document.createElement("div");
+      //var currentItem
+      this.shadowRoot?.append(currentList);
+      headings.forEach((heading) => {
+        let a = document.createElement('a');
+        a.href = '#' + heading.id;
+        a.innerHTML = heading.innerHTML;
+        a.onclick = () => heading.scrollIntoView();
+  
+        while(currentDepth < heading.depth) {
+          currentDepth++;
+          let nextList = document.createElement("div");
+          nextList.classList.add("level");
+          nextList.classList.add("level-" + currentDepth);
+          currentList.appendChild(nextList);
+          currentList = nextList;
+        }
+        while(currentDepth > heading.depth) {
+          currentDepth--;
+          currentList = (currentList.parentElement as HTMLDivElement);
+        }
+        currentList.append(a);
+      });
+    }
+  }
+}
+
+
 
 export interface MarkdownElement {
   getMarkdown(): string
@@ -603,6 +700,20 @@ export class CodeBlock extends LeafElement {
   getMarkdown(): string {
     return '```' + /*language + */ '\n' + super.getMarkdown() + '\n```';
   }
+  connectedCallback() {
+    super.connectedCallback();
+    this.highlight();
+    this.addEventListener("input", (_: Event) => { 
+      this.highlight() 
+    });
+  }
+   
+  highlight() {
+    let lang = this.getAttribute("lang");
+    if(lang != null && this.textContent != null) {
+      this.textContent = hljs.highlight(lang, this.textContent).value;
+    }
+  }
 }
 
 
@@ -948,6 +1059,8 @@ declare global {
     'markdown-paragraph': Paragraph;
   }
 }
+
+
 
 
 

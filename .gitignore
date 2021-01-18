@@ -11,3 +11,5 @@ markdown-editable-components.d.ts.map
 marked-renderer.js.map
 #marked-renderer.d.ts
 marked-renderer.d.ts.map
+
+/build/*

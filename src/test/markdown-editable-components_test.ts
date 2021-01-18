@@ -1,4 +1,4 @@
-import { Document } from '../markdown-editable-components.js';
+import { Document } from '../index';
 //import {Paragraph} from '../markdown-editable-components.js';
 //import {fixture, html} from '@open-wc/testing';
 

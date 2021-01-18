@@ -6,6 +6,10 @@ export class MarkdownEditableComponentsRenderer extends Renderer
 
   code(code: string, lang?: string, escaped?: boolean): string {
     // TODO escaped?
+    if(!escaped && this.options.escape) {
+      code = this.options.escape?.call(this, code);
+      escaped = true;
+    }
     if(lang) {
       let id: string;
       [id, lang] = this.parseAnchor("code-" + Math.random() + "-", lang);

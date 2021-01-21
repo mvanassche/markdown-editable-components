@@ -55,6 +55,9 @@ export class Document extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.setAttribute("contenteditable", "true");
+    if(this.getAttribute("spellcheck") == null) {
+      this.setAttribute("spellcheck", "false"); // by default, disable spellcheck
+    }
   }
   firstUpdated() {
     if(this.getAttribute("floating-toc") == "true") {
@@ -121,6 +124,14 @@ export class TableOfContent extends LitElement {
       position: absolute;
       right: 0px;
       top: 0px;
+    }
+    :host(.floating) .level-2 {
+      height: 0px;
+      visibility: collapse;
+    }
+    :host(.floating:hover) .level-2 {
+      height: auto;
+      visibility: visible;
     }
     .level {
       padding-left: 10px;
@@ -750,7 +761,7 @@ export class CodeSpan extends InlineElement {
  */
 @customElement('markdown-list')
 export class List extends ContainerElement {
-  @property()
+  @property({})
   ordered?: boolean // change to different  widget???
   @property()
   start?: number
@@ -761,12 +772,30 @@ export class List extends ContainerElement {
     :host {
       counter-reset: section;
     }
+    /*:host([ordered='true']) > ::slotted(*) {
+      background-color : red;
+    }*/
+    /*:host([ordered='true']) ::slotted(*)::before {
+      counter-increment: section;
+      content: counter(section) ".";
+      position: absolute;
+    }*/
+    :host ::slotted(*) {
+      /*position: absolute;*/
+      display: list-item;
+    }
+    :host([ordered='true']) ::slotted(*) {
+      list-style-type: decimal;
+    }
   `;
   render() {
     return html`
       <slot></slot>
     <!--markdown-selection-actions></markdown-selection-actions-->
   `;
+  }
+  connectedCallback() {
+    super.connectedCallback();
   }
 }
 
@@ -778,15 +807,10 @@ export class ListItem extends ContainerElement {
   static styles = css`
     :host {
       position: relative;
-    }
-    :host::before {
-      counter-increment: section;
-      /*content: "X";*/
-      content: counter(section) ".";
-      position: absolute;
+      left: 20px;
     }
     .item-container {
-      padding-left: 20px;
+      /*padding-left: 20px;*/
     }
   `;
   render() {
@@ -827,26 +851,26 @@ export class TaskListItem extends ListItem {
   static styles = css`
     :host {
       position: relative;
-    }
-    :host::before {
-      counter-increment: section;
-      /*content: "X";*/
-      content: counter(section) ".";
-      position: absolute;
+      left: 20px;
     }
     .item-container {
-      padding-left: 35px;
+      padding-left: 20px;
     }
     input {
       position: absolute;
       z-index: 3;
-      left: 15px;
+      /*left: 15px;*/
+    }
+    .task-and-container {
+      display: inline;
     }
   `;
   render() {
     return html`
-      <input type='checkbox' @change=${this._selection}/>
-      <div class='item-container'><slot></slot></div>
+      <div class='task-and-container'>
+        <input type='checkbox' @change=${this._selection}/>
+        <div class='item-container'><slot></slot></div>
+      </div>
     <!--markdown-selection-actions></markdown-selection-actions-->
   `;
   }

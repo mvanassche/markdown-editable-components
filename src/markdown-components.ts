@@ -58,6 +58,7 @@ export class Document extends LitElement {
     if(this.getAttribute("spellcheck") == null) {
       this.setAttribute("spellcheck", "false"); // by default, disable spellcheck
     }
+    this.addEventListener("input", (_) => this.dispatchEvent(new CustomEvent("change"))); // TODO, what should be the event details? also add other changes than inputs
   }
   firstUpdated() {
     if(this.getAttribute("floating-toc") == "true") {
@@ -90,7 +91,7 @@ export class Document extends LitElement {
 
   public getMarkdown(): string {
     return Array.from(this.children).map((child) => {
-      if(child instanceof MarkdownLitElement) {
+      if(isMarkdownElement(child)) {
         return child.getMarkdown();
       } else {
         return "";
@@ -208,6 +209,17 @@ function isMarkdownElement(x: any): x is MarkdownElement {
   return 'getMarkdown' in x;
 }
 
+function getMarkdownWithTextForElement(element: Element): string {
+  return Array.from(element.childNodes).map((child) => {
+    if(isMarkdownElement(child)) {
+      return child.getMarkdown();
+    } else {
+        return child.textContent;
+    }
+  }).join('');
+}
+
+
 abstract class MarkdownLitElement extends LitElement implements MarkdownElement {
   getMarkdown(): string {
     return Array.from(this.children).map((child) => {
@@ -226,13 +238,7 @@ abstract class InlineElement extends MarkdownLitElement {
     //this.setAttribute("contenteditable", "true");
   }
   getMarkdown(): string {
-    return Array.from(this.childNodes).map((child) => {
-      if(child instanceof MarkdownLitElement) {
-        return child.getMarkdown();
-      } else {
-          return child.textContent;
-      }
-    }).join('');
+    return getMarkdownWithTextForElement(this);
   }
  } 
 
@@ -407,7 +413,7 @@ export class Paragraph extends LeafElement {
   }
   getMarkdown(): string {
     return Array.from(this.childNodes).map((child) => {
-      if(child instanceof MarkdownLitElement) {
+      if(isMarkdownElement(child)) {
         return child.getMarkdown();
       } else {
         if(child.textContent?.replace(/\s/g, '').length == 0) {
@@ -589,7 +595,7 @@ export class BlockQuote extends ContainerElement {
   getMarkdown(): string {
     return Array.from(this.childNodes).map((child) => {
       // FIXME THIS IS WRONG? SHOULD BE EVERY LINE, not every child
-      if(child instanceof MarkdownLitElement) {
+      if(isMarkdownElement(child)) {
         return '> ' + child.getMarkdown();
       } else {
         return '> ' + child.textContent;
@@ -617,7 +623,7 @@ abstract class Heading extends LeafElement {
     html`${unsafeHTML(template)}`;
   }*/
   getMarkdown(): string {
-    return '#'.repeat(this.depth) + ' ' + super.getMarkdown();
+    return '#'.repeat(this.depth) + ' ' + getMarkdownWithTextForElement(this) + '\n';
   }
 }
 
@@ -715,7 +721,7 @@ export class CodeBlock extends LeafElement {
   `;
   }
   getMarkdown(): string {
-    return '```' + /*language + */ '\n' + super.getMarkdown() + '\n```';
+    return '```' + /*language + */ '\n' + super.getMarkdown() + '\n```\n';
   }
   connectedCallback() {
     super.connectedCallback();
@@ -906,7 +912,7 @@ export class HTML extends LeafElement {
   `;
   }
   getMarkdown(): string {
-    return this.innerHTML.trimLeft().trimRight();
+    return this.innerHTML.trimLeft().trimRight() + '\n';
   }
 }
 
@@ -965,7 +971,7 @@ export class TableRow extends ContainerElement {
   public getMarkdown(): string {
     // TODO prettier output! use longest size etc.
     return '| ' + Array.from(this.children).map((child) => {
-      if(child instanceof MarkdownLitElement) {
+      if(isMarkdownElement(child)) {
         return child.getMarkdown();
       } else {
         return "";
@@ -1009,7 +1015,7 @@ export class TableCell extends ContainerElement {
 
   getMarkdown(): string {
     return Array.from(this.childNodes).map((child) => {
-      if(child instanceof MarkdownLitElement) {
+      if(isMarkdownElement(child)) {
         return child.getMarkdown();
       } else {
         if(child.textContent?.replace(/\s/g, '').length == 0) {

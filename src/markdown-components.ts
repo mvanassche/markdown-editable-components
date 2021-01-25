@@ -580,9 +580,15 @@ export class ThematicBreak extends LeafElement {
  */
 @customElement('markdown-quote')
 export class BlockQuote extends ContainerElement {
+  render() {
+    return html`
+    <blockquote><slot></slot></blockquote>
+    <!--markdown-selection-actions></markdown-selection-actions-->
+  `;
+  }
   getMarkdown(): string {
     return Array.from(this.childNodes).map((child) => {
-      // THIS IS WRONG? SHOULD BE EVERY LINE, not every child
+      // FIXME THIS IS WRONG? SHOULD BE EVERY LINE, not every child
       if(child instanceof MarkdownLitElement) {
         return '> ' + child.getMarkdown();
       } else {

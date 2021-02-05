@@ -329,6 +329,8 @@ abstract class LeafElement extends BlockElement {
     this.setupSelectionToolbar();
   }
 
+  _selectionChangeHandler: any;
+
   connectedCallback() {
     super.connectedCallback();
     //this.setAttribute("contenteditable", "true");
@@ -338,8 +340,16 @@ abstract class LeafElement extends BlockElement {
       // get the document
       console.log('focus ' + this.tagName);
     });
-    document.addEventListener('selectionchange', this.documentSelectionChange.bind(this));
+    this._selectionChangeHandler = this.documentSelectionChange.bind(this);
+    document.addEventListener('selectionchange', this._selectionChangeHandler);
   }
+
+  disconnectedCallback() {
+    if(this._selectionChangeHandler) {
+      document.removeEventListener('selectionchange', this._selectionChangeHandler);
+    }
+  }
+
 
   documentSelectionChange(_: Event) {
     if(document.getSelection()?.rangeCount == 1 && !document.getSelection()?.getRangeAt(0).collapsed && document.getSelection()?.anchorNode != null && this.contains((document.getSelection()?.anchorNode as Node))) {
@@ -382,10 +392,6 @@ abstract class LeafElement extends BlockElement {
     if(this.selectionToolBar != null) {
       this.selectionToolBar!.style!.display = 'none';
     }
-  }
-
-  disconnectedCallback() {
-    document.removeEventListener('selectionchange', this.documentSelectionChange);
   }
 
 }

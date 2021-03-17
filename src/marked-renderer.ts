@@ -51,6 +51,11 @@ export class MarkdownEditableComponentsRenderer extends Renderer
       return `<markdown-task-list-item>${text.replace("<markdown-paragraph>[ ] ", "<markdown-paragraph>")}</markdown-task-list-item>`;
     } else if(text.startsWith("<markdown-paragraph>[x] ")) {
       return `<markdown-task-list-item checked='true'>${text.replace("<markdown-paragraph>[x] ", "<markdown-paragraph>")}</markdown-task-list-item>`;
+    } else if(text.startsWith("[ ] ")) {
+      // see https://github.com/ts-stack/markdown/issues/8
+      return `<markdown-task-list-item>${text.replace("[ ] ", "")}</markdown-task-list-item>`;
+    } else if(text.startsWith("[x] ")) {
+      return `<markdown-task-list-item checked='true'>${text.replace("[x] ", "")}</markdown-task-list-item>`;
     } else {
       return `<markdown-list-item>${text}</markdown-list-item>`;
     }
@@ -122,6 +127,13 @@ https://github.com/ts-stack/markdown#overriding-renderer-methods
 
 export function parse(markdown: string, renderer?: MarkdownEditableComponentsRenderer): string {
   let options = new MarkedOptions();
-  options.renderer = renderer != null ? renderer : new MarkdownEditableComponentsRenderer();
+  options.gfm = true;
+  let actualRenderer = renderer != null ? renderer : new MarkdownEditableComponentsRenderer();
+  options.renderer = actualRenderer;
+  Marked.setBlockRule(/^ *(`{3,}|~{3,})[ \.]*(\S+)? +{([^}]+)} *\n([\s\S]*?)\s*\1 *(?:\n+|$)/, 
+    (execArr) => {
+      return actualRenderer.codeWithAnchor(execArr![4], execArr![2], execArr![3])
+    }
+  );
   return Marked.parse(markdown, options);
 }

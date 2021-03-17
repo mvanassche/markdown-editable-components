@@ -116,7 +116,7 @@ export class Document extends LitElement {
 }
 
 @customElement('markdown-toc')
-export class TableOfContent extends LitElement {
+export class TableOfContent extends LitElement implements MarkdownElement {
   static styles = css`
     :host {
       display: block;
@@ -197,6 +197,9 @@ export class TableOfContent extends LitElement {
         currentList.append(a);
       });
     }
+  }
+  getMarkdown(): string {
+    return '${toc}';
   }
 }
 
@@ -727,7 +730,13 @@ export class CodeBlock extends LeafElement {
   `;
   }
   getMarkdown(): string {
-    return '```' + /*language + */ '\n' + super.getMarkdown() + '\n```\n';
+    let lang = this.getAttribute("lang");
+    let id = this.getAttribute("id");
+    if(id != null) {
+      return '``` ' + lang + ' {' + id + '}\n' + this.textContent + '\n```\n';
+    } else {
+      return '``` ' + lang + '\n' + this.textContent + '\n```\n';
+    }
   }
   connectedCallback() {
     super.connectedCallback();
@@ -740,7 +749,7 @@ export class CodeBlock extends LeafElement {
   highlight() {
     let lang = this.getAttribute("lang");
     if(lang != null && this.textContent != null) {
-      this.textContent = hljs.highlight(lang, this.textContent).value;
+      this.innerHTML = hljs.highlight(lang, this.textContent).value;
     }
   }
 }

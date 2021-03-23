@@ -15,15 +15,19 @@ export class MarkdownEditableComponentsRenderer extends Renderer
     }
     if(lang) {
       let id: string;
-      [id, lang] = this.parseAnchor("code-" + Math.random() + "-", lang);
-      return this.codeWithAnchor(code, lang, id);
+      [id, lang] = this.parseAnchor("code-" + (Date.now() + Math.random()), lang, false);
+      return this.codeWithAnchor(code, lang, id, escaped);
     } else {
       return this.codeWithAnchor(code, lang, undefined, escaped);
     }
   }
-  codeWithAnchor(code: string, lang?: string, id?: string, _escaped?: boolean): string {
+  codeWithAnchor(code: string, lang?: string, id?: string, escaped?: boolean): string {
     let langAttr = lang ? `lang='${lang}'` : "";
     let idAttr = id ? `id='${id}'` : "";
+    if(!escaped && this.options.escape) {
+      code = this.options.escape?.call(this, code);
+      escaped = true;
+    }
     return `<markdown-code ${langAttr} ${idAttr}>${code}</markdown-code>`;
   }
   blockquote(quote: string): string {
@@ -35,7 +39,7 @@ export class MarkdownEditableComponentsRenderer extends Renderer
   heading(text: string, level: number, raw: string)
   {
     let id: string;
-    [id, text] = this.parseAnchor("heading-", text);
+    [id, text] = this.parseAnchor("heading-", text, true);
     return this.headingWithAnchor(text, level, raw, id);
   }
   headingWithAnchor(text: string, level: number, _raw: string, id?: string) {
@@ -106,7 +110,7 @@ https://github.com/syntax-tree/mdast#code
 https://stackoverflow.com/questions/5319754/cross-reference-named-anchor-in-markdown
 https://github.com/ts-stack/markdown#overriding-renderer-methods
 */
-  parseAnchor(idPrefix: string, text: string): [string, string]
+  parseAnchor(idPrefix: string, text: string, useTextInId: boolean): [string, string]
   {
     const regexp = /\s*{([^}]+)}$/;
     const execArr = regexp.exec(text);
@@ -118,7 +122,9 @@ https://github.com/ts-stack/markdown#overriding-renderer-methods
     }
     else
     {
-      id += text.toLocaleLowerCase().replace(/[^\wа-яіїє]+/gi, '-');
+      if(useTextInId) {
+        id += text.toLocaleLowerCase().replace(/[^\wа-яіїє]+/gi, '-');
+      }
     }
     return [id, text];
   }

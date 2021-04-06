@@ -927,7 +927,7 @@ export class HTML extends LeafElement {
   `;
   }
   getMarkdown(): string {
-    return this.innerHTML.trimLeft().trimRight() + '\n';
+    return this.innerHTML.trimLeft().trimRight() + '\n\n';
   }
 }
 

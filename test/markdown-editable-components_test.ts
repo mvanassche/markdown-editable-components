@@ -1,13 +1,14 @@
-import { Document } from '../index';
 //import {Paragraph} from '../markdown-editable-components.js';
 //import {fixture, html} from '@open-wc/testing';
+
+import { MarkdownDocument } from "../src/markdown-components/markdown-document";
 
 const assert = chai.assert;
 
 suite('markdown-document', () => {
   test('is defined', () => {
     const el = document.createElement('markdown-document');
-    assert.instanceOf(el, Document);
+    assert.instanceOf(el, MarkdownDocument);
   });
 
   /*test('renders with default values', async () => {

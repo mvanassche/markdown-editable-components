@@ -6,9 +6,9 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "./build",
-    "declarationDir": "./",
-    "rootDir": "./src",
+    "outDir": "./out-tsc",
+    "declarationDir": "./types",
+    "rootDir": "./",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -27,6 +27,6 @@
       }
     ]
   },
-  "include": ["src/**/*.ts"],
-  "exclude": []
+  "include": ["**/*.ts"],
+  "exclude": ["types/"]
 }

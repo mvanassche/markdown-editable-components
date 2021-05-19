@@ -1,5 +1,5 @@
 import { LitElement, html, customElement, css } from 'lit-element';
-import { LeafElement } from './abstract/leaf-element';
+import { LeafElement } from '../markdown-components/abstract/leaf-element';
 
 @customElement('markdown-selection-actions')
 export class SelectionActions extends LitElement {
@@ -21,8 +21,8 @@ export class SelectionActions extends LitElement {
     return html`
       <div>
         <div class="toolbar">
-          <button @click=${this._title1}>Make title 1</button>
-          <button @click=${this._title1Element}>Make title 1 element</button>
+          <button @click=${this._header1}>Make header 1</button>
+          <button @click=${this._header1Element}>Make header 1 element</button>
           <slot name="toolbar"></slot>
         </div>
         <slot></slot>
@@ -30,12 +30,12 @@ export class SelectionActions extends LitElement {
     `;
   }
 
-  _title1() {
-    this.applyTo?.selectionToBlock('markdown-title-1');
+  _header1() {
+    this.applyTo?.selectionToBlock('markdown-header-1');
   }
 
-  _title1Element() {
-    const element = document.createElement('markdown-title-1');
+  _header1Element() {
+    const element = document.createElement('markdown-header-1');
 
     Array.from(this.applyTo!.childNodes).forEach((child) => { element.append(child) });
 

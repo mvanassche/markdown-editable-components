@@ -6,6 +6,7 @@ export abstract class InlineElement extends MarkdownLitElement {
     super.connectedCallback();
     //this.setAttribute("contenteditable", "true");
   }
+
   getMarkdown(): string {
     return getMarkdownWithTextForElement(this);
   }

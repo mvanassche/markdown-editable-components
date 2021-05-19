@@ -1,7 +1,7 @@
 import { LitElement, html, customElement, property, css } from 'lit-element';
+import { MarkdownDocument } from '../markdown-editor-components/markdown-document';
 import { Heading } from './abstract/heading';
 import { MarkdownElement } from './interfaces/markdown-element';
-import { MarkdownDocument } from './markdown-document';
 
 @customElement('markdown-toc')
 export class TableOfContent extends LitElement implements MarkdownElement {

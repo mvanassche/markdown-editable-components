@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8">
     <title>&lt;markdown-editable-components> Demo</title>
-    <script type="module" src="../build/index.js"></script>
+    <script src="../build/index.js"></script>
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
@@ -12,31 +12,42 @@
     <!--script src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/12.0.4/markdown-it.min.js" integrity="sha512-0DkA2RqFvfXBVeti0R1l0E8oMkmY0X+bAA2i02Ld8xhpjpvqORUcE/UBe+0KOPzi5iNah0aBpW6uaNNrqCk73Q==" crossorigin="anonymous"></script-->
     <script>
       document.addEventListener("DOMContentLoaded", function() {
-        var content = "# title1";
-        document.getElementById("empty").markdown = content;
-        document.getElementById("test").onclick = function() {
-          console.log(document.getElementById("from-dom").markdown);
-          document.getElementById("empty").markdown = document.getElementById("from-dom").markdown;
-        };
+        // var content = "# title1";
+        // document.getElementById("empty").markdown = content;
+        // document.getElementById("test").onclick = function() {
+        //   console.log(document.getElementById("from-dom").markdown);
+        //   document.getElementById("empty").markdown = document.getElementById("from-dom").markdown;
+        // };
       });
     </script>
     <style>
       body {
         font-family: 'Segoe UI', sans-serif;
       }
-      markdown-document {
+      /* markdown-document {
         width: 90%;
         height: 250px;
         overflow-y: auto;
-      }
+      } */
     </style>
   </head>
   <body>
-    <markdown-document id="from-dom">
+    <markdown-editor>
+      <markdown-document id="from-dom">
+        <markdown-header-1>Header 1</markdown-header-1>
+        <markdown-header-2>Header 2</markdown-header-2>
+        <markdown-paragraph>
+          This is child content
+          More than one line is still a paragraph and <markdown-code-span>12345</markdown-code-span> is code span
+        </markdown-paragraph>
+      </markdown-document>
+    </markdown-editor>
+
+    <!-- <markdown-document id="from-dom">
       <markdown-toc></markdown-toc>
       <markdown-toolbar slot="toolbar"></markdown-toolbar>
-      <markdown-title-1>Title1</markdown-title-1>
-      <markdown-title-2>Title2</markdown-title-2>
+      <markdown-header-1>Title1</markdown-header-1>
+      <markdown-header-2>Title2</markdown-header-2>
       <markdown-paragraph>
         This is child content
         More than one line is still a paragraph and <markdown-code-span>12345</markdown-code-span> is code span
@@ -53,17 +64,17 @@
         </markdown-list-item>
       </markdown-list>
       <markdown-break></markdown-break>
-      <markdown-title-2>Title3</markdown-title-2>
-      <markdown-title-3>Title4</markdown-title-3>
-      <markdown-title-6>Title out</markdown-title-6>
-      <markdown-title-2>Title back</markdown-title-2>
-          <markdown-code lang='js' id='code-123'>
+      <markdown-header-2>Title3</markdown-header-2>
+      <markdown-header-3>Title4</markdown-header-3>
+      <markdown-header-6>Title out</markdown-header-6>
+      <markdown-header-2>Title back</markdown-header-2>
+      <markdown-code lang='js' id='code-123'>
         console.log("TEST");
       </markdown-code>
 
-      <!--markdown-html>
+      <markdown-html>
         <input></input> TODO fix the </input> not showing!!
-      </markdown-html-->
+      </markdown-html>
       <markdown-break></markdown-break>
 
       <markdown-table>
@@ -85,10 +96,11 @@
       </markdown-table>
       <markdown-link destination='http://www.logic.tools' title='logic tools'>Logic Tools</markdown-link>
       <markdown-image destination='https://www.logic.tools/wp-content/uploads/2020/09/Logic-TOOLS-TRANS-300x212.png' title='logic tools'>Logic Tools</markdown-image>
-    </markdown-document>
-    <markdown-document id="empty">
+    </markdown-document> -->
+
+    <!-- <markdown-document id="empty">
     </markdown-document>
 
-    <button id="test">TEST</button>
+    <button id="test">TEST</button> -->
   </body>
 </html>

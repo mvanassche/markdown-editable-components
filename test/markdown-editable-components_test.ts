@@ -1,7 +1,6 @@
-//import {Paragraph} from '../markdown-editable-components.js';
+//import {MarkdownParagraph} from '../markdown-editable-components.js';
 //import {fixture, html} from '@open-wc/testing';
-
-import { MarkdownDocument } from "../src/markdown-components/markdown-document";
+import { MarkdownDocument } from "../src/markdown-editor-components/markdown-document";
 
 const assert = chai.assert;
 

@@ -4,7 +4,9 @@ import { LeafElement } from './abstract/leaf-element';
 
 @customElement('markdown-code')
 export class CodeBlock extends LeafElement {
+
   // TODO language string as property/attribute
+
   static styles = css``;
 
   render() {
@@ -28,9 +30,12 @@ export class CodeBlock extends LeafElement {
       return '``` ' + lang + '\n' + this.textContent + '\n```\n';
     }
   }
+
   connectedCallback() {
     super.connectedCallback();
+
     this.highlight();
+
     this.addEventListener("input", () => { 
       this.highlight() 
     });

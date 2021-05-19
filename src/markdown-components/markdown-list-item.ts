@@ -1,6 +1,6 @@
 import { html, customElement, property, css } from 'lit-element';
+import { MarkdownDocument } from '../markdown-editor-components/markdown-document';
 import { ContainerElement } from './abstract/container-element';
-import { MarkdownDocument } from './markdown-document';
 import { List } from './markdown-list';
 
 @customElement('markdown-list-item')

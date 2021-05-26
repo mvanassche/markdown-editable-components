@@ -1,17 +1,17 @@
 import { html, customElement, css } from 'lit-element';
 import { Heading } from './abstract/heading';
 
-@customElement('markdown-title-5')
-export class Title5 extends Heading {
-  depth = 5;
+@customElement('markdown-header-2')
+export class Header2 extends Heading {
+  depth = 2;
 
   static styles = css``;
 
   render() {
     return html`
-      <h5>
+      <h2>
         <slot></slot>
-      </h5>
+      </h2>
       <markdown-selection-actions></markdown-selection-actions>
     `;
   }

@@ -1,9 +1,12 @@
-import { SelectionActions } from "../markdown-selection-actions";
+import { SelectionActions } from "../../markdown-editor-components/markdown-selection-actions";
 import { BlockElement } from "./block-element";
 
 export abstract class LeafElement extends BlockElement {
 
   selection = false;
+  _selectionChangeHandler: any;
+  selectionToolBar: SelectionActions | null = null;
+  showSelectionToolBarTimeout: any = null;
 
   selectionToBlock(elementName: string) {
     const selection = document.getSelection()!;
@@ -15,6 +18,7 @@ export abstract class LeafElement extends BlockElement {
     const range = selection.getRangeAt(0);
     range.deleteContents();
     range.insertNode(element);
+
     this.normalizeChildren();
   }
 
@@ -82,8 +86,6 @@ export abstract class LeafElement extends BlockElement {
     this.setupSelectionToolbar();
   }
 
-  _selectionChangeHandler: any;
-
   connectedCallback() {
     super.connectedCallback();
     //this.setAttribute("contenteditable", "true");
@@ -103,7 +105,6 @@ export abstract class LeafElement extends BlockElement {
     }
   }
 
-
   documentSelectionChange() {
     if (document.getSelection()?.rangeCount == 1 && !document.getSelection()?.getRangeAt(0).collapsed && document.getSelection()?.anchorNode != null && this.contains((document.getSelection()?.anchorNode as Node))) {
       this.selection = true;
@@ -113,8 +114,6 @@ export abstract class LeafElement extends BlockElement {
       this.selection = false;
     }
   }
-
-  selectionToolBar: SelectionActions | null = null;
 
   setupSelectionToolbar() {
     if ((this.shadowRoot!.querySelector('markdown-selection-actions') as SelectionActions) != null) {
@@ -126,15 +125,15 @@ export abstract class LeafElement extends BlockElement {
     }
   }
 
-  showSelectionToolBarTimeout: any = null;
-
   showSelectionToolbar() {
     if (this.selectionToolBar != null) {
       if (this.showSelectionToolBarTimeout != null) {
         clearTimeout(this.showSelectionToolBarTimeout);
       }
+
       this.showSelectionToolBarTimeout = setTimeout(() => {
         this.showSelectionToolBarTimeout = null;
+
         if (this.selection) {
           this.selectionToolBar!.style.display = 'block';
           this.selectionToolBar!.style.top = document.getSelection()?.getRangeAt(0).getBoundingClientRect().bottom + 'px';

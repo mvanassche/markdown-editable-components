@@ -3,7 +3,7 @@ import { LeafElement } from './abstract/leaf-element';
 import { isMarkdownElement } from './functions';
 
 @customElement('markdown-paragraph')
-export class Paragraph extends LeafElement {
+export class MarkdownParagraph extends LeafElement {
   static styles = css`
     :host {
       position: relative;

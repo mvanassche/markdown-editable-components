@@ -2,9 +2,9 @@
   "name": "markdown-editable-components",
   "version": "0.2.0",
   "description": "Markdown web components",
-  "main": "index.js",
-  "module": "index.js",
-  "types": "index.d.ts",
+  "main": "./build/index.js",
+  "module": "./build/index.js",
+  "types": "./types/src/index.d.ts",
   "scripts": {
     "build": "tsc && rollup --config",
     "build:watch": "tsc --watch",

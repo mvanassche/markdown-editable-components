@@ -96,6 +96,8 @@ export class MarkdownDocument extends LitElement {
 
   public getCurrentLeafBlock(): LeafElement | null {
     const anchorNode = document.getSelection()?.anchorNode;
+    // console.log('anchorNode');
+    // console.log(anchorNode);
 
     if (anchorNode != null) {
       let element: Node | null = anchorNode;

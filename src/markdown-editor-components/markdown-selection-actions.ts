@@ -31,7 +31,7 @@ export class SelectionActions extends LitElement {
   }
 
   _header1() {
-    this.applyTo?.selectionToBlock('markdown-header-1');
+  //   this.applyTo?.selectionToBlock('markdown-header-1');
   }
 
   _header1Element() {

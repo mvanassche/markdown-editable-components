@@ -4,8 +4,6 @@ import { LitElement, html, customElement, css } from 'lit-element';
 export class ToolbarSeparator extends LitElement {
 
   static styles = css`
-    :host {
-    }
     .separator {
       width: 1px;
       background-color: gray;

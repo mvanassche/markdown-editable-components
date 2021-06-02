@@ -1,8 +1,7 @@
 import { LitElement, html, customElement, css } from 'lit-element';
 
-@customElement('material-icon-button')
-export class MaterialIconButton extends LitElement {
-
+@customElement('material-icon')
+export class MaterialIcon extends LitElement {
   static styles = css`
     @font-face {
       font-family: 'Material Icons';
@@ -10,7 +9,6 @@ export class MaterialIconButton extends LitElement {
       font-weight: 400;
       src: url(https://fonts.gstatic.com/s/materialicons/v70/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2) format('woff2');
     }
-
     .material-icons {
       font-family: 'Material Icons';
       font-weight: normal;
@@ -31,12 +29,7 @@ export class MaterialIconButton extends LitElement {
 
   render() {
     return html`
-      <toolbar-button>
-        <i class="material-icons"><slot></slot></i>
-      </toolbar-button>
+      <i class="material-icons"><slot></slot></i>
     `;
-  }
-
-  firstUpdated() {
   }
 }

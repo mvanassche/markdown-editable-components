@@ -8,27 +8,57 @@ export abstract class LeafElement extends BlockElement {
   selectionToolBar: SelectionActions | null = null;
   showSelectionToolBarTimeout: any = null;
 
-  selectionToBlock(elementName: string) {
-    const selection = document.getSelection()!;
-    const selection_text = selection.toString();
+  connectedCallback() {
+    super.connectedCallback();
 
-    const element = document.createElement(elementName);
-    element.textContent = selection_text;
+    // console.log('leafElement connectedCallback');
+    // console.log(this);
+    //this.setAttribute("contenteditable", "true");
 
-    const range = selection.getRangeAt(0);
-    range.deleteContents();
-    range.insertNode(element);
+    this.addEventListener("input", () => {
+      console.log('normalize');
 
-    this.normalizeChildren();
+      this.normalizeChildren()
+    });
+
+    this.addEventListener('selectstart', () => {
+      // console.log('selectstart');
+
+      this.selection = true;
+
+      // get the document
+      // console.log('focus ' + this.tagName);
+    });
+
+    this._selectionChangeHandler = this.documentSelectionChange.bind(this);
+    // this._selectionChangeHandler = this.documentSelectionChange;
+
+    document.addEventListener('selectionchange', this._selectionChangeHandler);
   }
+
+  // selectionToBlock(elementName: string) {
+  //   const selection = document.getSelection()!;
+  //   const selection_text = selection.toString();
+
+  //   const element = document.createElement(elementName);
+  //   element.textContent = selection_text;
+
+  //   const range = selection.getRangeAt(0);
+  //   range.deleteContents();
+  //   range.insertNode(element);
+
+  //   this.normalizeChildren();
+  // }
 
   normalizeChildren() {
     let changed = false;
 
     do {
       let currentChanged = false;
+
       for (let i = 0; i < this.childNodes.length; i++) {
         const content = this.childNodes[i];
+
         if (content instanceof HTMLDivElement) {
           content.remove();
           const next = document.createElement(this.tagName);
@@ -86,19 +116,6 @@ export abstract class LeafElement extends BlockElement {
     this.setupSelectionToolbar();
   }
 
-  connectedCallback() {
-    super.connectedCallback();
-    //this.setAttribute("contenteditable", "true");
-    this.addEventListener("input", () => { this.normalizeChildren() });
-    this.addEventListener('selectstart', () => { 
-      this.selection = true;
-      // get the document
-      console.log('focus ' + this.tagName);
-    });
-    this._selectionChangeHandler = this.documentSelectionChange.bind(this);
-    document.addEventListener('selectionchange', this._selectionChangeHandler);
-  }
-
   disconnectedCallback() {
     if (this._selectionChangeHandler) {
       document.removeEventListener('selectionchange', this._selectionChangeHandler);
@@ -106,19 +123,30 @@ export abstract class LeafElement extends BlockElement {
   }
 
   documentSelectionChange() {
-    if (document.getSelection()?.rangeCount == 1 && !document.getSelection()?.getRangeAt(0).collapsed && document.getSelection()?.anchorNode != null && this.contains((document.getSelection()?.anchorNode as Node))) {
+    // console.log('this.documentSelectionChange');
+    // console.log(this);
+
+    if (
+      document.getSelection()?.rangeCount == 1
+      && !document.getSelection()?.getRangeAt(0).collapsed
+      && document.getSelection()?.anchorNode != null
+      && this.contains((document.getSelection()?.anchorNode as Node))
+    ) {
       this.selection = true;
-      this.showSelectionToolbar();
+      // this.showSelectionToolbar();
     } else {
-      this.hideSelectionToolbar();
+      // this.hideSelectionToolbar();
       this.selection = false;
     }
   }
 
   setupSelectionToolbar() {
-    if ((this.shadowRoot!.querySelector('markdown-selection-actions') as SelectionActions) != null) {
-      this.selectionToolBar = (this.shadowRoot!.querySelector('markdown-selection-actions') as SelectionActions);
+    const markdownSelectionActions = this.shadowRoot!.querySelector('markdown-selection-actions') as SelectionActions;
+
+    if (markdownSelectionActions != null) {
+      this.selectionToolBar = markdownSelectionActions;
     }
+
     if (this.selectionToolBar != null) {
       this.hideSelectionToolbar();
       this.selectionToolBar.applyTo = this;

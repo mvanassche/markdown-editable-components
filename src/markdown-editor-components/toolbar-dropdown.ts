@@ -35,7 +35,7 @@ export class ToolbarDropdown extends LitElement {
   }
 
   firstUpdated() {
-    document.addEventListener('click', () => {
+    document.addEventListener('mousedown', () => {
       this.hideDropdown();
     });
   }

@@ -77,13 +77,13 @@ export class Toolbar extends LitElement {
           <toolbar-separator></toolbar-separator>
 
           <bold-toolbar-button @click=${this.boldButtonClick}></bold-toolbar-button>
-          <toolbar-button>
+          <toolbar-button @click=${this.italicButtonClick}>
             <material-icon>format_italic</material-icon>
           </toolbar-button>
-          <toolbar-button>
+          <toolbar-button @click=${this.underlineButtonClick}>
             <material-icon>format_underlined</material-icon>
           </toolbar-button>
-          <toolbar-button>
+          <toolbar-button @click=${this.strikeButtonClick}>
             <material-icon>format_strikethrough</material-icon>
           </toolbar-button>
 
@@ -107,7 +107,7 @@ export class Toolbar extends LitElement {
 
           <toolbar-separator></toolbar-separator>
 
-          <toolbar-button>
+          <toolbar-button @click=${this.listBulletedClick}>
             <material-icon>format_list_bulleted</material-icon>
           </toolbar-button>
           <toolbar-button>
@@ -116,25 +116,38 @@ export class Toolbar extends LitElement {
 
           <toolbar-separator></toolbar-separator>
 
-          <toolbar-button>
+          <toolbar-button @click=${this.codeButtonClick}>
             <material-icon>format_quote</material-icon>
           </toolbar-button>
           <toolbar-button>
             <material-icon>border_all</material-icon>
           </toolbar-button>
-          <toolbar-button>
+          <toolbar-button @click=${this.breakButtonClick}>
             <material-icon>horizontal_rule</material-icon>
           </toolbar-button>
           <toolbar-button>
             <material-icon>format_size</material-icon>
           </toolbar-button>
-          <toolbar-button>
+
+          <toolbar-dropdown>
             <material-icon>insert_photo</material-icon>
-          </toolbar-button>
-          <toolbar-button>
+            <dropdown-elements slot='dropdown-elements' id='insert-photo'>
+              URL: <input type="text" class="insert-photo-url">
+              Description: <input type="text" class="insert-photo-text">
+              <button @click=${this.insertPhotoButtonClick}>Insert</button>
+            </dropdown-elements>
+          </toolbar-dropdown>
+
+          <toolbar-dropdown>
             <material-icon>insert_link</material-icon>
-          </toolbar-button>
-          <toolbar-button>
+            <dropdown-elements slot='dropdown-elements' id='insert-link'>
+              URL: <input type="text" class="insert-link-url">
+              Text: <input type="text" class="insert-link-text">
+              <button @click=${this.insertLinkButtonClick}>Insert</button>
+            </dropdown-elements>
+          </toolbar-dropdown>
+
+          <toolbar-button @click=${this.codeBlockButtonClick}>
             <material-icon>code</material-icon>
           </toolbar-button>
 
@@ -170,12 +183,37 @@ export class Toolbar extends LitElement {
     super.connectedCallback();
 
     this.addEventListener('mousedown', (e) => {
+      // e;
       e.preventDefault();
-      // console.log('mousedown');
+      // console.log('mousesdown');
     });
   }
 
+  insertPhotoButtonClick() {
+    const photoURLInput = this.shadowRoot?.querySelector('input.insert-photo-url') as HTMLInputElement;
+    const photoTextInput = this.shadowRoot?.querySelector('input.insert-photo-text') as HTMLInputElement;
+
+    this.markdownEditor?.insertPhoto(photoURLInput.value, photoTextInput.value);
+  }
+
+  insertLinkButtonClick() {
+    const linkURLInput = this.shadowRoot?.querySelector('input.insert-link-url') as HTMLInputElement;
+    const linkTextInput = this.shadowRoot?.querySelector('input.insert-link-text') as HTMLInputElement;
+
+    this.markdownEditor?.insertLink(linkURLInput.value, linkTextInput.value);
+  }
+
   firstUpdated() {
+    this.shadowRoot?.querySelector('dropdown-elements#insert-link')?.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      // e.preventDefault();
+    }, false);
+
+    this.shadowRoot?.querySelector('dropdown-elements#insert-photo')?.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      // e.preventDefault();
+    }, false);
+
     const boldButton = this.shadowRoot?.querySelector('bold-toolbar-button');
     if (boldButton) {
       this.boldButton = boldButton as BoldToolbarButton;
@@ -220,11 +258,57 @@ export class Toolbar extends LitElement {
     this.markdownEditor?.pararaphElement();
   }
 
+  codeBlockButtonClick() {
+    this.markdownEditor?.makeCodeBlock();
+  }
+
   boldButtonClick(e: MouseEvent) {
     // e.preventDefault();
     e;
     // console.log(this.markdownEditor?.currentSelection);
     this.markdownEditor?.makeBold();
+  }
+
+  italicButtonClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.makeItalic();
+  }
+
+  underlineButtonClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.makeUnderline();
+  }
+
+  strikeButtonClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.makeStrike();
+  }
+
+  codeButtonClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.makeCodeInline();
+  }
+
+  breakButtonClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.makeBreak();
+  }
+
+  listBulletedClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.listBulletedClick();
   }
 
   highlightBoldButton() {

@@ -1,4 +1,6 @@
 import { LitElement, html, customElement, css } from 'lit-element';
+import { MarkdownImage } from '../markdown-components/markdown-image';
+import { MarkdownLink } from '../markdown-components/markdown-link';
 import { MarkdownDocument } from './markdown-document';
 import { Toolbar } from './markdown-toolbar';
 
@@ -26,19 +28,182 @@ export class MarkdownEditor extends LitElement {
   connectedCallback() {
     super.connectedCallback();
 
-    // document.addEventListener('selectstart', () => {
-    // });
-
-    // this.addEventListener('selectstart', () => {
-    // });
+    document.addEventListener('selectstart', () => {
+    });
 
     document.addEventListener('selectionchange', () => {
       const selection = document.getSelection();
-      console.log('selectionchange');
-      console.log(selection);
-      this.currentSelection = selection;
-      this.affectToolbar();
+      if (selection?.anchorNode) {
+        if (document.querySelector('markdown-document')?.contains(selection?.anchorNode)) {
+          this.currentSelection = selection;
+          this.affectToolbar();
+        } else {
+          //
+        }
+      }
     });
+
+    document.addEventListener('keyup', (e: KeyboardEvent) => {
+      e;
+
+      document.querySelectorAll('markdown-paragraph').forEach(markdownParagraphEl => {
+        if (markdownParagraphEl.childNodes.length > 1) {
+          markdownParagraphEl.childNodes.forEach(el => {
+            if (el.nodeName === 'BR') {
+              el.remove();
+            }
+          })
+        }
+
+        if (markdownParagraphEl.childNodes.length === 0) {
+          markdownParagraphEl.appendChild(document.createElement('br'));
+        }
+      });
+    });
+
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      console.log(e.code);
+
+      if (e.code === 'Enter') {
+        e.preventDefault();
+
+        this.handleEnterKeyDown();
+      } else if (e.code === 'Backspace') {
+        this.handleBackspaceKeyDown();
+      } else if (e.code === 'Tab') {
+        e.preventDefault();
+
+        this.handleTabKeyDown();
+      } else if (e.code === 'ArrowLeft') {
+        this.handleArrowLeftKeyDown(e);
+      }
+    });
+  }
+
+  handleArrowLeftKeyDown(e: KeyboardEvent) {
+    const anchorOffset = this.currentSelection?.anchorOffset;
+    const focusOffset = this.currentSelection?.focusOffset;
+    const parent = this.currentSelection?.anchorNode?.parentElement;
+    const previousSibling = parent?.previousSibling;
+
+    if (previousSibling?.firstChild && anchorOffset === 0 && focusOffset === 0) {
+      e.preventDefault();
+
+      const range = document.createRange();
+      if (previousSibling?.firstChild.nodeName === "BR") {
+        range.selectNodeContents(previousSibling);
+        range.collapse(true);
+        this.currentSelection?.removeAllRanges();
+        this.currentSelection?.addRange(range);
+      } else {
+        range.selectNodeContents(previousSibling?.firstChild);
+        range.collapse();
+        this.currentSelection?.removeAllRanges();
+        this.currentSelection?.addRange(range);
+      }
+    }
+  }
+
+  handleEnterKeyDown() {
+    const anchorOffset = this.currentSelection?.anchorOffset;
+    const focusOffset = this.currentSelection?.focusOffset;
+    const parent = this.currentSelection?.anchorNode?.parentElement;
+
+    if (parent && typeof anchorOffset !== 'undefined' && typeof focusOffset !== 'undefined') {
+      let replacementLeft, replacementRight;
+
+      if (parent?.tagName === 'MARKDOWN-PARAGRAPH') {
+        replacementLeft = document.createElement('markdown-paragraph');
+        replacementRight = document.createElement('markdown-paragraph');
+      } else if (parent?.tagName === 'MARKDOWN-LIST-ITEM') {
+        replacementLeft = document.createElement('MARKDOWN-LIST-ITEM');
+        replacementRight = document.createElement('MARKDOWN-LIST-ITEM');
+      } else {
+        //
+      }
+
+      if (replacementLeft && replacementRight) {
+        replacementLeft.innerHTML = parent?.innerHTML?.slice(0, anchorOffset);
+        replacementRight.innerHTML = parent?.innerHTML?.slice(focusOffset);
+
+        if (replacementLeft.innerHTML.length === 0) {
+          replacementLeft.innerHTML = "<br />";
+        }
+
+        if (replacementRight.innerHTML.length === 0) {
+          replacementRight.innerHTML = "<br />";
+        }
+
+        parent.replaceWith(replacementLeft);
+        replacementLeft.after(replacementRight);
+
+        if (replacementRight?.firstChild) {
+          const range = document.createRange();
+          if (replacementRight?.firstChild.nodeName === "BR") {
+            range.selectNodeContents(replacementRight);
+            range.collapse(true);
+            this.currentSelection?.removeAllRanges();
+            this.currentSelection?.addRange(range);
+          } else {
+            range.selectNodeContents(replacementRight?.firstChild);
+            range.collapse(true);
+            this.currentSelection?.removeAllRanges();
+            this.currentSelection?.addRange(range);
+          }
+        }
+      }
+    }
+  }
+
+  makeBreak() {
+    const anchorOffset = this.currentSelection?.anchorOffset;
+    const focusOffset = this.currentSelection?.focusOffset;
+    const parent = this.currentSelection?.anchorNode?.parentElement;
+
+    if (parent && anchorOffset && focusOffset) {
+      const replacementLeft = document.createElement('markdown-paragraph');
+      const replacementRight = document.createElement('markdown-paragraph');
+      const markdownBreak = document.createElement('markdown-break');
+
+      replacementLeft.innerHTML = parent?.innerHTML?.slice(0, anchorOffset);
+      replacementRight.innerHTML = parent?.innerHTML?.slice(focusOffset);
+
+      if (replacementLeft.innerHTML.length === 0) {
+        replacementLeft.innerHTML = "<br />";
+      }
+
+      if (replacementRight.innerHTML.length === 0) {
+        replacementRight.innerHTML = "<br />";
+      }
+
+      parent.replaceWith(replacementLeft);
+      replacementLeft.after(markdownBreak);
+      markdownBreak.after(replacementRight);
+
+      const range = document.createRange();
+      range.selectNodeContents(replacementRight);
+      range.collapse(true);
+      this.currentSelection?.removeAllRanges();
+      this.currentSelection?.addRange(range);
+    }
+  }
+
+  handleBackspaceKeyDown() {
+
+  }
+
+  handleTabKeyDown() {
+    const parent = this.currentSelection?.anchorNode?.parentElement;
+    
+    if (parent) {
+      const list = document.createElement('markdown-list');
+      const item = document.createElement('markdown-list-item');
+
+      item.innerHTML = parent?.innerHTML;
+      list.appendChild(item);
+      parent.innerHTML= '&nbsp';
+      parent.appendChild(list);
+    }
   }
 
   affectToolbar() {
@@ -80,13 +245,9 @@ export class MarkdownEditor extends LitElement {
   }
 
   makeBold() {
-    // console.log(this.currentSelection);
     const anchorOffset = this.currentSelection?.anchorOffset;
     const focusOffset = this.currentSelection?.focusOffset;
     const parent = this.currentSelection?.anchorNode?.parentElement;
-    // const selectionString = this.currentSelection?.toString();
-
-    // this.currentSelection?.deleteFromDocument();
 
     if (parent && anchorOffset && focusOffset) {
       const selectionLength = focusOffset - anchorOffset;
@@ -103,9 +264,157 @@ export class MarkdownEditor extends LitElement {
       range.selectNodeContents(replacement);
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
+    }
+  }
 
-      // console.log(this.currentSelection?.anchorNode.split);
-      // parent.innerHTML = `${parent?.innerHTML?.slice(0, anchorOffset)}<b>${selectionString}</b>${parent?.innerHTML?.slice(focusOffset)}`;
+  makeItalic() {
+    const anchorOffset = this.currentSelection?.anchorOffset;
+    const focusOffset = this.currentSelection?.focusOffset;
+    const parent = this.currentSelection?.anchorNode?.parentElement;
+
+    if (parent && anchorOffset && focusOffset) {
+      const selectionLength = focusOffset - anchorOffset;
+
+      const text = this.currentSelection?.anchorNode as Text;
+      const secondPart = text.splitText(anchorOffset);
+      const thirdPart = secondPart.splitText(selectionLength);
+      thirdPart;
+      const replacement = document.createElement('i');
+      replacement.appendChild(document.createTextNode(secondPart.data))
+      secondPart.replaceWith(replacement);
+
+      const range = document.createRange();
+      range.selectNodeContents(replacement);
+      this.currentSelection?.removeAllRanges();
+      this.currentSelection?.addRange(range);
+    }
+  }
+
+  makeUnderline() {
+    const anchorOffset = this.currentSelection?.anchorOffset;
+    const focusOffset = this.currentSelection?.focusOffset;
+    const parent = this.currentSelection?.anchorNode?.parentElement;
+
+    if (parent && anchorOffset && focusOffset) {
+      const selectionLength = focusOffset - anchorOffset;
+
+      const text = this.currentSelection?.anchorNode as Text;
+      const secondPart = text.splitText(anchorOffset);
+      const thirdPart = secondPart.splitText(selectionLength);
+      thirdPart;
+      const replacement = document.createElement('u');
+      replacement.appendChild(document.createTextNode(secondPart.data))
+      secondPart.replaceWith(replacement);
+
+      const range = document.createRange();
+      range.selectNodeContents(replacement);
+      this.currentSelection?.removeAllRanges();
+      this.currentSelection?.addRange(range);
+    }
+  }
+
+  makeStrike() {
+    const anchorOffset = this.currentSelection?.anchorOffset;
+    const focusOffset = this.currentSelection?.focusOffset;
+    const parent = this.currentSelection?.anchorNode?.parentElement;
+
+    if (parent && anchorOffset && focusOffset) {
+      const selectionLength = focusOffset - anchorOffset;
+
+      const text = this.currentSelection?.anchorNode as Text;
+      const secondPart = text.splitText(anchorOffset);
+      const thirdPart = secondPart.splitText(selectionLength);
+      thirdPart;
+      const replacement = document.createElement('strike');
+      replacement.appendChild(document.createTextNode(secondPart.data))
+      secondPart.replaceWith(replacement);
+
+      const range = document.createRange();
+      range.selectNodeContents(replacement);
+      this.currentSelection?.removeAllRanges();
+      this.currentSelection?.addRange(range);
+    }
+  }
+
+  makeCodeInline() {
+    const anchorOffset = this.currentSelection?.anchorOffset;
+    const focusOffset = this.currentSelection?.focusOffset;
+    const parent = this.currentSelection?.anchorNode?.parentElement;
+
+    if (parent && anchorOffset && focusOffset) {
+      const selectionLength = focusOffset - anchorOffset;
+
+      const text = this.currentSelection?.anchorNode as Text;
+      const secondPart = text.splitText(anchorOffset);
+      const thirdPart = secondPart.splitText(selectionLength);
+      thirdPart;
+      const replacement = document.createElement('markdown-code-span');
+      replacement.appendChild(document.createTextNode(secondPart.data))
+      secondPart.replaceWith(replacement);
+
+      const range = document.createRange();
+      range.selectNodeContents(replacement);
+      this.currentSelection?.removeAllRanges();
+      this.currentSelection?.addRange(range);
+    }
+  }
+
+  listBulletedClick() {
+    if (this.currentSelection?.anchorNode) {
+
+      const list = document.createElement('markdown-list');
+      const item = document.createElement('markdown-list-item');
+      item.innerHTML = "<br />";
+      list.appendChild(item);
+
+      (this.currentSelection?.anchorNode as HTMLElement).replaceWith(list);
+
+      const range = document.createRange();
+      range.selectNodeContents(item);
+      range.collapse(true);
+      this.currentSelection?.removeAllRanges();
+      this.currentSelection?.addRange(range);
+    }
+  }
+
+  insertPhoto(url: string, text: string) {
+    if (this.currentSelection?.anchorNode) {
+      const image = document.createElement('markdown-image') as MarkdownImage;
+      image.destination = url;
+      image.title = text;
+      image.innerHTML = 'Logic Tools';
+
+      const anchorOffset = this.currentSelection?.anchorOffset;
+      const focusOffset = this.currentSelection?.focusOffset;
+      const parent = this.currentSelection?.anchorNode?.parentElement;
+
+      if (parent && anchorOffset && focusOffset) {
+        const text = this.currentSelection?.anchorNode as Text;
+        const secondPart = text.splitText(anchorOffset);
+        secondPart;
+
+        text.after(image);
+      }
+    }
+  }
+
+  insertLink(url: string, text: string) {
+    if (this.currentSelection?.anchorNode) {
+      const link = document.createElement('markdown-link') as MarkdownLink;
+      link.destination = url;
+      link.innerHTML = text;
+
+      const anchorOffset = this.currentSelection?.anchorOffset;
+      const focusOffset = this.currentSelection?.focusOffset;
+      const parent = this.currentSelection?.anchorNode?.parentElement;
+  
+      if (parent && anchorOffset && focusOffset) {
+        const text = this.currentSelection?.anchorNode as Text;
+        const secondPart = text.splitText(anchorOffset);
+        secondPart;
+
+        text.after(link);
+      }
     }
   }
 
@@ -181,6 +490,16 @@ export class MarkdownEditor extends LitElement {
 
   pararaphElement() {
     const element = document.createElement('markdown-paragraph');
+    const oldElement = this.markdownDocument?.getCurrentLeafBlock();
+
+    if (oldElement != null) {
+      element.innerHTML = oldElement.innerHTML;
+      oldElement.replaceWith(element);
+    }
+  }
+
+  makeCodeBlock() {
+    const element = document.createElement('markdown-code');
     const oldElement = this.markdownDocument?.getCurrentLeafBlock();
 
     if (oldElement != null) {

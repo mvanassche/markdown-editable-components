@@ -2,7 +2,7 @@ import { html, customElement, property, css } from 'lit-element';
 import { InlineElement } from './abstract/inline-element';
 
 @customElement('markdown-image')
-export class Image extends InlineElement {
+export class MarkdownImage extends InlineElement {
   @property()
   destination: string = '';
 

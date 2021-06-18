@@ -4,8 +4,6 @@ import { LitElement, html, customElement, css } from 'lit-element';
 export class DropdownElement extends LitElement {
 
   static styles = css`
-    :host {
-    }
   `;
 
   render() {

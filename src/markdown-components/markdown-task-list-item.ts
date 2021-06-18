@@ -37,7 +37,6 @@ export class TaskListItem extends ListItem {
         <input type='checkbox' @change=${this._selection}/>
         <div class='item-container'><slot></slot></div>
       </div>
-    <!--markdown-selection-actions></markdown-selection-actions-->
   `;
   }
 

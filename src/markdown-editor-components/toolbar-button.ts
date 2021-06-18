@@ -1,11 +1,13 @@
-import { LitElement, html, customElement, css } from 'lit-element';
+import { LitElement, html, customElement, css, property } from 'lit-element';
+import { classMap } from 'lit-html/directives/class-map';
 
 @customElement('toolbar-button')
 export class ToolbarButton extends LitElement {
 
+  @property({ type: Boolean })
+  highlighted: boolean = false
+
   static styles = css`
-    :host {
-    }
     button {
       padding: 0;
       margin: 0;
@@ -14,16 +16,19 @@ export class ToolbarButton extends LitElement {
       vertical-align: center;
       height: 24px;
     }
+    button:hover {
+      background-color: lightblue;
+    }
+    .highlighted {
+      background-color: gray;
+    }
   `;
 
   render() {
     return html`
-      <button>
+      <button class=${classMap({ highlighted: this.highlighted })}>
         <slot></slot>
       </button>
     `;
-  }
-
-  firstUpdated() {
   }
 }

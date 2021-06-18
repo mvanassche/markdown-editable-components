@@ -16,7 +16,7 @@ export class ToolbarDropdown extends LitElement {
 
   render() {
     return html`
-      <toolbar-button @click=${this.showDropdown}>
+      <toolbar-button @mousedown=${this.showDropdown}>
         <slot></slot>
       </toolbar-button>
       <slot name='dropdown-elements'></slot>
@@ -24,7 +24,8 @@ export class ToolbarDropdown extends LitElement {
   }
 
   showDropdown(e: MouseEvent) {
-    e.stopPropagation();  
+    e.stopPropagation();
+
     const dropdownElements: HTMLElement = this.shadowRoot?.querySelector('slot[name=dropdown-elements]') as HTMLElement;
     dropdownElements.style.display = 'block';
   }
@@ -35,8 +36,8 @@ export class ToolbarDropdown extends LitElement {
   }
 
   firstUpdated() {
-    document.addEventListener('click', () => {
+    document.addEventListener('mousedown', () => {
       this.hideDropdown();
-    });
+    }, false);
   }
 }

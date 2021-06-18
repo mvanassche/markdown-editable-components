@@ -9,7 +9,6 @@ export class BlockQuote extends ContainerElement {
     <blockquote>
       <slot></slot>
     </blockquote>
-    <!-- <markdown-selection-actions></markdown-selection-actions> -->
   `;
   }
 

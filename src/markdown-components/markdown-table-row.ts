@@ -15,7 +15,6 @@ export class TableRow extends ContainerElement {
   render() {
     return html`
       <slot></slot>
-    <!--markdown-selection-actions></markdown-selection-actions-->
   `;
   }
 

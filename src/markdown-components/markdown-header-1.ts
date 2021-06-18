@@ -12,7 +12,6 @@ export class Header1 extends Heading {
       <h1>
         <slot></slot>
       </h1>
-      <markdown-selection-actions></markdown-selection-actions>
     `;
   }
 }

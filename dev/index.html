@@ -34,69 +34,59 @@
   <body>
     <markdown-editor>
       <markdown-document id="from-dom">
-        <markdown-header-1>Header 1</markdown-header-1>
-        <markdown-header-2>Header 2</markdown-header-2>
-        <markdown-paragraph>
-          This is child content
-          More than one line is still a paragraph and <markdown-code-span>12345</markdown-code-span> is code span
-        </markdown-paragraph>
+        <!-- <markdown-toc></markdown-toc> -->
+        <markdown-header-1>Title1</markdown-header-1>
+        <markdown-header-2>Title2</markdown-header-2>
+        <markdown-paragraph>This is child content</markdown-paragraph>
+        <markdown-paragraph>Still a paragraph and <markdown-code-span>12345</markdown-code-span> is code span</markdown-paragraph>
+        <markdown-list>
+          <markdown-list-item>123456789</markdown-list-item>
+          <markdown-list-item>ABCDEFG</markdown-list-item>
+          <markdown-list-item>
+            STU
+            <markdown-list>
+              <markdown-list-item>XYZ</markdown-list-item>
+              <markdown-task-list-item>XYZ</markdown-task-list-item>
+            </markdown-list>
+          </markdown-list-item>
+        </markdown-list>
+        <markdown-break></markdown-break>
+        <markdown-header-2>Title3</markdown-header-2>
+        <markdown-header-3>Title4</markdown-header-3>
+        <markdown-header-6>Title out</markdown-header-6>
+        <markdown-header-2>Title back</markdown-header-2>
+
+        <markdown-code lang='js' id='code-123'>
+          console.log("TEST");
+        </markdown-code>
+
+        <markdown-html>
+          <input></input> TODO fix the </input> not showing!!
+        </markdown-html>
+
+        <markdown-break></markdown-break>
+
+        <markdown-table>
+          <markdown-table-header-row>
+            <markdown-table-header-cell align="left">A1</markdown-table-header-cell>
+            <markdown-table-header-cell align="center">A2 lsfdkjlskdjf lksdjflsfdjk </markdown-table-header-cell>
+            <markdown-table-header-cell align="right">A3</markdown-table-header-cell>
+          </markdown-table-header-row>
+          <markdown-table-row>
+            <markdown-table-cell>A1</markdown-table-cell>
+            <markdown-table-cell>A2 lsfdkjlskdjf lksdjflsfdjk </markdown-table-cell>
+            <markdown-table-cell>A3</markdown-table-cell>
+          </markdown-table-row>
+          <markdown-table-row>
+            <markdown-table-cell>B1</markdown-table-cell>
+            <markdown-table-cell>B2</markdown-table-cell>
+            <markdown-table-cell>B3</markdown-table-cell>
+          </markdown-table-row>
+        </markdown-table>
+        <markdown-link destination='http://www.logic.tools' title='logic tools'>Logic Tools</markdown-link>
+        <markdown-image destination='https://www.logic.tools/wp-content/uploads/2020/09/Logic-TOOLS-TRANS-300x212.png' title='logic tools'>Logic Tools</markdown-image>
       </markdown-document>
     </markdown-editor>
-
-    <!-- <markdown-document id="from-dom">
-      <markdown-toc></markdown-toc>
-      <markdown-toolbar slot="toolbar"></markdown-toolbar>
-      <markdown-header-1>Title1</markdown-header-1>
-      <markdown-header-2>Title2</markdown-header-2>
-      <markdown-paragraph>
-        This is child content
-        More than one line is still a paragraph and <markdown-code-span>12345</markdown-code-span> is code span
-      </markdown-paragraph>
-      <markdown-list>
-        <markdown-list-item><markdown-paragraph>123456789</markdown-paragraph></markdown-list-item>
-        <markdown-list-item><markdown-paragraph>ABCDEFG</markdown-paragraph></markdown-list-item>
-        <markdown-list-item>
-          <markdown-paragraph>STU</markdown-paragraph>
-          <markdown-list>
-            <markdown-list-item><markdown-paragraph>XYZ</markdown-paragraph></markdown-list-item>
-            <markdown-task-list-item><markdown-paragraph>XYZ</markdown-paragraph></markdown-task-list-item>
-          </markdown-list>
-        </markdown-list-item>
-      </markdown-list>
-      <markdown-break></markdown-break>
-      <markdown-header-2>Title3</markdown-header-2>
-      <markdown-header-3>Title4</markdown-header-3>
-      <markdown-header-6>Title out</markdown-header-6>
-      <markdown-header-2>Title back</markdown-header-2>
-      <markdown-code lang='js' id='code-123'>
-        console.log("TEST");
-      </markdown-code>
-
-      <markdown-html>
-        <input></input> TODO fix the </input> not showing!!
-      </markdown-html>
-      <markdown-break></markdown-break>
-
-      <markdown-table>
-        <markdown-table-header-row>
-          <markdown-table-header-cell align="left">A1</markdown-table-header-cell>
-          <markdown-table-header-cell align="center">A2 lsfdkjlskdjf lksdjflsfdjk </markdown-table-header-cell>
-          <markdown-table-header-cell align="right">A3</markdown-table-header-cell>
-        </markdown-table-header-row>
-        <markdown-table-row>
-          <markdown-table-cell>A1</markdown-table-cell>
-          <markdown-table-cell>A2 lsfdkjlskdjf lksdjflsfdjk </markdown-table-cell>
-          <markdown-table-cell>A3</markdown-table-cell>
-        </markdown-table-row>
-        <markdown-table-row>
-          <markdown-table-cell>B1</markdown-table-cell>
-          <markdown-table-cell>B2</markdown-table-cell>
-          <markdown-table-cell>B3</markdown-table-cell>
-        </markdown-table-row>
-      </markdown-table>
-      <markdown-link destination='http://www.logic.tools' title='logic tools'>Logic Tools</markdown-link>
-      <markdown-image destination='https://www.logic.tools/wp-content/uploads/2020/09/Logic-TOOLS-TRANS-300x212.png' title='logic tools'>Logic Tools</markdown-image>
-    </markdown-document> -->
 
     <!-- <markdown-document id="empty">
     </markdown-document>

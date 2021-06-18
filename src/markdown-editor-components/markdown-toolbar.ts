@@ -1,10 +1,13 @@
 import { LitElement, html, customElement, css } from 'lit-element';
 import { MarkdownEditor } from './markdown-editor';
+import { BoldToolbarButton } from './toolbar-buttons/bold-toolbar-button';
 
 @customElement('markdown-toolbar')
 export class Toolbar extends LitElement {
 
   markdownEditor: MarkdownEditor | null = null;
+  boldButton: BoldToolbarButton | null = null;
+  dropdownTitle: Element | null = null;
 
   static styles = css`
     @font-face {
@@ -45,60 +48,130 @@ export class Toolbar extends LitElement {
       <div>
         <div class="toolbar">
           <toolbar-dropdown>
-            Heading 1 ▾
+            <span class='dropdown-title'>Heading 1</span> ▾
             <dropdown-elements slot='dropdown-elements'>
-              <dropdown-element @click=${this.header1Element}>
+              <dropdown-element @mousedown=${this.header1Element}>
                 <markdown-header-1>Heading 1</markdown-header-1>
               </dropdown-element>
-              <dropdown-element @click=${this.header2Element}>
+              <dropdown-element @mousedown=${this.header2Element}>
                 <markdown-header-2>Heading 2</markdown-header-2>
               </dropdown-element>
-              <dropdown-element @click=${this.header3Element}>
+              <dropdown-element @mousedown=${this.header3Element}>
                 <markdown-header-3>Heading 3</markdown-header-3>
               </dropdown-element>
-              <dropdown-element @click=${this.header4Element}>
+              <dropdown-element @mousedown=${this.header4Element}>
                 <markdown-header-4>Heading 4</markdown-header-4>
               </dropdown-element>
-              <dropdown-element @click=${this.header5Element}>
+              <dropdown-element @mousedown=${this.header5Element}>
                 <markdown-header-5>Heading 5</markdown-header-5>
               </dropdown-element>
-              <dropdown-element @click=${this.header6Element}>
+              <dropdown-element @mousedown=${this.header6Element}>
                 <markdown-header-6>Heading 6</markdown-header-6>
               </dropdown-element>
-              <dropdown-element @click=${this.pararaphElement}>
+              <dropdown-element @mousedown=${this.pararaphElement}>
                 <markdown-paragraph>Paragraph</markdown-paragraph>
               </dropdown-element>
             </dropdown-elements>
           </toolbar-dropdown>
+
           <toolbar-separator></toolbar-separator>
-          <material-icon-button @click=${this.hello}>format_bold</material-icon-button>
-          <material-icon-button @click=${this.hello}>format_italic</material-icon-button>
-          <material-icon-button @click=${this.hello}>format_underlined</material-icon-button>
-          <material-icon-button @click=${this.hello}>format_strikethrough</material-icon-button>
+
+          <bold-toolbar-button @click=${this.boldButtonClick}></bold-toolbar-button>
+          <toolbar-button @click=${this.italicButtonClick}>
+            <material-icon>format_italic</material-icon>
+          </toolbar-button>
+          <toolbar-button @click=${this.underlineButtonClick}>
+            <material-icon>format_underlined</material-icon>
+          </toolbar-button>
+          <toolbar-button @click=${this.strikeButtonClick}>
+            <material-icon>format_strikethrough</material-icon>
+          </toolbar-button>
+
           <toolbar-separator></toolbar-separator>
-          <material-icon-button @click=${this.hello}>format_align_left</material-icon-button>
-          <material-icon-button @click=${this.hello}>format_align_right</material-icon-button>
-          <material-icon-button @click=${this.hello}>format_align_center</material-icon-button>
-          <material-icon-button @click=${this.hello}>format_indent_increase</material-icon-button>
-          <material-icon-button @click=${this.hello}>format_indent_decrease</material-icon-button>
+
+          <toolbar-button>
+            <material-icon>format_align_left</material-icon>
+          </toolbar-button>
+          <toolbar-button>
+            <material-icon>format_align_right</material-icon>
+          </toolbar-button>
+          <toolbar-button>
+            <material-icon>format_align_center</material-icon>
+          </toolbar-button>
+          <toolbar-button>
+            <material-icon>format_indent_increase</material-icon>
+          </toolbar-button>
+          <toolbar-button>
+            <material-icon>format_indent_decrease</material-icon>
+          </toolbar-button>
+
           <toolbar-separator></toolbar-separator>
-          <material-icon-button @click=${this.hello}>format_list_bulleted</material-icon-button>
-          <material-icon-button @click=${this.hello}>format_list_numbered</material-icon-button>
+
+          <toolbar-button @click=${this.listBulletedClick}>
+            <material-icon>format_list_bulleted</material-icon>
+          </toolbar-button>
+          <toolbar-button>
+            <material-icon>format_list_numbered</material-icon>
+          </toolbar-button>
+
           <toolbar-separator></toolbar-separator>
-          <material-icon-button @click=${this.hello}>format_quote</material-icon-button>
-          <material-icon-button @click=${this.hello}>border_all</material-icon-button>
-          <material-icon-button @click=${this.hello}>horizontal_rule</material-icon-button>
-          <material-icon-button @click=${this.hello}>format_size</material-icon-button>
-          <material-icon-button @click=${this.hello}>insert_photo</material-icon-button>
-          <material-icon-button @click=${this.hello}>insert_link</material-icon-button>
-          <material-icon-button @click=${this.hello}>code</material-icon-button>
+
+          <toolbar-button @click=${this.codeButtonClick}>
+            <material-icon>format_quote</material-icon>
+          </toolbar-button>
+          <toolbar-button>
+            <material-icon>border_all</material-icon>
+          </toolbar-button>
+          <toolbar-button @click=${this.breakButtonClick}>
+            <material-icon>horizontal_rule</material-icon>
+          </toolbar-button>
+          <toolbar-button>
+            <material-icon>format_size</material-icon>
+          </toolbar-button>
+
+          <toolbar-dropdown>
+            <material-icon>insert_photo</material-icon>
+            <dropdown-elements slot='dropdown-elements' id='insert-photo'>
+              URL: <input type="text" class="insert-photo-url">
+              Description: <input type="text" class="insert-photo-text">
+              <button @click=${this.insertPhotoButtonClick}>Insert</button>
+            </dropdown-elements>
+          </toolbar-dropdown>
+
+          <toolbar-dropdown>
+            <material-icon>insert_link</material-icon>
+            <dropdown-elements slot='dropdown-elements' id='insert-link'>
+              URL: <input type="text" class="insert-link-url">
+              Text: <input type="text" class="insert-link-text">
+              <button @click=${this.insertLinkButtonClick}>Insert</button>
+            </dropdown-elements>
+          </toolbar-dropdown>
+
+          <toolbar-button @click=${this.codeBlockButtonClick}>
+            <material-icon>code</material-icon>
+          </toolbar-button>
+
           <toolbar-separator></toolbar-separator>
-          <material-icon-button @click=${this.hello}>content_copy</material-icon-button>
-          <material-icon-button @click=${this.hello}>content_cut</material-icon-button>
-          <material-icon-button @click=${this.hello}>content_paste</material-icon-button>
+
+          <toolbar-button>
+            <material-icon>content_copy</material-icon>
+          </toolbar-button>
+          <toolbar-button>
+            <material-icon>content_cut</material-icon>
+          </toolbar-button>
+          <toolbar-button>
+            <material-icon>content_paste</material-icon>
+          </toolbar-button>
+
           <toolbar-separator></toolbar-separator>
-          <material-icon-button @click=${this.hello}>check_box</material-icon-button>
-          <material-icon-button @click=${this.hello}>clear</material-icon-button>
+
+          <toolbar-button>
+            <material-icon>check_box</material-icon>
+          </toolbar-button>
+          <toolbar-button>
+            <material-icon>clear</material-icon>
+          </toolbar-button>
+
           <slot name="toolbar"></slot>
         </div>
         <slot></slot>
@@ -106,84 +179,154 @@ export class Toolbar extends LitElement {
     `;
   }
 
+  connectedCallback() {
+    super.connectedCallback();
+
+    this.addEventListener('mousedown', (e) => {
+      // e;
+      e.preventDefault();
+      // console.log('mousesdown');
+    });
+  }
+
+  insertPhotoButtonClick() {
+    const photoURLInput = this.shadowRoot?.querySelector('input.insert-photo-url') as HTMLInputElement;
+    const photoTextInput = this.shadowRoot?.querySelector('input.insert-photo-text') as HTMLInputElement;
+
+    this.markdownEditor?.insertPhoto(photoURLInput.value, photoTextInput.value);
+  }
+
+  insertLinkButtonClick() {
+    const linkURLInput = this.shadowRoot?.querySelector('input.insert-link-url') as HTMLInputElement;
+    const linkTextInput = this.shadowRoot?.querySelector('input.insert-link-text') as HTMLInputElement;
+
+    this.markdownEditor?.insertLink(linkURLInput.value, linkTextInput.value);
+  }
+
+  firstUpdated() {
+    this.shadowRoot?.querySelector('dropdown-elements#insert-link')?.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      // e.preventDefault();
+    }, false);
+
+    this.shadowRoot?.querySelector('dropdown-elements#insert-photo')?.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      // e.preventDefault();
+    }, false);
+
+    const boldButton = this.shadowRoot?.querySelector('bold-toolbar-button');
+    if (boldButton) {
+      this.boldButton = boldButton as BoldToolbarButton;
+    }
+
+    // TODO: make controller for the toolbar-dropdown
+    const dropdownTitle = this.shadowRoot?.querySelector('.dropdown-title');
+    if (dropdownTitle) {
+      this.dropdownTitle = dropdownTitle;
+    }
+  }
+
   setMarkdownEditor(markdownEditor: MarkdownEditor) {
     this.markdownEditor = markdownEditor;
   }
 
-  hello() {
-    console.log(this.markdownEditor?.markdownDocument?.getCurrentLeafBlock());
-  }
-
-  firstUpdated() {
-  }
-
   header1Element() {
-    const element = document.createElement('markdown-header-1');
-    const oldElement = this.markdownEditor?.markdownDocument?.getCurrentLeafBlock();
-
-    if (oldElement != null) {
-      element.innerHTML = oldElement.innerHTML;
-      oldElement.replaceWith(element);
-    }
+    // console.log('Hello');
+    this.markdownEditor?.header1Element();
   }
 
   header2Element() {
-    const element = document.createElement('markdown-header-2');
-    const oldElement = this.markdownEditor?.markdownDocument?.getCurrentLeafBlock();
-
-    if (oldElement != null) {
-      element.innerHTML = oldElement.innerHTML;
-      oldElement.replaceWith(element);
-    }
+    this.markdownEditor?.header2Element();
   }
 
   header3Element() {
-    const element = document.createElement('markdown-header-3');
-    const oldElement = this.markdownEditor?.markdownDocument?.getCurrentLeafBlock();
-
-    if (oldElement != null) {
-      element.innerHTML = oldElement.innerHTML;
-      oldElement.replaceWith(element);
-    }
+    this.markdownEditor?.header3Element();
   }
 
   header4Element() {
-    const element = document.createElement('markdown-header-4');
-    const oldElement = this.markdownEditor?.markdownDocument?.getCurrentLeafBlock();
-
-    if (oldElement != null) {
-      element.innerHTML = oldElement.innerHTML;
-      oldElement.replaceWith(element);
-    }
+    this.markdownEditor?.header4Element();
   }
 
   header5Element() {
-    const element = document.createElement('markdown-header-5');
-    const oldElement = this.markdownEditor?.markdownDocument?.getCurrentLeafBlock();
-
-    if (oldElement != null) {
-      element.innerHTML = oldElement.innerHTML;
-      oldElement.replaceWith(element);
-    }
+    this.markdownEditor?.header5Element();
   }
 
   header6Element() {
-    const element = document.createElement('markdown-header-6');
-    const oldElement = this.markdownEditor?.markdownDocument?.getCurrentLeafBlock();
-
-    if (oldElement != null) {
-      element.innerHTML = oldElement.innerHTML;
-      oldElement.replaceWith(element);
-    }
+    this.markdownEditor?.header6Element();
   }
 
   pararaphElement() {
-    const element = document.createElement('markdown-paragraph');
-    const oldElement = this.markdownEditor?.markdownDocument?.getCurrentLeafBlock();
+    this.markdownEditor?.pararaphElement();
+  }
 
-    if (oldElement != null) {
-      element.innerHTML = oldElement.innerHTML;
-      oldElement.replaceWith(element);
+  codeBlockButtonClick() {
+    this.markdownEditor?.makeCodeBlock();
+  }
+
+  boldButtonClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.makeBold();
+  }
+
+  italicButtonClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.makeItalic();
+  }
+
+  underlineButtonClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.makeUnderline();
+  }
+
+  strikeButtonClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.makeStrike();
+  }
+
+  codeButtonClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.makeCodeInline();
+  }
+
+  breakButtonClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.makeBreak();
+  }
+
+  listBulletedClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownEditor?.listBulletedClick();
+  }
+
+  highlightBoldButton() {
+    if (this.boldButton) {
+      this.boldButton.highlighted = true;
+    }
+  }
+
+  removeBoldButtonHighlighting() {
+    if (this.boldButton) {
+      this.boldButton.highlighted = false;
+    }
+  }
+
+  setDropdownTitle(newTitle: string) {
+    if (this.dropdownTitle) {
+      this.dropdownTitle.innerHTML = newTitle;
     }
   }
 }

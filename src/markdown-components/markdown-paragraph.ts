@@ -2,6 +2,10 @@ import { html, customElement, css } from 'lit-element';
 import { LeafElement } from './abstract/leaf-element';
 import { isMarkdownElement } from './functions';
 
+/*
+  Markdown paragraphs can contain only #text nodes or <br> element
+  to prevent dissapearing of empty node
+*/
 @customElement('markdown-paragraph')
 export class MarkdownParagraph extends LeafElement {
   static styles = css`
@@ -15,7 +19,6 @@ export class MarkdownParagraph extends LeafElement {
       <p>
         <slot></slot>
       </p>
-      <markdown-selection-actions></markdown-selection-actions>
     `;
   }
 

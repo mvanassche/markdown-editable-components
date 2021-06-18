@@ -16,7 +16,6 @@ export class CodeBlock extends LeafElement {
           <slot></slot>
         </code>
       </pre>
-      <markdown-selection-actions></markdown-selection-actions>
     `;
   }
 

@@ -2,7 +2,7 @@ import { html, customElement, property, css } from 'lit-element';
 import { InlineElement } from './abstract/inline-element';
 
 @customElement('markdown-link')
-export class Link extends InlineElement {
+export class MarkdownLink extends InlineElement {
   @property()
   destination: string = '';
 

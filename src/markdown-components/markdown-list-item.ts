@@ -18,7 +18,6 @@ export class ListItem extends ContainerElement {
   render() {
     return html`
       <div class='item-container'><slot></slot></div>
-      <!-- <markdown-selection-actions></markdown-selection-actions> -->
     `;
   }
 

@@ -2726,20 +2726,14 @@ class LeafElement extends BlockElement {
     constructor() {
         super(...arguments);
         this.selection = false;
-        this.selectionToolBar = null;
-        this.showSelectionToolBarTimeout = null;
     }
     connectedCallback() {
         super.connectedCallback();
-        // console.log('leafElement connectedCallback');
-        // console.log(this);
         //this.setAttribute("contenteditable", "true");
         this.addEventListener("input", () => {
-            console.log('normalize');
             this.normalizeChildren();
         });
         this.addEventListener('selectstart', () => {
-            // console.log('selectstart');
             this.selection = true;
             // get the document
             // console.log('focus ' + this.tagName);
@@ -2818,7 +2812,6 @@ class LeafElement extends BlockElement {
         });*/
     }
     firstUpdated() {
-        this.setupSelectionToolbar();
     }
     disconnectedCallback() {
         if (this._selectionChangeHandler) {
@@ -2826,50 +2819,15 @@ class LeafElement extends BlockElement {
         }
     }
     documentSelectionChange() {
-        // console.log('this.documentSelectionChange');
-        // console.log(this);
         var _a, _b, _c, _d;
         if (((_a = document.getSelection()) === null || _a === void 0 ? void 0 : _a.rangeCount) == 1
             && !((_b = document.getSelection()) === null || _b === void 0 ? void 0 : _b.getRangeAt(0).collapsed)
             && ((_c = document.getSelection()) === null || _c === void 0 ? void 0 : _c.anchorNode) != null
             && this.contains((_d = document.getSelection()) === null || _d === void 0 ? void 0 : _d.anchorNode)) {
             this.selection = true;
-            // this.showSelectionToolbar();
         }
         else {
-            // this.hideSelectionToolbar();
             this.selection = false;
-        }
-    }
-    setupSelectionToolbar() {
-        const markdownSelectionActions = this.shadowRoot.querySelector('markdown-selection-actions');
-        if (markdownSelectionActions != null) {
-            this.selectionToolBar = markdownSelectionActions;
-        }
-        if (this.selectionToolBar != null) {
-            this.hideSelectionToolbar();
-            this.selectionToolBar.applyTo = this;
-        }
-    }
-    showSelectionToolbar() {
-        if (this.selectionToolBar != null) {
-            if (this.showSelectionToolBarTimeout != null) {
-                clearTimeout(this.showSelectionToolBarTimeout);
-            }
-            this.showSelectionToolBarTimeout = setTimeout(() => {
-                var _a, _b;
-                this.showSelectionToolBarTimeout = null;
-                if (this.selection) {
-                    this.selectionToolBar.style.display = 'block';
-                    this.selectionToolBar.style.top = ((_a = document.getSelection()) === null || _a === void 0 ? void 0 : _a.getRangeAt(0).getBoundingClientRect().bottom) + 'px';
-                    this.selectionToolBar.style.left = ((_b = document.getSelection()) === null || _b === void 0 ? void 0 : _b.getRangeAt(0).getBoundingClientRect().right) + 'px';
-                }
-            }, 350);
-        }
-    }
-    hideSelectionToolbar() {
-        if (this.selectionToolBar != null) {
-            this.selectionToolBar.style.display = 'none';
         }
     }
 }
@@ -45629,7 +45587,6 @@ let CodeBlock = class CodeBlock extends LeafElement {
           <slot></slot>
         </code>
       </pre>
-      <markdown-selection-actions></markdown-selection-actions>
     `;
     }
     getMarkdown() {
@@ -45685,7 +45642,6 @@ let CodeSpan = class CodeSpan extends InlineElement {
       <!-- <code>
         <slot></slot>
       </code> -->
-      <!-- <markdown-selection-actions></markdown-selection-actions> -->
     `;
     }
     getMarkdown() {
@@ -45808,7 +45764,6 @@ let List = class List extends ContainerElement {
     render() {
         return html `
       <slot></slot>
-    <!-- <markdown-selection-actions></markdown-selection-actions> -->
   `;
     }
     connectedCallback() {
@@ -47305,7 +47260,6 @@ let ListItem = class ListItem extends ContainerElement {
     render() {
         return html `
       <div class='item-container'><slot></slot></div>
-      <!-- <markdown-selection-actions></markdown-selection-actions> -->
     `;
     }
     getDepth() {
@@ -47343,13 +47297,16 @@ var __decorate$9 = (undefined && undefined.__decorate) || function (decorators, 
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+/*
+  Markdown paragraphs can contain only #text nodes or <br> element
+  to prevent dissapearing of empty node
+*/
 let MarkdownParagraph = class MarkdownParagraph extends LeafElement {
     render() {
         return html `
       <p>
         <slot></slot>
       </p>
-      <markdown-selection-actions></markdown-selection-actions>
     `;
     }
     getMarkdown() {
@@ -47390,7 +47347,6 @@ let BlockQuote = class BlockQuote extends ContainerElement {
     <blockquote>
       <slot></slot>
     </blockquote>
-    <!-- <markdown-selection-actions></markdown-selection-actions> -->
   `;
     }
     getMarkdown() {
@@ -47419,7 +47375,6 @@ let TableRow = class TableRow extends ContainerElement {
     render() {
         return html `
       <slot></slot>
-    <!--markdown-selection-actions></markdown-selection-actions-->
   `;
     }
     getMarkdown() {
@@ -47454,7 +47409,6 @@ let Table = class Table extends ContainerElement {
     render() {
         return html `
       <slot></slot>
-    <!--markdown-selection-actions></markdown-selection-actions-->
   `;
     }
     getMarkdown() {
@@ -47489,7 +47443,6 @@ let TableCell = class TableCell extends ContainerElement {
     render() {
         return html `
       <slot></slot>
-      <!-- <markdown-selection-actions></markdown-selection-actions> -->
     `;
     }
     getMarkdown() {
@@ -47593,7 +47546,6 @@ let TaskListItem = class TaskListItem extends ListItem {
         <input type='checkbox' @change=${this._selection}/>
         <div class='item-container'><slot></slot></div>
       </div>
-    <!--markdown-selection-actions></markdown-selection-actions-->
   `;
     }
     _selection(e) {
@@ -47645,7 +47597,6 @@ class Heading extends LeafElement {
     //     <h${this.level}>
     //       <slot></slot>
     //     </h${this.level}>
-    //     <markdown-selection-actions></markdown-selection-actions>
     //   `;
     //   html`${unsafeHTML(template)}`;
     // }
@@ -47670,7 +47621,6 @@ let Header1 = class Header1 extends Heading {
       <h1>
         <slot></slot>
       </h1>
-      <markdown-selection-actions></markdown-selection-actions>
     `;
     }
 };
@@ -47695,7 +47645,6 @@ let Header2 = class Header2 extends Heading {
       <h2>
         <slot></slot>
       </h2>
-      <markdown-selection-actions></markdown-selection-actions>
     `;
     }
 };
@@ -47720,7 +47669,6 @@ let Header3 = class Header3 extends Heading {
       <h3>
         <slot></slot>
       </h3>
-      <markdown-selection-actions></markdown-selection-actions>
     `;
     }
 };
@@ -47745,7 +47693,6 @@ let Header4 = class Header4 extends Heading {
       <h4>
         <slot></slot>
       </h4>
-      <markdown-selection-actions></markdown-selection-actions>
     `;
     }
 };
@@ -47770,7 +47717,6 @@ let Header5 = class Header5 extends Heading {
       <h5>
         <slot></slot>
       </h5>
-      <markdown-selection-actions></markdown-selection-actions>
     `;
     }
 };
@@ -47795,7 +47741,6 @@ let Header6 = class Header6 extends Heading {
       <h6>
         <slot></slot>
       </h6>
-      <markdown-selection-actions></markdown-selection-actions>
     `;
     }
 };
@@ -48118,7 +48063,7 @@ var __decorate$r = (undefined && undefined.__decorate) || function (decorators, 
 let ToolbarDropdown = class ToolbarDropdown extends LitElement {
     render() {
         return html `
-      <toolbar-button @click=${this.showDropdown}>
+      <toolbar-button @mousedown=${this.showDropdown}>
         <slot></slot>
       </toolbar-button>
       <slot name='dropdown-elements'></slot>
@@ -48138,7 +48083,7 @@ let ToolbarDropdown = class ToolbarDropdown extends LitElement {
     firstUpdated() {
         document.addEventListener('mousedown', () => {
             this.hideDropdown();
-        });
+        }, false);
     }
 };
 ToolbarDropdown.styles = css `
@@ -48175,25 +48120,25 @@ let Toolbar = class Toolbar extends LitElement {
           <toolbar-dropdown>
             <span class='dropdown-title'>Heading 1</span> ▾
             <dropdown-elements slot='dropdown-elements'>
-              <dropdown-element @click=${this.header1Element}>
+              <dropdown-element @mousedown=${this.header1Element}>
                 <markdown-header-1>Heading 1</markdown-header-1>
               </dropdown-element>
-              <dropdown-element @click=${this.header2Element}>
+              <dropdown-element @mousedown=${this.header2Element}>
                 <markdown-header-2>Heading 2</markdown-header-2>
               </dropdown-element>
-              <dropdown-element @click=${this.header3Element}>
+              <dropdown-element @mousedown=${this.header3Element}>
                 <markdown-header-3>Heading 3</markdown-header-3>
               </dropdown-element>
-              <dropdown-element @click=${this.header4Element}>
+              <dropdown-element @mousedown=${this.header4Element}>
                 <markdown-header-4>Heading 4</markdown-header-4>
               </dropdown-element>
-              <dropdown-element @click=${this.header5Element}>
+              <dropdown-element @mousedown=${this.header5Element}>
                 <markdown-header-5>Heading 5</markdown-header-5>
               </dropdown-element>
-              <dropdown-element @click=${this.header6Element}>
+              <dropdown-element @mousedown=${this.header6Element}>
                 <markdown-header-6>Heading 6</markdown-header-6>
               </dropdown-element>
-              <dropdown-element @click=${this.pararaphElement}>
+              <dropdown-element @mousedown=${this.pararaphElement}>
                 <markdown-paragraph>Paragraph</markdown-paragraph>
               </dropdown-element>
             </dropdown-elements>
@@ -48348,6 +48293,7 @@ let Toolbar = class Toolbar extends LitElement {
     }
     header1Element() {
         var _a;
+        // console.log('Hello');
         (_a = this.markdownEditor) === null || _a === void 0 ? void 0 : _a.header1Element();
     }
     header2Element() {
@@ -48472,53 +48418,6 @@ var __decorate$t = (undefined && undefined.__decorate) || function (decorators, 
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-let SelectionActions = class SelectionActions extends LitElement {
-    constructor() {
-        super(...arguments);
-        this.applyTo = null;
-    }
-    render() {
-        return html `
-      <div>
-        <div class="toolbar">
-          <button @click=${this._header1}>Make header 1</button>
-          <button @click=${this._header1Element}>Make header 1 element</button>
-          <slot name="toolbar"></slot>
-        </div>
-        <slot></slot>
-      </div>
-    `;
-    }
-    _header1() {
-        //   this.applyTo?.selectionToBlock('markdown-header-1');
-    }
-    _header1Element() {
-        var _a;
-        const element = document.createElement('markdown-header-1');
-        Array.from(this.applyTo.childNodes).forEach((child) => { element.append(child); });
-        (_a = this.applyTo) === null || _a === void 0 ? void 0 : _a.replaceWith(element);
-    }
-};
-SelectionActions.styles = css `
-    :host {
-      display: block;
-      border: solid 1px gray;
-      padding: 16px;
-      max-width: 800px;
-      position: fixed;
-      z-index: 3;
-    }
-  `;
-SelectionActions = __decorate$t([
-    customElement('markdown-selection-actions')
-], SelectionActions);
-
-var __decorate$u = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
 let MarkdownEditor = class MarkdownEditor extends LitElement {
     constructor() {
         super();
@@ -48540,13 +48439,18 @@ let MarkdownEditor = class MarkdownEditor extends LitElement {
             var _a;
             const selection = document.getSelection();
             if (selection === null || selection === void 0 ? void 0 : selection.anchorNode) {
-                if ((_a = document.querySelector('markdown-document')) === null || _a === void 0 ? void 0 : _a.contains(selection === null || selection === void 0 ? void 0 : selection.anchorNode)) {
+                if ((_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.contains(selection === null || selection === void 0 ? void 0 : selection.anchorNode)) {
                     this.currentSelection = selection;
                     this.affectToolbar();
                 }
             }
         });
         document.addEventListener('keyup', (e) => {
+            // manage br rules in paragraphs:
+            // 1. there is should not be br in markdown-paragraph, if any text
+            //    exists
+            // 2. there is should be br, if there is no content in markdown-paragraph,
+            //    to prevent disappearing of empty line
             document.querySelectorAll('markdown-paragraph').forEach(markdownParagraphEl => {
                 if (markdownParagraphEl.childNodes.length > 1) {
                     markdownParagraphEl.childNodes.forEach(el => {
@@ -48555,6 +48459,8 @@ let MarkdownEditor = class MarkdownEditor extends LitElement {
                         }
                     });
                 }
+                // this rule is triggered when all text is erased from
+                // paragraph node
                 if (markdownParagraphEl.childNodes.length === 0) {
                     markdownParagraphEl.appendChild(document.createElement('br'));
                 }
@@ -48576,28 +48482,69 @@ let MarkdownEditor = class MarkdownEditor extends LitElement {
             else if (e.code === 'ArrowLeft') {
                 this.handleArrowLeftKeyDown(e);
             }
+            else if (e.code === 'ArrowRight') {
+                this.handleArrowRightKeyDown(e);
+            }
         });
     }
     handleArrowLeftKeyDown(e) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
-        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
-        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
-        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
-        const previousSibling = parent === null || parent === void 0 ? void 0 : parent.previousSibling;
-        if ((previousSibling === null || previousSibling === void 0 ? void 0 : previousSibling.firstChild) && anchorOffset === 0 && focusOffset === 0) {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
+        let parent;
+        if (((_b = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) === null || _b === void 0 ? void 0 : _b.nodeName) === 'MARKDOWN-PARAGRAPH') {
+            parent = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode;
+        }
+        else if (((_e = (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.anchorNode) === null || _e === void 0 ? void 0 : _e.nodeName) === '#text') {
+            parent = (_g = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode) === null || _g === void 0 ? void 0 : _g.parentElement;
+        }
+        const anchorOffset = (_h = this.currentSelection) === null || _h === void 0 ? void 0 : _h.anchorOffset;
+        const focusOffset = (_j = this.currentSelection) === null || _j === void 0 ? void 0 : _j.focusOffset;
+        const previousElementSibling = parent === null || parent === void 0 ? void 0 : parent.previousElementSibling;
+        if ((previousElementSibling === null || previousElementSibling === void 0 ? void 0 : previousElementSibling.firstChild) && anchorOffset === 0 && focusOffset === 0) {
             e.preventDefault();
             const range = document.createRange();
-            if ((previousSibling === null || previousSibling === void 0 ? void 0 : previousSibling.firstChild.nodeName) === "BR") {
-                range.selectNodeContents(previousSibling);
+            if ((previousElementSibling === null || previousElementSibling === void 0 ? void 0 : previousElementSibling.firstChild.nodeName) === "BR") {
+                range.selectNodeContents(previousElementSibling);
                 range.collapse(true);
-                (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.removeAllRanges();
-                (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.addRange(range);
+                (_k = this.currentSelection) === null || _k === void 0 ? void 0 : _k.removeAllRanges();
+                (_l = this.currentSelection) === null || _l === void 0 ? void 0 : _l.addRange(range);
             }
             else {
-                range.selectNodeContents(previousSibling === null || previousSibling === void 0 ? void 0 : previousSibling.firstChild);
+                range.selectNodeContents(previousElementSibling === null || previousElementSibling === void 0 ? void 0 : previousElementSibling.firstChild);
                 range.collapse();
-                (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.removeAllRanges();
-                (_h = this.currentSelection) === null || _h === void 0 ? void 0 : _h.addRange(range);
+                (_m = this.currentSelection) === null || _m === void 0 ? void 0 : _m.removeAllRanges();
+                (_o = this.currentSelection) === null || _o === void 0 ? void 0 : _o.addRange(range);
+            }
+        }
+    }
+    handleArrowRightKeyDown(e) {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+        let parent;
+        let length;
+        if (((_b = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) === null || _b === void 0 ? void 0 : _b.nodeName) === 'MARKDOWN-PARAGRAPH') {
+            parent = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode;
+            length = 0;
+        }
+        else if (((_e = (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.anchorNode) === null || _e === void 0 ? void 0 : _e.nodeName) === '#text') {
+            parent = (_g = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode) === null || _g === void 0 ? void 0 : _g.parentElement;
+            length = ((_h = this.currentSelection) === null || _h === void 0 ? void 0 : _h.anchorNode).length;
+        }
+        const anchorOffset = (_j = this.currentSelection) === null || _j === void 0 ? void 0 : _j.anchorOffset;
+        const focusOffset = (_k = this.currentSelection) === null || _k === void 0 ? void 0 : _k.focusOffset;
+        const nextElementSibling = parent === null || parent === void 0 ? void 0 : parent.nextElementSibling;
+        if ((nextElementSibling === null || nextElementSibling === void 0 ? void 0 : nextElementSibling.firstChild) && anchorOffset === length && focusOffset === length) {
+            e.preventDefault();
+            const range = document.createRange();
+            if ((nextElementSibling === null || nextElementSibling === void 0 ? void 0 : nextElementSibling.firstChild.nodeName) === "BR") {
+                range.selectNodeContents(nextElementSibling);
+                range.collapse(true);
+                (_l = this.currentSelection) === null || _l === void 0 ? void 0 : _l.removeAllRanges();
+                (_m = this.currentSelection) === null || _m === void 0 ? void 0 : _m.addRange(range);
+            }
+            else {
+                range.selectNodeContents(nextElementSibling === null || nextElementSibling === void 0 ? void 0 : nextElementSibling.firstChild);
+                range.collapse(true);
+                (_o = this.currentSelection) === null || _o === void 0 ? void 0 : _o.removeAllRanges();
+                (_p = this.currentSelection) === null || _p === void 0 ? void 0 : _p.addRange(range);
             }
         }
     }
@@ -48943,11 +48890,11 @@ let MarkdownEditor = class MarkdownEditor extends LitElement {
 };
 MarkdownEditor.styles = css `
   `;
-MarkdownEditor = __decorate$u([
+MarkdownEditor = __decorate$t([
     customElement('markdown-editor')
 ], MarkdownEditor);
 
-var __decorate$v = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$u = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48966,11 +48913,11 @@ let DropdownElement = class DropdownElement extends LitElement {
 };
 DropdownElement.styles = css `
   `;
-DropdownElement = __decorate$v([
+DropdownElement = __decorate$u([
     customElement('dropdown-element')
 ], DropdownElement);
 
-var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$v = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48995,11 +48942,11 @@ DropdownElements.styles = css `
       padding: 10px;
     }
   `;
-DropdownElements = __decorate$w([
+DropdownElements = __decorate$v([
     customElement('dropdown-elements')
 ], DropdownElements);
 
-var __decorate$x = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49020,9 +48967,9 @@ let BoldToolbarButton = class BoldToolbarButton extends LitElement {
 };
 BoldToolbarButton.styles = css `
   `;
-__decorate$x([
+__decorate$w([
     property({ type: Boolean })
 ], BoldToolbarButton.prototype, "highlighted", void 0);
-BoldToolbarButton = __decorate$x([
+BoldToolbarButton = __decorate$w([
     customElement('bold-toolbar-button')
 ], BoldToolbarButton);

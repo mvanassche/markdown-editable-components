@@ -19,7 +19,6 @@ export class CodeSpan extends InlineElement {
       <!-- <code>
         <slot></slot>
       </code> -->
-      <!-- <markdown-selection-actions></markdown-selection-actions> -->
     `;
   }
 

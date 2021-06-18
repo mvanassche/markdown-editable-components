@@ -4,7 +4,6 @@ import './markdown-editor-components/toolbar-separator';
 import './markdown-editor-components/toolbar-dropdown';
 import './markdown-editor-components/markdown-document';
 import './markdown-editor-components/markdown-toolbar';
-import './markdown-editor-components/markdown-selection-actions';
 import './markdown-editor-components/markdown-editor';
 import './markdown-editor-components/dropdown-element';
 import './markdown-editor-components/dropdown-elements';

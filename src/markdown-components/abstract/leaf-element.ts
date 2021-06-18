@@ -1,29 +1,20 @@
-import { SelectionActions } from "../../markdown-editor-components/markdown-selection-actions";
 import { BlockElement } from "./block-element";
 
 export abstract class LeafElement extends BlockElement {
 
   selection = false;
   _selectionChangeHandler: any;
-  selectionToolBar: SelectionActions | null = null;
-  showSelectionToolBarTimeout: any = null;
 
   connectedCallback() {
     super.connectedCallback();
 
-    // console.log('leafElement connectedCallback');
-    // console.log(this);
     //this.setAttribute("contenteditable", "true");
 
     this.addEventListener("input", () => {
-      console.log('normalize');
-
       this.normalizeChildren()
     });
 
     this.addEventListener('selectstart', () => {
-      // console.log('selectstart');
-
       this.selection = true;
 
       // get the document
@@ -113,7 +104,6 @@ export abstract class LeafElement extends BlockElement {
   }
 
   firstUpdated() {
-    this.setupSelectionToolbar();
   }
 
   disconnectedCallback() {
@@ -123,9 +113,6 @@ export abstract class LeafElement extends BlockElement {
   }
 
   documentSelectionChange() {
-    // console.log('this.documentSelectionChange');
-    // console.log(this);
-
     if (
       document.getSelection()?.rangeCount == 1
       && !document.getSelection()?.getRangeAt(0).collapsed
@@ -133,47 +120,8 @@ export abstract class LeafElement extends BlockElement {
       && this.contains((document.getSelection()?.anchorNode as Node))
     ) {
       this.selection = true;
-      // this.showSelectionToolbar();
     } else {
-      // this.hideSelectionToolbar();
       this.selection = false;
-    }
-  }
-
-  setupSelectionToolbar() {
-    const markdownSelectionActions = this.shadowRoot!.querySelector('markdown-selection-actions') as SelectionActions;
-
-    if (markdownSelectionActions != null) {
-      this.selectionToolBar = markdownSelectionActions;
-    }
-
-    if (this.selectionToolBar != null) {
-      this.hideSelectionToolbar();
-      this.selectionToolBar.applyTo = this;
-    }
-  }
-
-  showSelectionToolbar() {
-    if (this.selectionToolBar != null) {
-      if (this.showSelectionToolBarTimeout != null) {
-        clearTimeout(this.showSelectionToolBarTimeout);
-      }
-
-      this.showSelectionToolBarTimeout = setTimeout(() => {
-        this.showSelectionToolBarTimeout = null;
-
-        if (this.selection) {
-          this.selectionToolBar!.style.display = 'block';
-          this.selectionToolBar!.style.top = document.getSelection()?.getRangeAt(0).getBoundingClientRect().bottom + 'px';
-          this.selectionToolBar!.style.left = document.getSelection()?.getRangeAt(0).getBoundingClientRect().right + 'px';
-        }
-      }, 350);
-    }
-  }
-
-  hideSelectionToolbar() {
-    if (this.selectionToolBar != null) {
-      this.selectionToolBar!.style!.display = 'none';
     }
   }
 }

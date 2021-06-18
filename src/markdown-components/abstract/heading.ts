@@ -11,7 +11,6 @@ export abstract class Heading extends LeafElement {
   //     <h${this.level}>
   //       <slot></slot>
   //     </h${this.level}>
-  //     <markdown-selection-actions></markdown-selection-actions>
   //   `;
   //   html`${unsafeHTML(template)}`;
   // }

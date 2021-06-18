@@ -33,8 +33,9 @@ export class MarkdownEditor extends LitElement {
 
     document.addEventListener('selectionchange', () => {
       const selection = document.getSelection();
+
       if (selection?.anchorNode) {
-        if (document.querySelector('markdown-document')?.contains(selection?.anchorNode)) {
+        if (this.markdownDocument?.contains(selection?.anchorNode)) {
           this.currentSelection = selection;
           this.affectToolbar();
         } else {
@@ -46,6 +47,11 @@ export class MarkdownEditor extends LitElement {
     document.addEventListener('keyup', (e: KeyboardEvent) => {
       e;
 
+      // manage br rules in paragraphs:
+      // 1. there is should not be br in markdown-paragraph, if any text
+      //    exists
+      // 2. there is should be br, if there is no content in markdown-paragraph,
+      //    to prevent disappearing of empty line
       document.querySelectorAll('markdown-paragraph').forEach(markdownParagraphEl => {
         if (markdownParagraphEl.childNodes.length > 1) {
           markdownParagraphEl.childNodes.forEach(el => {
@@ -55,6 +61,8 @@ export class MarkdownEditor extends LitElement {
           })
         }
 
+        // this rule is triggered when all text is erased from
+        // paragraph node
         if (markdownParagraphEl.childNodes.length === 0) {
           markdownParagraphEl.appendChild(document.createElement('br'));
         }
@@ -66,38 +74,81 @@ export class MarkdownEditor extends LitElement {
 
       if (e.code === 'Enter') {
         e.preventDefault();
-
         this.handleEnterKeyDown();
       } else if (e.code === 'Backspace') {
         this.handleBackspaceKeyDown();
       } else if (e.code === 'Tab') {
         e.preventDefault();
-
         this.handleTabKeyDown();
       } else if (e.code === 'ArrowLeft') {
         this.handleArrowLeftKeyDown(e);
+      } else if (e.code === 'ArrowRight') {
+        this.handleArrowRightKeyDown(e);
       }
     });
   }
 
   handleArrowLeftKeyDown(e: KeyboardEvent) {
+    let parent: HTMLElement | null | undefined;
+
+    if (this.currentSelection?.anchorNode?.nodeName === 'MARKDOWN-PARAGRAPH') {
+      parent = this.currentSelection?.anchorNode as HTMLElement;
+    } else if (this.currentSelection?.anchorNode?.nodeName === '#text') {
+      parent = this.currentSelection?.anchorNode?.parentElement;
+    }
+
     const anchorOffset = this.currentSelection?.anchorOffset;
     const focusOffset = this.currentSelection?.focusOffset;
-    const parent = this.currentSelection?.anchorNode?.parentElement;
-    const previousSibling = parent?.previousSibling;
 
-    if (previousSibling?.firstChild && anchorOffset === 0 && focusOffset === 0) {
+    const previousElementSibling = parent?.previousElementSibling;
+
+    if (previousElementSibling?.firstChild && anchorOffset === 0 && focusOffset === 0) {
       e.preventDefault();
 
       const range = document.createRange();
-      if (previousSibling?.firstChild.nodeName === "BR") {
-        range.selectNodeContents(previousSibling);
+      if (previousElementSibling?.firstChild.nodeName === "BR") {
+        range.selectNodeContents(previousElementSibling);
         range.collapse(true);
         this.currentSelection?.removeAllRanges();
         this.currentSelection?.addRange(range);
       } else {
-        range.selectNodeContents(previousSibling?.firstChild);
+        range.selectNodeContents(previousElementSibling?.firstChild);
         range.collapse();
+        this.currentSelection?.removeAllRanges();
+        this.currentSelection?.addRange(range);
+      }
+    }
+  }
+
+  handleArrowRightKeyDown(e: KeyboardEvent) {
+    let parent: HTMLElement | null | undefined;
+    let length;
+
+    if (this.currentSelection?.anchorNode?.nodeName === 'MARKDOWN-PARAGRAPH') {
+      parent = this.currentSelection?.anchorNode as HTMLElement;
+      length = 0;
+    } else if (this.currentSelection?.anchorNode?.nodeName === '#text') {
+      parent = this.currentSelection?.anchorNode?.parentElement;
+      length = (this.currentSelection?.anchorNode as Text).length;
+    }
+
+    const anchorOffset = this.currentSelection?.anchorOffset;
+    const focusOffset = this.currentSelection?.focusOffset;
+
+    const nextElementSibling = parent?.nextElementSibling;
+
+    if (nextElementSibling?.firstChild && anchorOffset === length && focusOffset === length) {
+      e.preventDefault();
+
+      const range = document.createRange();
+      if (nextElementSibling?.firstChild.nodeName === "BR") {
+        range.selectNodeContents(nextElementSibling);
+        range.collapse(true);
+        this.currentSelection?.removeAllRanges();
+        this.currentSelection?.addRange(range);
+      } else {
+        range.selectNodeContents(nextElementSibling?.firstChild);
+        range.collapse(true);
         this.currentSelection?.removeAllRanges();
         this.currentSelection?.addRange(range);
       }

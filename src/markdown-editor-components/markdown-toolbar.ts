@@ -50,25 +50,25 @@ export class Toolbar extends LitElement {
           <toolbar-dropdown>
             <span class='dropdown-title'>Heading 1</span> ▾
             <dropdown-elements slot='dropdown-elements'>
-              <dropdown-element @click=${this.header1Element}>
+              <dropdown-element @mousedown=${this.header1Element}>
                 <markdown-header-1>Heading 1</markdown-header-1>
               </dropdown-element>
-              <dropdown-element @click=${this.header2Element}>
+              <dropdown-element @mousedown=${this.header2Element}>
                 <markdown-header-2>Heading 2</markdown-header-2>
               </dropdown-element>
-              <dropdown-element @click=${this.header3Element}>
+              <dropdown-element @mousedown=${this.header3Element}>
                 <markdown-header-3>Heading 3</markdown-header-3>
               </dropdown-element>
-              <dropdown-element @click=${this.header4Element}>
+              <dropdown-element @mousedown=${this.header4Element}>
                 <markdown-header-4>Heading 4</markdown-header-4>
               </dropdown-element>
-              <dropdown-element @click=${this.header5Element}>
+              <dropdown-element @mousedown=${this.header5Element}>
                 <markdown-header-5>Heading 5</markdown-header-5>
               </dropdown-element>
-              <dropdown-element @click=${this.header6Element}>
+              <dropdown-element @mousedown=${this.header6Element}>
                 <markdown-header-6>Heading 6</markdown-header-6>
               </dropdown-element>
-              <dropdown-element @click=${this.pararaphElement}>
+              <dropdown-element @mousedown=${this.pararaphElement}>
                 <markdown-paragraph>Paragraph</markdown-paragraph>
               </dropdown-element>
             </dropdown-elements>
@@ -231,6 +231,7 @@ export class Toolbar extends LitElement {
   }
 
   header1Element() {
+    // console.log('Hello');
     this.markdownEditor?.header1Element();
   }
 

@@ -32,6 +32,7 @@ export class MarkdownDocument extends LitElement {
   // eslint-disable-next-line no-unused-vars
   parser: ((md: string) => string) = (markdown: string) => parse(markdown);
 
+  @property()
   get markdown() { return this.getMarkdown(); }
   set markdown(markdown: string) { this.renderMarkdown(markdown) }
 

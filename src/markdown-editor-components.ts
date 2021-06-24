@@ -8,3 +8,15 @@ import './markdown-editor-components/markdown-editor';
 import './markdown-editor-components/dropdown-element';
 import './markdown-editor-components/dropdown-elements';
 import './markdown-editor-components/toolbar-buttons/bold-toolbar-button';
+
+
+export * from './markdown-editor-components/toolbar-button';
+export * from './markdown-editor-components/material-icon';
+export * from './markdown-editor-components/toolbar-separator';
+export * from './markdown-editor-components/toolbar-dropdown';
+export * from './markdown-editor-components/markdown-document';
+export * from './markdown-editor-components/markdown-toolbar';
+export * from './markdown-editor-components/markdown-editor';
+export * from './markdown-editor-components/dropdown-element';
+export * from './markdown-editor-components/dropdown-elements';
+export * from './markdown-editor-components/toolbar-buttons/bold-toolbar-button';

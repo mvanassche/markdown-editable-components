@@ -14,10 +14,10 @@
       document.addEventListener("DOMContentLoaded", function() {
         // var content = "# title1";
         // document.getElementById("empty").markdown = content;
-        // document.getElementById("test").onclick = function() {
-        //   console.log(document.getElementById("from-dom").markdown);
+        document.getElementById("test").onclick = function() {
+           console.log(document.getElementById("from-dom").markdown);
         //   document.getElementById("empty").markdown = document.getElementById("from-dom").markdown;
-        // };
+        };
       });
     </script>
     <style>
@@ -42,8 +42,7 @@
         <markdown-list>
           <markdown-list-item>123456789</markdown-list-item>
           <markdown-list-item>ABCDEFG</markdown-list-item>
-          <markdown-list-item>
-            STU
+          <markdown-list-item>STU
             <markdown-list>
               <markdown-list-item>XYZ</markdown-list-item>
               <markdown-task-list-item>XYZ</markdown-task-list-item>
@@ -89,8 +88,8 @@
     </markdown-editor>
 
     <!-- <markdown-document id="empty">
-    </markdown-document>
+    </markdown-document> -->
 
-    <button id="test">TEST</button> -->
+    <button id="test">TEST</button>
   </body>
 </html>

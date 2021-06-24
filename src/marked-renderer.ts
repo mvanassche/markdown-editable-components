@@ -60,7 +60,7 @@ export class MarkdownEditableComponentsRenderer extends Renderer {
   headingWithAnchor(text: string, level: number, _raw: string, id?: string) {
     const idAttr = id ? `id='${id}'` : "";
 
-    return `<markdown-title-${level} ${idAttr}>${text}</markdown-title-${level}>`;
+    return `<markdown-header-${level} ${idAttr}>${text}</markdown-header-${level}>`;
   }
 
   list(body: string, ordered?: boolean): string {

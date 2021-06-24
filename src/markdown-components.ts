@@ -39,3 +39,27 @@ declare global {
     'markdown-paragraph': MarkdownParagraph;
   }
 }
+
+export * from './markdown-components/markdown-break';
+export * from './markdown-components/markdown-code';
+export * from './markdown-components/markdown-code-span';
+export * from './markdown-components/markdown-html';
+export * from './markdown-components/markdown-image';
+export * from './markdown-components/markdown-link';
+export * from './markdown-components/markdown-list';
+export * from './markdown-components/markdown-list-item';
+export * from './markdown-components/markdown-paragraph';
+export * from './markdown-components/markdown-quote';
+export * from './markdown-components/markdown-table';
+export * from './markdown-components/markdown-table-cell';
+export * from './markdown-components/markdown-table-header-cell';
+export * from './markdown-components/markdown-table-header-row';
+export * from './markdown-components/markdown-task-list-item';
+export * from './markdown-components/markdown-header-1';
+export * from './markdown-components/markdown-header-2';
+export * from './markdown-components/markdown-header-3';
+export * from './markdown-components/markdown-header-4';
+export * from './markdown-components/markdown-header-5';
+export * from './markdown-components/markdown-header-6';
+export * from './markdown-components/markdown-toc';
+export * from './markdown-components/interfaces/markdown-element';

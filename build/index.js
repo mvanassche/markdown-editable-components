@@ -48478,9 +48478,11 @@ var __decorate$7 = (undefined && undefined.__decorate) || function (decorators, 
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-exports.MaterialIcon = class MaterialIcon extends LitElement {
+var MaterialIcon_1;
+exports.MaterialIcon = MaterialIcon_1 = class MaterialIcon extends LitElement {
     render() {
         return html `
+      <style>${MaterialIcon_1.styles}</style>
       <i class="material-icons"><slot></slot></i>
     `;
     }
@@ -48509,7 +48511,7 @@ exports.MaterialIcon.styles = css$1 `
       -moz-osx-font-smoothing: grayscale;
     }
   `;
-exports.MaterialIcon = __decorate$7([
+exports.MaterialIcon = MaterialIcon_1 = __decorate$7([
     customElement('material-icon')
 ], exports.MaterialIcon);
 

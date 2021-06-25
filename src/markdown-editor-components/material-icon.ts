@@ -29,6 +29,7 @@ export class MaterialIcon extends LitElement {
 
   render() {
     return html`
+      <style>${MaterialIcon.styles}</style>
       <i class="material-icons"><slot></slot></i>
     `;
   }

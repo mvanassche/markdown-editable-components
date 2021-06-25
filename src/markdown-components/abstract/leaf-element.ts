@@ -114,10 +114,10 @@ export abstract class LeafElement extends BlockElement {
 
   documentSelectionChange() {
     if (
-      document.getSelection()?.rangeCount == 1
-      && !document.getSelection()?.getRangeAt(0).collapsed
-      && document.getSelection()?.anchorNode != null
-      && this.contains((document.getSelection()?.anchorNode as Node))
+      this.ownerDocument.getSelection()?.rangeCount == 1
+      && !this.ownerDocument.getSelection()?.getRangeAt(0).collapsed
+      && this.ownerDocument.getSelection()?.anchorNode != null
+      && this.contains((this.ownerDocument.getSelection()?.anchorNode as Node))
     ) {
       this.selection = true;
     } else {

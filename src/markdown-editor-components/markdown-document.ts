@@ -43,7 +43,13 @@ export class MarkdownDocument extends LitElement {
   @property({attribute : false })
   toolbar: Toolbar | null = null
 
+  @property()
+  selectionRoot: any = document;
+
+
   currentSelection: Selection | null = null
+
+
 
 
   render() {
@@ -73,7 +79,12 @@ export class MarkdownDocument extends LitElement {
     });
 
     document.addEventListener('selectionchange', () => {
-      const selection = document.getSelection();
+      let selection;
+      if(this.selectionRoot.getSelection != null) {
+        selection = this.selectionRoot.getSelection();
+      } else {
+        selection = this.ownerDocument.getSelection();
+      }
 
       if (selection?.anchorNode) {
         if (this.contains(selection?.anchorNode)) {
@@ -181,7 +192,14 @@ export class MarkdownDocument extends LitElement {
   }
 
   public getCurrentLeafBlock(): LeafElement | null {
-    const anchorNode = document.getSelection()?.anchorNode;
+    let selection;
+    if(this.selectionRoot.getSelection != null) {
+      selection = this.selectionRoot.getSelection();
+    } else {
+      selection = this.ownerDocument.getSelection();
+    }
+
+    const anchorNode = selection?.anchorNode;
     // console.log('anchorNode');
     // console.log(anchorNode);
 

@@ -2822,10 +2822,10 @@ class LeafElement extends BlockElement {
     }
     documentSelectionChange() {
         var _a, _b, _c, _d;
-        if (((_a = document.getSelection()) === null || _a === void 0 ? void 0 : _a.rangeCount) == 1
-            && !((_b = document.getSelection()) === null || _b === void 0 ? void 0 : _b.getRangeAt(0).collapsed)
-            && ((_c = document.getSelection()) === null || _c === void 0 ? void 0 : _c.anchorNode) != null
-            && this.contains((_d = document.getSelection()) === null || _d === void 0 ? void 0 : _d.anchorNode)) {
+        if (((_a = this.ownerDocument.getSelection()) === null || _a === void 0 ? void 0 : _a.rangeCount) == 1
+            && !((_b = this.ownerDocument.getSelection()) === null || _b === void 0 ? void 0 : _b.getRangeAt(0).collapsed)
+            && ((_c = this.ownerDocument.getSelection()) === null || _c === void 0 ? void 0 : _c.anchorNode) != null
+            && this.contains((_d = this.ownerDocument.getSelection()) === null || _d === void 0 ? void 0 : _d.anchorNode)) {
             this.selection = true;
         }
         else {
@@ -47156,6 +47156,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         // eslint-disable-next-line no-unused-vars
         this.parser = (markdown) => parse(markdown);
         this.toolbar = null;
+        this.selectionRoot = document;
         this.currentSelection = null;
     }
     get markdown() { return this.getMarkdown(); }
@@ -47182,7 +47183,13 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         document.addEventListener('selectstart', () => {
         });
         document.addEventListener('selectionchange', () => {
-            const selection = document.getSelection();
+            let selection;
+            if (this.selectionRoot.getSelection != null) {
+                selection = this.selectionRoot.getSelection();
+            }
+            else {
+                selection = this.ownerDocument.getSelection();
+            }
             if (selection === null || selection === void 0 ? void 0 : selection.anchorNode) {
                 if (this.contains(selection === null || selection === void 0 ? void 0 : selection.anchorNode)) {
                     this.currentSelection = selection;
@@ -47275,8 +47282,14 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }).join('');
     }
     getCurrentLeafBlock() {
-        var _a;
-        const anchorNode = (_a = document.getSelection()) === null || _a === void 0 ? void 0 : _a.anchorNode;
+        let selection;
+        if (this.selectionRoot.getSelection != null) {
+            selection = this.selectionRoot.getSelection();
+        }
+        else {
+            selection = this.ownerDocument.getSelection();
+        }
+        const anchorNode = selection === null || selection === void 0 ? void 0 : selection.anchorNode;
         // console.log('anchorNode');
         // console.log(anchorNode);
         if (anchorNode != null) {
@@ -47705,6 +47718,9 @@ __decorate$p([
 __decorate$p([
     property({ attribute: false })
 ], exports.MarkdownDocument.prototype, "toolbar", void 0);
+__decorate$p([
+    property()
+], exports.MarkdownDocument.prototype, "selectionRoot", void 0);
 exports.MarkdownDocument = MarkdownDocument_1 = __decorate$p([
     customElement('markdown-document')
 ], exports.MarkdownDocument);

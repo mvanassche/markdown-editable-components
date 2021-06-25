@@ -1,6 +1,6 @@
 {
   "name": "markdown-editable-components",
-  "version": "0.2.13",
+  "version": "0.2.16",
   "description": "Markdown web components",
   "main": "./build/index.js",
   "module": "./build/index.js",

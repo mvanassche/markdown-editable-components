@@ -96,6 +96,14 @@ export class MarkdownEditableComponentsRenderer extends Renderer {
     return `<markdown-break></markdown-break>`;
   }
 
+  strong(text: string): string {
+    return `<markdown-strong>${text}</markdown-strong>`;
+  }
+
+  em(text: string): string {
+    return `<markdown-emphasis>${text}</markdown-emphasis>`;
+  }
+  
   table(header: string, body: string): string {
     return `<markdown-table>${header.replaceAll('markdown-table-row>', 'markdown-table-header-row>')}${body}</markdown-table>`;
   }

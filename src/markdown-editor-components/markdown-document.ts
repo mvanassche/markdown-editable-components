@@ -445,7 +445,7 @@ export class MarkdownDocument extends LitElement {
       const secondPart = text.splitText(anchorOffset);
       const thirdPart = secondPart.splitText(selectionLength);
       thirdPart;
-      const replacement = document.createElement('b');
+      const replacement = document.createElement('markdown-strong');
       replacement.appendChild(document.createTextNode(secondPart.data))
       secondPart.replaceWith(replacement);
 
@@ -469,7 +469,7 @@ export class MarkdownDocument extends LitElement {
       const secondPart = text.splitText(anchorOffset);
       const thirdPart = secondPart.splitText(selectionLength);
       thirdPart;
-      const replacement = document.createElement('i');
+      const replacement = document.createElement('markdown-emphasis');
       replacement.appendChild(document.createTextNode(secondPart.data))
       secondPart.replaceWith(replacement);
 
@@ -517,7 +517,7 @@ export class MarkdownDocument extends LitElement {
       const secondPart = text.splitText(anchorOffset);
       const thirdPart = secondPart.splitText(selectionLength);
       thirdPart;
-      const replacement = document.createElement('strike');
+      const replacement = document.createElement('markdown-strike');
       replacement.appendChild(document.createTextNode(secondPart.data))
       secondPart.replaceWith(replacement);
 

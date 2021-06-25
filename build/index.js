@@ -2834,7 +2834,7 @@ class LeafElement extends BlockElement {
     }
 }
 
-var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$z = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -2850,7 +2850,7 @@ exports.ThematicBreak = class ThematicBreak extends LeafElement {
         return "-----------------------\n";
     }
 };
-exports.ThematicBreak = __decorate$w([
+exports.ThematicBreak = __decorate$z([
     customElement('markdown-break')
 ], exports.ThematicBreak);
 
@@ -45575,7 +45575,7 @@ core.registerLanguage('zephir', zephir_1);
 
 var lib = core;
 
-var __decorate$v = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$y = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45617,7 +45617,7 @@ exports.CodeBlock = class CodeBlock extends LeafElement {
 };
 // TODO language string as property/attribute
 exports.CodeBlock.styles = css$1 ``;
-exports.CodeBlock = __decorate$v([
+exports.CodeBlock = __decorate$y([
     customElement('markdown-code')
 ], exports.CodeBlock);
 
@@ -45631,7 +45631,7 @@ class InlineElement extends MarkdownLitElement {
     }
 }
 
-var __decorate$u = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$x = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45657,11 +45657,11 @@ exports.CodeSpan.styles = css$1 `
       font-family: monospace;
     }
   `;
-exports.CodeSpan = __decorate$u([
+exports.CodeSpan = __decorate$x([
     customElement('markdown-code-span')
 ], exports.CodeSpan);
 
-var __decorate$t = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45679,11 +45679,11 @@ exports.HTML = class HTML extends LeafElement {
 };
 exports.HTML.styles = css$1 `
   `;
-exports.HTML = __decorate$t([
+exports.HTML = __decorate$w([
     customElement('markdown-html')
 ], exports.HTML);
 
-var __decorate$s = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$v = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45708,17 +45708,17 @@ exports.MarkdownImage = class MarkdownImage extends InlineElement {
 };
 exports.MarkdownImage.styles = css$1 `
   `;
-__decorate$s([
+__decorate$v([
     property()
 ], exports.MarkdownImage.prototype, "destination", void 0);
-__decorate$s([
+__decorate$v([
     property()
 ], exports.MarkdownImage.prototype, "title", void 0);
-exports.MarkdownImage = __decorate$s([
+exports.MarkdownImage = __decorate$v([
     customElement('markdown-image')
 ], exports.MarkdownImage);
 
-var __decorate$r = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$u = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45743,20 +45743,20 @@ exports.MarkdownLink = class MarkdownLink extends InlineElement {
 };
 exports.MarkdownLink.styles = css$1 `
   `;
-__decorate$r([
+__decorate$u([
     property()
 ], exports.MarkdownLink.prototype, "destination", void 0);
-__decorate$r([
+__decorate$u([
     property()
 ], exports.MarkdownLink.prototype, "title", void 0);
-exports.MarkdownLink = __decorate$r([
+exports.MarkdownLink = __decorate$u([
     customElement('markdown-link')
 ], exports.MarkdownLink);
 
 class ContainerElement extends MarkdownLitElement {
 }
 
-var __decorate$q = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$t = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45795,16 +45795,16 @@ exports.List.styles = css$1 `
       list-style-type: decimal;
     }
   `;
-__decorate$q([
+__decorate$t([
     property({ type: Boolean })
 ], exports.List.prototype, "ordered", void 0);
-__decorate$q([
+__decorate$t([
     property({ type: Number })
 ], exports.List.prototype, "start", void 0);
-__decorate$q([
+__decorate$t([
     property({ type: Boolean })
 ], exports.List.prototype, "spread", void 0);
-exports.List = __decorate$q([
+exports.List = __decorate$t([
     customElement('markdown-list')
 ], exports.List);
 
@@ -47090,6 +47090,12 @@ class MarkdownEditableComponentsRenderer extends Renderer {
     hr() {
         return `<markdown-break></markdown-break>`;
     }
+    strong(text) {
+        return `<markdown-strong>${text}</markdown-strong>`;
+    }
+    em(text) {
+        return `<markdown-emphasis>${text}</markdown-emphasis>`;
+    }
     table(header, body) {
         return `<markdown-table>${header.replaceAll('markdown-table-row>', 'markdown-table-header-row>')}${body}</markdown-table>`;
     }
@@ -47145,7 +47151,7 @@ function parse(markdown, renderer) {
     return Marked.parse(markdown, options);
 }
 
-var __decorate$p = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$s = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -47499,7 +47505,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
             const secondPart = text.splitText(anchorOffset);
             secondPart.splitText(selectionLength);
-            const replacement = document.createElement('b');
+            const replacement = document.createElement('markdown-strong');
             replacement.appendChild(document.createTextNode(secondPart.data));
             secondPart.replaceWith(replacement);
             const range = document.createRange();
@@ -47519,7 +47525,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
             const secondPart = text.splitText(anchorOffset);
             secondPart.splitText(selectionLength);
-            const replacement = document.createElement('i');
+            const replacement = document.createElement('markdown-emphasis');
             replacement.appendChild(document.createTextNode(secondPart.data));
             secondPart.replaceWith(replacement);
             const range = document.createRange();
@@ -47559,7 +47565,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
             const secondPart = text.splitText(anchorOffset);
             secondPart.splitText(selectionLength);
-            const replacement = document.createElement('strike');
+            const replacement = document.createElement('markdown-strike');
             replacement.appendChild(document.createTextNode(secondPart.data));
             secondPart.replaceWith(replacement);
             const range = document.createRange();
@@ -47734,23 +47740,23 @@ exports.MarkdownDocument.styles = css$1 `
       right: 0%;
     }
   `;
-__decorate$p([
+__decorate$s([
     property()
 ], exports.MarkdownDocument.prototype, "parser", void 0);
-__decorate$p([
+__decorate$s([
     property()
 ], exports.MarkdownDocument.prototype, "markdown", null);
-__decorate$p([
+__decorate$s([
     property({ attribute: false })
 ], exports.MarkdownDocument.prototype, "toolbar", void 0);
-__decorate$p([
+__decorate$s([
     property()
 ], exports.MarkdownDocument.prototype, "selectionRoot", void 0);
-exports.MarkdownDocument = MarkdownDocument_1 = __decorate$p([
+exports.MarkdownDocument = MarkdownDocument_1 = __decorate$s([
     customElement('markdown-document')
 ], exports.MarkdownDocument);
 
-var __decorate$o = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$r = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -47795,14 +47801,14 @@ exports.ListItem.styles = css$1 `
       left: 20px;
     }
   `;
-__decorate$o([
+__decorate$r([
     property({ type: Boolean })
 ], exports.ListItem.prototype, "spread", void 0);
-exports.ListItem = __decorate$o([
+exports.ListItem = __decorate$r([
     customElement('markdown-list-item')
 ], exports.ListItem);
 
-var __decorate$n = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$q = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -47842,11 +47848,11 @@ exports.MarkdownParagraph.styles = css$1 `
       position: relative;
     }
   `;
-exports.MarkdownParagraph = __decorate$n([
+exports.MarkdownParagraph = __decorate$q([
     customElement('markdown-paragraph')
 ], exports.MarkdownParagraph);
 
-var __decorate$m = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$p = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -47872,9 +47878,63 @@ exports.BlockQuote = class BlockQuote extends ContainerElement {
         }).join('');
     }
 };
-exports.BlockQuote = __decorate$m([
+exports.BlockQuote = __decorate$p([
     customElement('markdown-quote')
 ], exports.BlockQuote);
+
+var __decorate$o = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+let MarkdownStrong = class MarkdownStrong extends InlineElement {
+    render() {
+        return html `<strong><slot></slot></strong>`;
+    }
+    getMarkdown() {
+        return '**' + super.getMarkdown() + '**';
+    }
+};
+MarkdownStrong = __decorate$o([
+    customElement('markdown-strong')
+], MarkdownStrong);
+
+var __decorate$n = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+let MarkdownEmphasis = class MarkdownEmphasis extends InlineElement {
+    render() {
+        return html `<i><slot></slot></i>`;
+    }
+    getMarkdown() {
+        return '*' + super.getMarkdown() + '*';
+    }
+};
+MarkdownEmphasis = __decorate$n([
+    customElement('markdown-emphasis')
+], MarkdownEmphasis);
+
+var __decorate$m = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+let MarkdownStrike = class MarkdownStrike extends InlineElement {
+    render() {
+        return html `<del><slot></slot></del>`;
+    }
+    getMarkdown() {
+        return '~~' + super.getMarkdown() + '~~';
+    }
+};
+MarkdownStrike = __decorate$m([
+    customElement('markdown-strike')
+], MarkdownStrike);
 
 var __decorate$l = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;

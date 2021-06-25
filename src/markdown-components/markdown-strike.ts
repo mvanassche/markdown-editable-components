@@ -9,6 +9,6 @@ export class MarkdownStrike extends InlineElement {
   }
 
   getMarkdown(): string {
-    return '~~' + super.getMarkdown() + '~~';
+    return '~~' + super.getMarkdown().trim() + '~~';
   }
 }

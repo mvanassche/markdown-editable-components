@@ -47896,7 +47896,7 @@ let MarkdownStrong = class MarkdownStrong extends InlineElement {
         return html `<strong><slot></slot></strong>`;
     }
     getMarkdown() {
-        return '**' + super.getMarkdown() + '**';
+        return '**' + super.getMarkdown().trim() + '**';
     }
 };
 MarkdownStrong = __decorate$o([
@@ -47914,7 +47914,7 @@ let MarkdownEmphasis = class MarkdownEmphasis extends InlineElement {
         return html `<i><slot></slot></i>`;
     }
     getMarkdown() {
-        return '*' + super.getMarkdown() + '*';
+        return '*' + super.getMarkdown().trim() + '*';
     }
 };
 MarkdownEmphasis = __decorate$n([
@@ -47932,7 +47932,7 @@ let MarkdownStrike = class MarkdownStrike extends InlineElement {
         return html `<del><slot></slot></del>`;
     }
     getMarkdown() {
-        return '~~' + super.getMarkdown() + '~~';
+        return '~~' + super.getMarkdown().trim() + '~~';
     }
 };
 MarkdownStrike = __decorate$m([

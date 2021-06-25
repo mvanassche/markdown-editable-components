@@ -3,12 +3,6 @@ import { LitElement, html, customElement, css } from 'lit-element';
 @customElement('material-icon')
 export class MaterialIcon extends LitElement {
   static styles = css`
-    @font-face {
-      font-family: 'Material Icons';
-      font-style: normal;
-      font-weight: 400;
-      src: url(https://fonts.gstatic.com/s/materialicons/v70/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2) format('woff2');
-    }
     .material-icons {
       font-family: 'Material Icons';
       font-weight: normal;

@@ -45771,6 +45771,9 @@ exports.List = class List extends ContainerElement {
     connectedCallback() {
         super.connectedCallback();
     }
+    getMarkdown() {
+        return super.getMarkdown() + '\n';
+    }
 };
 exports.List.styles = css$1 `
     :host {
@@ -47238,6 +47241,10 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 this.handleArrowRightKeyDown(e);
             }
         });
+        this.addEventListener("input", () => this.onChange());
+    }
+    onChange() {
+        this.dispatchEvent(new CustomEvent("change")); // TODO, what should be the event details? also add other changes than inputs
     }
     setToolbar(toolbar) {
         this.toolbar = toolbar;
@@ -47434,6 +47441,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             range.collapse(true);
             (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.removeAllRanges();
             (_h = this.currentSelection) === null || _h === void 0 ? void 0 : _h.addRange(range);
+            this.onChange();
         }
     }
     handleBackspaceKeyDown() {
@@ -47448,6 +47456,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             list.appendChild(item);
             parent.innerHTML = '&nbsp';
             parent.appendChild(list);
+            this.onChange();
         }
     }
     affectToolbar() {
@@ -47497,6 +47506,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             range.selectNodeContents(replacement);
             (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
             (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
+            this.onChange();
         }
     }
     makeItalic() {
@@ -47516,6 +47526,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             range.selectNodeContents(replacement);
             (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
             (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
+            this.onChange();
         }
     }
     makeUnderline() {
@@ -47535,6 +47546,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             range.selectNodeContents(replacement);
             (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
             (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
+            this.onChange();
         }
     }
     makeStrike() {
@@ -47554,6 +47566,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             range.selectNodeContents(replacement);
             (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
             (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
+            this.onChange();
         }
     }
     makeCodeInline() {
@@ -47573,6 +47586,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             range.selectNodeContents(replacement);
             (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
             (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
+            this.onChange();
         }
     }
     listBulletedClick() {
@@ -47588,6 +47602,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             range.collapse(true);
             (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.removeAllRanges();
             (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.addRange(range);
+            this.onChange();
         }
     }
     insertPhoto(url, text) {
@@ -47604,6 +47619,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 const text = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode;
                 text.splitText(anchorOffset);
                 text.after(image);
+                this.onChange();
             }
         }
     }
@@ -47620,6 +47636,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 const text = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode;
                 text.splitText(anchorOffset);
                 text.after(link);
+                this.onChange();
             }
         }
     }
@@ -47629,6 +47646,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         if (oldElement != null) {
             element.innerHTML = oldElement.innerHTML;
             oldElement.replaceWith(element);
+            this.onChange();
         }
     }
     header2Element() {
@@ -47637,6 +47655,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         if (oldElement != null) {
             element.innerHTML = oldElement.innerHTML;
             oldElement.replaceWith(element);
+            this.onChange();
         }
     }
     header3Element() {
@@ -47645,6 +47664,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         if (oldElement != null) {
             element.innerHTML = oldElement.innerHTML;
             oldElement.replaceWith(element);
+            this.onChange();
         }
     }
     header4Element() {
@@ -47653,6 +47673,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         if (oldElement != null) {
             element.innerHTML = oldElement.innerHTML;
             oldElement.replaceWith(element);
+            this.onChange();
         }
     }
     header5Element() {
@@ -47661,6 +47682,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         if (oldElement != null) {
             element.innerHTML = oldElement.innerHTML;
             oldElement.replaceWith(element);
+            this.onChange();
         }
     }
     header6Element() {
@@ -47669,6 +47691,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         if (oldElement != null) {
             element.innerHTML = oldElement.innerHTML;
             oldElement.replaceWith(element);
+            this.onChange();
         }
     }
     pararaphElement() {
@@ -47677,6 +47700,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         if (oldElement != null) {
             element.innerHTML = oldElement.innerHTML;
             oldElement.replaceWith(element);
+            this.onChange();
         }
     }
     makeCodeBlock() {
@@ -47685,6 +47709,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         if (oldElement != null) {
             element.innerHTML = oldElement.innerHTML;
             oldElement.replaceWith(element);
+            this.onChange();
         }
     }
 };
@@ -48488,12 +48513,6 @@ exports.MaterialIcon = MaterialIcon_1 = class MaterialIcon extends LitElement {
     }
 };
 exports.MaterialIcon.styles = css$1 `
-    @font-face {
-      font-family: 'Material Icons';
-      font-style: normal;
-      font-weight: 400;
-      src: url(https://fonts.gstatic.com/s/materialicons/v70/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2) format('woff2');
-    }
     .material-icons {
       font-family: 'Material Icons';
       font-weight: normal;

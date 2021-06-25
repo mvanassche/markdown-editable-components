@@ -42,4 +42,7 @@ export class List extends ContainerElement {
   connectedCallback() {
     super.connectedCallback();
   }
+  getMarkdown(): string {
+    return super.getMarkdown() + '\n';
+  }
 }

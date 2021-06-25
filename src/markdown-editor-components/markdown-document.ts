@@ -139,7 +139,12 @@ export class MarkdownDocument extends LitElement {
       }
     });
 
+    this.addEventListener("input", () => this.onChange());
 
+  }
+
+  onChange() {
+    this.dispatchEvent(new CustomEvent("change")); // TODO, what should be the event details? also add other changes than inputs
   }
 
   public setToolbar(toolbar: Toolbar) {
@@ -366,6 +371,8 @@ export class MarkdownDocument extends LitElement {
       range.collapse(true);
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
+
+      this.onChange();
     }
   }
 
@@ -384,6 +391,7 @@ export class MarkdownDocument extends LitElement {
       list.appendChild(item);
       parent.innerHTML= '&nbsp';
       parent.appendChild(list);
+      this.onChange();
     }
   }
 
@@ -445,6 +453,7 @@ export class MarkdownDocument extends LitElement {
       range.selectNodeContents(replacement);
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
+      this.onChange();
     }
   }
 
@@ -468,6 +477,7 @@ export class MarkdownDocument extends LitElement {
       range.selectNodeContents(replacement);
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
+      this.onChange();
     }
   }
 
@@ -491,6 +501,7 @@ export class MarkdownDocument extends LitElement {
       range.selectNodeContents(replacement);
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
+      this.onChange();
     }
   }
 
@@ -514,6 +525,7 @@ export class MarkdownDocument extends LitElement {
       range.selectNodeContents(replacement);
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
+      this.onChange();
     }
   }
 
@@ -537,6 +549,7 @@ export class MarkdownDocument extends LitElement {
       range.selectNodeContents(replacement);
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
+      this.onChange();
     }
   }
 
@@ -555,6 +568,7 @@ export class MarkdownDocument extends LitElement {
       range.collapse(true);
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
+      this.onChange();
     }
   }
 
@@ -575,6 +589,7 @@ export class MarkdownDocument extends LitElement {
         secondPart;
 
         text.after(image);
+        this.onChange();
       }
     }
   }
@@ -595,6 +610,7 @@ export class MarkdownDocument extends LitElement {
         secondPart;
 
         text.after(link);
+        this.onChange();
       }
     }
   }
@@ -606,6 +622,7 @@ export class MarkdownDocument extends LitElement {
     if (oldElement != null) {
       element.innerHTML = oldElement.innerHTML;
       oldElement.replaceWith(element);
+      this.onChange();
     }
   }
 
@@ -616,6 +633,7 @@ export class MarkdownDocument extends LitElement {
     if (oldElement != null) {
       element.innerHTML = oldElement.innerHTML;
       oldElement.replaceWith(element);
+      this.onChange();
     }
   }
 
@@ -626,6 +644,7 @@ export class MarkdownDocument extends LitElement {
     if (oldElement != null) {
       element.innerHTML = oldElement.innerHTML;
       oldElement.replaceWith(element);
+      this.onChange();
     }
   }
 
@@ -636,6 +655,7 @@ export class MarkdownDocument extends LitElement {
     if (oldElement != null) {
       element.innerHTML = oldElement.innerHTML;
       oldElement.replaceWith(element);
+      this.onChange();
     }
   }
 
@@ -646,6 +666,7 @@ export class MarkdownDocument extends LitElement {
     if (oldElement != null) {
       element.innerHTML = oldElement.innerHTML;
       oldElement.replaceWith(element);
+      this.onChange();
     }
   }
 
@@ -656,6 +677,7 @@ export class MarkdownDocument extends LitElement {
     if (oldElement != null) {
       element.innerHTML = oldElement.innerHTML;
       oldElement.replaceWith(element);
+      this.onChange();
     }
   }
 
@@ -666,6 +688,7 @@ export class MarkdownDocument extends LitElement {
     if (oldElement != null) {
       element.innerHTML = oldElement.innerHTML;
       oldElement.replaceWith(element);
+      this.onChange();
     }
   }
 
@@ -676,6 +699,7 @@ export class MarkdownDocument extends LitElement {
     if (oldElement != null) {
       element.innerHTML = oldElement.innerHTML;
       oldElement.replaceWith(element);
+      this.onChange();
     }
   }
 

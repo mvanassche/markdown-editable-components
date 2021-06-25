@@ -47096,6 +47096,9 @@ class MarkdownEditableComponentsRenderer extends Renderer {
     em(text) {
         return `<markdown-emphasis>${text}</markdown-emphasis>`;
     }
+    del(text) {
+        return `<markdown-strike>${text}</markdown-strike>`;
+    }
     table(header, body) {
         return `<markdown-table>${header.replaceAll('markdown-table-row>', 'markdown-table-header-row>')}${body}</markdown-table>`;
     }

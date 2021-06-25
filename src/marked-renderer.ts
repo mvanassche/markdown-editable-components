@@ -103,7 +103,11 @@ export class MarkdownEditableComponentsRenderer extends Renderer {
   em(text: string): string {
     return `<markdown-emphasis>${text}</markdown-emphasis>`;
   }
-  
+
+  del(text: string): string {
+    return `<markdown-strike>${text}</markdown-strike>`;
+  }
+
   table(header: string, body: string): string {
     return `<markdown-table>${header.replaceAll('markdown-table-row>', 'markdown-table-header-row>')}${body}</markdown-table>`;
   }

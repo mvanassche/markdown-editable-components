@@ -4,6 +4,9 @@
   <head>
     <meta charset="utf-8">
     <title>&lt;markdown-editable-components> Demo</title>
+    <script>
+      exports = {}; // TODO
+    </script>
     <script src="../build/index.js"></script>
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
@@ -32,8 +35,7 @@
     </style>
   </head>
   <body>
-    <markdown-editor>
-      <markdown-document id="from-dom">
+      <markdown-document id="from-dom" toolbar="true">
         <!-- <markdown-toc></markdown-toc> -->
         <markdown-header-1>Title1</markdown-header-1>
         <markdown-header-2>Title2</markdown-header-2>
@@ -85,7 +87,6 @@
         <markdown-link destination='http://www.logic.tools' title='logic tools'>Logic Tools</markdown-link>
         <markdown-image destination='https://www.logic.tools/wp-content/uploads/2020/09/Logic-TOOLS-TRANS-300x212.png' title='logic tools'>Logic Tools</markdown-image>
       </markdown-document>
-    </markdown-editor>
 
     <!-- <markdown-document id="empty">
     </markdown-document> -->

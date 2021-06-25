@@ -1,11 +1,11 @@
 import { LitElement, html, customElement, css } from 'lit-element';
-import { MarkdownEditor } from './markdown-editor';
+import { MarkdownDocument } from './markdown-document';
 import { BoldToolbarButton } from './toolbar-buttons/bold-toolbar-button';
 
 @customElement('markdown-toolbar')
 export class Toolbar extends LitElement {
 
-  markdownEditor: MarkdownEditor | null = null;
+  markdownDocument: MarkdownDocument | null = null;
   boldButton: BoldToolbarButton | null = null;
   dropdownTitle: Element | null = null;
 
@@ -35,7 +35,7 @@ export class Toolbar extends LitElement {
     :host {
       display: block;
       border: solid 1px gray;
-      padding: 16px;
+      padding: 5px;
     }
     .toolbar {
       height: 24px;
@@ -89,7 +89,7 @@ export class Toolbar extends LitElement {
 
           <toolbar-separator></toolbar-separator>
 
-          <toolbar-button>
+          <!--toolbar-button>
             <material-icon>format_align_left</material-icon>
           </toolbar-button>
           <toolbar-button>
@@ -105,7 +105,7 @@ export class Toolbar extends LitElement {
             <material-icon>format_indent_decrease</material-icon>
           </toolbar-button>
 
-          <toolbar-separator></toolbar-separator>
+          <toolbar-separator></toolbar-separator-->
 
           <toolbar-button @click=${this.listBulletedClick}>
             <material-icon>format_list_bulleted</material-icon>
@@ -153,7 +153,7 @@ export class Toolbar extends LitElement {
 
           <toolbar-separator></toolbar-separator>
 
-          <toolbar-button>
+          <!--toolbar-button>
             <material-icon>content_copy</material-icon>
           </toolbar-button>
           <toolbar-button>
@@ -170,7 +170,7 @@ export class Toolbar extends LitElement {
           </toolbar-button>
           <toolbar-button>
             <material-icon>clear</material-icon>
-          </toolbar-button>
+          </toolbar-button-->
 
           <slot name="toolbar"></slot>
         </div>
@@ -193,14 +193,14 @@ export class Toolbar extends LitElement {
     const photoURLInput = this.shadowRoot?.querySelector('input.insert-photo-url') as HTMLInputElement;
     const photoTextInput = this.shadowRoot?.querySelector('input.insert-photo-text') as HTMLInputElement;
 
-    this.markdownEditor?.insertPhoto(photoURLInput.value, photoTextInput.value);
+    this.markdownDocument?.insertPhoto(photoURLInput.value, photoTextInput.value);
   }
 
   insertLinkButtonClick() {
     const linkURLInput = this.shadowRoot?.querySelector('input.insert-link-url') as HTMLInputElement;
     const linkTextInput = this.shadowRoot?.querySelector('input.insert-link-text') as HTMLInputElement;
 
-    this.markdownEditor?.insertLink(linkURLInput.value, linkTextInput.value);
+    this.markdownDocument?.insertLink(linkURLInput.value, linkTextInput.value);
   }
 
   firstUpdated() {
@@ -226,90 +226,90 @@ export class Toolbar extends LitElement {
     }
   }
 
-  setMarkdownEditor(markdownEditor: MarkdownEditor) {
-    this.markdownEditor = markdownEditor;
+  setMarkdownDocument(markdownDocument: MarkdownDocument) {
+    this.markdownDocument = markdownDocument;
   }
 
   header1Element() {
     // console.log('Hello');
-    this.markdownEditor?.header1Element();
+    this.markdownDocument?.header1Element();
   }
 
   header2Element() {
-    this.markdownEditor?.header2Element();
+    this.markdownDocument?.header2Element();
   }
 
   header3Element() {
-    this.markdownEditor?.header3Element();
+    this.markdownDocument?.header3Element();
   }
 
   header4Element() {
-    this.markdownEditor?.header4Element();
+    this.markdownDocument?.header4Element();
   }
 
   header5Element() {
-    this.markdownEditor?.header5Element();
+    this.markdownDocument?.header5Element();
   }
 
   header6Element() {
-    this.markdownEditor?.header6Element();
+    this.markdownDocument?.header6Element();
   }
 
   pararaphElement() {
-    this.markdownEditor?.pararaphElement();
+    this.markdownDocument?.pararaphElement();
   }
 
   codeBlockButtonClick() {
-    this.markdownEditor?.makeCodeBlock();
+    this.markdownDocument?.makeCodeBlock();
   }
 
   boldButtonClick(e: MouseEvent) {
     // e.preventDefault();
     e;
     // console.log(this.markdownEditor?.currentSelection);
-    this.markdownEditor?.makeBold();
+    this.markdownDocument?.makeBold();
   }
 
   italicButtonClick(e: MouseEvent) {
     // e.preventDefault();
     e;
     // console.log(this.markdownEditor?.currentSelection);
-    this.markdownEditor?.makeItalic();
+    this.markdownDocument?.makeItalic();
   }
 
   underlineButtonClick(e: MouseEvent) {
     // e.preventDefault();
     e;
     // console.log(this.markdownEditor?.currentSelection);
-    this.markdownEditor?.makeUnderline();
+    this.markdownDocument?.makeUnderline();
   }
 
   strikeButtonClick(e: MouseEvent) {
     // e.preventDefault();
     e;
     // console.log(this.markdownEditor?.currentSelection);
-    this.markdownEditor?.makeStrike();
+    this.markdownDocument?.makeStrike();
   }
 
   codeButtonClick(e: MouseEvent) {
     // e.preventDefault();
     e;
     // console.log(this.markdownEditor?.currentSelection);
-    this.markdownEditor?.makeCodeInline();
+    this.markdownDocument?.makeCodeInline();
   }
 
   breakButtonClick(e: MouseEvent) {
     // e.preventDefault();
     e;
     // console.log(this.markdownEditor?.currentSelection);
-    this.markdownEditor?.makeBreak();
+    this.markdownDocument?.makeBreak();
   }
 
   listBulletedClick(e: MouseEvent) {
     // e.preventDefault();
     e;
     // console.log(this.markdownEditor?.currentSelection);
-    this.markdownEditor?.listBulletedClick();
+    this.markdownDocument?.listBulletedClick();
   }
 
   highlightBoldButton() {

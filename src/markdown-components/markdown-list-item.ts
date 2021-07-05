@@ -55,6 +55,11 @@ export class ListItem extends ContainerElement {
   }
 
   normalize(): boolean {
+    /*if(this.childNodes.length == 1 && this.childNodes[0] instanceof HTMLBRElement) {
+      TODO: unindent, fallback to previous level, or paragraph, warning leave the rest of the items, meaning split the list.
+      return true;
+    }*/
+
     for (let i = 0; i < this.childNodes.length; i++) {
       const content = this.childNodes[i];
       if (content instanceof HTMLBRElement) {

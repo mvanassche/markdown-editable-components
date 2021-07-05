@@ -2820,6 +2820,10 @@ class LeafElement extends BlockElement {
     <parent>content1 <leaf>content2 </leaf><leaf> content3</leaf> content4</parent>
   */
     normalize() {
+        if (this.childNodes.length == 0) {
+            // This does not help... don't understand, it's just not showing!
+            this.appendChild(document.createTextNode(''));
+        }
         for (let i = 0; i < this.childNodes.length; i++) {
             const content = this.childNodes[i];
             if (content instanceof HTMLBRElement) {
@@ -45690,24 +45694,12 @@ var __decorate$x = (undefined && undefined.__decorate) || function (decorators, 
 };
 exports.CodeSpan = class CodeSpan extends InlineElement {
     render() {
-        return html `
-      <slot></slot>
-      <!-- <code>
-        <slot></slot>
-      </code> -->
-    `;
+        return html `<code><slot></slot></code>`;
     }
     getMarkdown() {
         return '`' + super.getMarkdown() + '`';
     }
 };
-// TODO info string as property/attribute
-exports.CodeSpan.styles = css$1 `
-    :host {
-      display: inline;
-      font-family: monospace;
-    }
-  `;
 exports.CodeSpan = __decorate$x([
     customElement('markdown-code-span')
 ], exports.CodeSpan);
@@ -47277,12 +47269,6 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 e.preventDefault();
                 this.handleTabKeyDown();
             }
-            else if (e.code === 'ArrowLeft') {
-                this.handleArrowLeftKeyDown(e);
-            }
-            else if (e.code === 'ArrowRight') {
-                this.handleArrowRightKeyDown(e);
-            }
         });
         this.addEventListener("input", () => {
             this.normalize();
@@ -47369,67 +47355,6 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             }
         }
         return null;
-    }
-    handleArrowLeftKeyDown(e) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
-        let parent;
-        if (((_b = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) === null || _b === void 0 ? void 0 : _b.nodeName.toLowerCase()) === 'markdown-paragraph') {
-            parent = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode;
-        }
-        else if (((_e = (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.anchorNode) === null || _e === void 0 ? void 0 : _e.nodeName) === '#text') {
-            parent = (_g = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode) === null || _g === void 0 ? void 0 : _g.parentElement;
-        }
-        const anchorOffset = (_h = this.currentSelection) === null || _h === void 0 ? void 0 : _h.anchorOffset;
-        const focusOffset = (_j = this.currentSelection) === null || _j === void 0 ? void 0 : _j.focusOffset;
-        const previousElementSibling = parent === null || parent === void 0 ? void 0 : parent.previousElementSibling;
-        if ((previousElementSibling === null || previousElementSibling === void 0 ? void 0 : previousElementSibling.firstChild) && anchorOffset === 0 && focusOffset === 0) {
-            e.preventDefault();
-            const range = document.createRange();
-            if ((previousElementSibling === null || previousElementSibling === void 0 ? void 0 : previousElementSibling.firstChild.nodeName.toLowerCase()) === "br") {
-                range.selectNodeContents(previousElementSibling);
-                range.collapse(true);
-                (_k = this.currentSelection) === null || _k === void 0 ? void 0 : _k.removeAllRanges();
-                (_l = this.currentSelection) === null || _l === void 0 ? void 0 : _l.addRange(range);
-            }
-            else {
-                range.selectNodeContents(previousElementSibling === null || previousElementSibling === void 0 ? void 0 : previousElementSibling.firstChild);
-                range.collapse();
-                (_m = this.currentSelection) === null || _m === void 0 ? void 0 : _m.removeAllRanges();
-                (_o = this.currentSelection) === null || _o === void 0 ? void 0 : _o.addRange(range);
-            }
-        }
-    }
-    handleArrowRightKeyDown(e) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
-        let parent;
-        let length;
-        if (((_b = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) === null || _b === void 0 ? void 0 : _b.nodeName.toLowerCase()) === 'markdown-paragraph') {
-            parent = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode;
-            length = 0;
-        }
-        else if (((_e = (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.anchorNode) === null || _e === void 0 ? void 0 : _e.nodeName) === '#text') {
-            parent = (_g = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode) === null || _g === void 0 ? void 0 : _g.parentElement;
-            length = ((_h = this.currentSelection) === null || _h === void 0 ? void 0 : _h.anchorNode).length;
-        }
-        const anchorOffset = (_j = this.currentSelection) === null || _j === void 0 ? void 0 : _j.anchorOffset;
-        const focusOffset = (_k = this.currentSelection) === null || _k === void 0 ? void 0 : _k.focusOffset;
-        const nextElementSibling = parent === null || parent === void 0 ? void 0 : parent.nextElementSibling;
-        if ((nextElementSibling === null || nextElementSibling === void 0 ? void 0 : nextElementSibling.firstChild) && anchorOffset === length && focusOffset === length) {
-            e.preventDefault();
-            const range = document.createRange();
-            if ((nextElementSibling === null || nextElementSibling === void 0 ? void 0 : nextElementSibling.firstChild.nodeName.toLowerCase()) === "br") {
-                range.selectNodeContents(nextElementSibling);
-                range.collapse(true);
-                (_l = this.currentSelection) === null || _l === void 0 ? void 0 : _l.removeAllRanges();
-                (_m = this.currentSelection) === null || _m === void 0 ? void 0 : _m.addRange(range);
-            }
-            else {
-                range.selectNodeContents(nextElementSibling === null || nextElementSibling === void 0 ? void 0 : nextElementSibling.firstChild);
-                range.collapse(true);
-                (_o = this.currentSelection) === null || _o === void 0 ? void 0 : _o.removeAllRanges();
-                (_p = this.currentSelection) === null || _p === void 0 ? void 0 : _p.addRange(range);
-            }
-        }
     }
     handleEnterKeyDown() {
         document.execCommand('insertHTML', false, '<br/>');
@@ -47827,6 +47752,10 @@ exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
         }).join('');
     }
     normalize() {
+        /*if(this.childNodes.length == 1 && this.childNodes[0] instanceof HTMLBRElement) {
+          TODO: unindent, fallback to previous level, or paragraph, warning leave the rest of the items, meaning split the list.
+          return true;
+        }*/
         for (let i = 0; i < this.childNodes.length; i++) {
             const content = this.childNodes[i];
             if (content instanceof HTMLBRElement) {
@@ -48260,7 +48189,11 @@ exports.Header1 = class Header1 extends Heading {
     `;
     }
 };
-exports.Header1.styles = css$1 ``;
+exports.Header1.styles = css$1 `
+      :host {
+      position: relative;
+    }
+`;
 exports.Header1 = __decorate$f([
     customElement('markdown-header-1')
 ], exports.Header1);
@@ -48284,7 +48217,11 @@ exports.Header2 = class Header2 extends Heading {
     `;
     }
 };
-exports.Header2.styles = css$1 ``;
+exports.Header2.styles = css$1 `
+      :host {
+      position: relative;
+    }
+`;
 exports.Header2 = __decorate$e([
     customElement('markdown-header-2')
 ], exports.Header2);
@@ -48308,7 +48245,11 @@ exports.Header3 = class Header3 extends Heading {
     `;
     }
 };
-exports.Header3.styles = css$1 ``;
+exports.Header3.styles = css$1 `
+      :host {
+      position: relative;
+    }
+`;
 exports.Header3 = __decorate$d([
     customElement('markdown-header-3')
 ], exports.Header3);
@@ -48332,7 +48273,11 @@ exports.Header4 = class Header4 extends Heading {
     `;
     }
 };
-exports.Header4.styles = css$1 ``;
+exports.Header4.styles = css$1 `
+      :host {
+      position: relative;
+    }
+`;
 exports.Header4 = __decorate$c([
     customElement('markdown-header-4')
 ], exports.Header4);
@@ -48356,7 +48301,11 @@ exports.Header5 = class Header5 extends Heading {
     `;
     }
 };
-exports.Header5.styles = css$1 ``;
+exports.Header5.styles = css$1 `
+      :host {
+      position: relative;
+    }
+`;
 exports.Header5 = __decorate$b([
     customElement('markdown-header-5')
 ], exports.Header5);
@@ -48380,7 +48329,11 @@ exports.Header6 = class Header6 extends Heading {
     `;
     }
 };
-exports.Header6.styles = css$1 ``;
+exports.Header6.styles = css$1 `
+      :host {
+      position: relative;
+    }
+`;
 exports.Header6 = __decorate$a([
     customElement('markdown-header-6')
 ], exports.Header6);

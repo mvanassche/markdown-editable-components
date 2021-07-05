@@ -5,7 +5,11 @@ import { Heading } from './abstract/heading';
 export class Header5 extends Heading {
   depth = 5;
 
-  static styles = css``;
+  static styles = css`
+      :host {
+      position: relative;
+    }
+`;
 
   render() {
     return html`

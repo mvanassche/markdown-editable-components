@@ -112,10 +112,6 @@ export class MarkdownDocument extends LitElement {
       } else if (e.code === 'Tab') {
         e.preventDefault();
         this.handleTabKeyDown();
-      } else if (e.code === 'ArrowLeft') {
-        this.handleArrowLeftKeyDown(e);
-      } else if (e.code === 'ArrowRight') {
-        this.handleArrowRightKeyDown(e);
       }
     });
 
@@ -220,72 +216,6 @@ export class MarkdownDocument extends LitElement {
     return null;
   }
 
-  handleArrowLeftKeyDown(e: KeyboardEvent) {
-    let parent: HTMLElement | null | undefined;
-
-    if (this.currentSelection?.anchorNode?.nodeName.toLowerCase() === 'markdown-paragraph') {
-      parent = this.currentSelection?.anchorNode as HTMLElement;
-    } else if (this.currentSelection?.anchorNode?.nodeName === '#text') {
-      parent = this.currentSelection?.anchorNode?.parentElement;
-    }
-
-    const anchorOffset = this.currentSelection?.anchorOffset;
-    const focusOffset = this.currentSelection?.focusOffset;
-
-    const previousElementSibling = parent?.previousElementSibling;
-
-    if (previousElementSibling?.firstChild && anchorOffset === 0 && focusOffset === 0) {
-      e.preventDefault();
-
-      const range = document.createRange();
-      if (previousElementSibling?.firstChild.nodeName.toLowerCase() === "br") {
-        range.selectNodeContents(previousElementSibling);
-        range.collapse(true);
-        this.currentSelection?.removeAllRanges();
-        this.currentSelection?.addRange(range);
-      } else {
-        range.selectNodeContents(previousElementSibling?.firstChild);
-        range.collapse();
-        this.currentSelection?.removeAllRanges();
-        this.currentSelection?.addRange(range);
-      }
-    }
-  }
-
-  handleArrowRightKeyDown(e: KeyboardEvent) {
-    let parent: HTMLElement | null | undefined;
-    let length;
-
-    if (this.currentSelection?.anchorNode?.nodeName.toLowerCase() === 'markdown-paragraph') {
-      parent = this.currentSelection?.anchorNode as HTMLElement;
-      length = 0;
-    } else if (this.currentSelection?.anchorNode?.nodeName === '#text') {
-      parent = this.currentSelection?.anchorNode?.parentElement;
-      length = (this.currentSelection?.anchorNode as Text).length;
-    }
-
-    const anchorOffset = this.currentSelection?.anchorOffset;
-    const focusOffset = this.currentSelection?.focusOffset;
-
-    const nextElementSibling = parent?.nextElementSibling;
-
-    if (nextElementSibling?.firstChild && anchorOffset === length && focusOffset === length) {
-      e.preventDefault();
-
-      const range = document.createRange();
-      if (nextElementSibling?.firstChild.nodeName.toLowerCase() === "br") {
-        range.selectNodeContents(nextElementSibling);
-        range.collapse(true);
-        this.currentSelection?.removeAllRanges();
-        this.currentSelection?.addRange(range);
-      } else {
-        range.selectNodeContents(nextElementSibling?.firstChild);
-        range.collapse(true);
-        this.currentSelection?.removeAllRanges();
-        this.currentSelection?.addRange(range);
-      }
-    }
-  }
 
   handleEnterKeyDown() {
     document.execCommand('insertHTML', false, '<br/>');

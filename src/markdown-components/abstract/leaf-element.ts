@@ -75,6 +75,10 @@ export abstract class LeafElement extends BlockElement {
     <parent>content1 <leaf>content2 </leaf><leaf> content3</leaf> content4</parent>
   */
   normalize(): boolean {
+    if(this.childNodes.length == 0) {
+        // This does not help... don't understand, it's just not showing!
+      this.appendChild(document.createTextNode(''));
+    }
     for (let i = 0; i < this.childNodes.length; i++) {
       const content = this.childNodes[i];
       if (content instanceof HTMLBRElement) {

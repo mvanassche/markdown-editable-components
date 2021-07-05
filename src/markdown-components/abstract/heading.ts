@@ -18,4 +18,10 @@ export abstract class Heading extends LeafElement {
   getMarkdown(): string {
     return '#'.repeat(this.depth) + ' ' + getMarkdownWithTextForElement(this) + '\n';
   }
+
+  newEmptyElementAfterBreak(): HTMLElement {
+    // after a title, we typically want a paragraph!
+    return document.createElement('markdown-paragraph');
+  }
+
 }

@@ -23,11 +23,19 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
     if(this.parentNode != null) {
       // extract the br out of this element and take what's right of br, encapsulate in an element of the same type as this
       const elementsToMove: Node[] = []; 
-      const rightElement = document.createElement(this.tagName);
 
       let indexOfBreak = Array.from(this.childNodes).indexOf(content);
       for (let j = indexOfBreak + 1; j < this.childNodes.length; j++) {
         elementsToMove.push(this.childNodes[j]);
+        if(document.getSelection()?.containsNode(this.childNodes[j], true)) {
+          //console.log("cursor at " + this.childNodes[j])  TODO sometimes the cursor gets a little weird, so we need to fix it?
+        }
+      }
+      let rightElement: HTMLElement
+      if(elementsToMove.length == 0) {
+        rightElement = this.newEmptyElementAfterBreak();
+      } else {
+        rightElement = document.createElement(this.tagName);
       }
 
       elementsToMove.forEach((elementToMove) => {
@@ -38,6 +46,13 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
       this.parentNode.insertBefore(rightElement, this.nextSibling);
     }
   }
+
+  newEmptyElementAfterBreak(): HTMLElement {
+    return document.createElement(this.tagName);
+  }
+
+
+
 
   pushBreakAndNodesAfterToParent(content: HTMLBRElement) {
     this.pushNodesAfterBreakToParent(content);

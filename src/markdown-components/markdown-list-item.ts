@@ -3,6 +3,7 @@ import { MarkdownDocument } from '../markdown-editor-components/markdown-documen
 import { ContainerElement } from './abstract/container-element';
 import { List } from './markdown-list';
 import { isMarkdownElement } from './functions';
+import { MarkdownLitElement } from './abstract/markdown-lit-element';
 
 @customElement('markdown-list-item')
 export class ListItem extends ContainerElement {
@@ -52,4 +53,21 @@ export class ListItem extends ContainerElement {
       }
     }).join('');
   }
+
+  normalize(): boolean {
+    for (let i = 0; i < this.childNodes.length; i++) {
+      const content = this.childNodes[i];
+      if (content instanceof HTMLBRElement) {
+        this.pushNodesAfterBreakToParent(content);
+        this.removeChild(content)
+        return false;
+      } else if(content instanceof MarkdownLitElement) {
+        if(content.normalize()) {
+          return this.normalize();
+        }
+      }
+    }
+    return false;
+  }
+
 }

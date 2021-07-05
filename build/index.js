@@ -2709,51 +2709,39 @@ function getMarkdownWithTextForElement(element) {
 }
 
 class MarkdownLitElement extends LitElement {
-    getMarkdown() {
-        return Array.from(this.children).map((child) => {
-            if (isMarkdownElement(child)) {
-                return child.getMarkdown();
+    // returns a boolean that if true, it means that the element changed something that will impact a ancestor, so normalize should be redone
+    normalize() {
+        for (let i = 0; i < this.childNodes.length; i++) {
+            const content = this.childNodes[i];
+            if (content instanceof MarkdownLitElement) {
+                if (content.normalize()) {
+                    return this.normalize();
+                }
             }
-            else {
-                return '';
+        }
+        return false;
+    }
+    pushNodesAfterBreakToParent(content) {
+        if (this.parentNode != null) {
+            // extract the br out of this element and take what's right of br, encapsulate in an element of the same type as this
+            const elementsToMove = [];
+            const rightElement = document.createElement(this.tagName);
+            let indexOfBreak = Array.from(this.childNodes).indexOf(content);
+            for (let j = indexOfBreak + 1; j < this.childNodes.length; j++) {
+                elementsToMove.push(this.childNodes[j]);
             }
-        }).join('');
+            elementsToMove.forEach((elementToMove) => {
+                //this.removeChild(elementToMove);
+                rightElement.append(elementToMove);
+            });
+            this.parentNode.insertBefore(rightElement, this.nextSibling);
+        }
     }
-}
-
-class BlockElement extends MarkdownLitElement {
-}
-
-class LeafElement extends BlockElement {
-    constructor() {
-        super(...arguments);
-        this.selection = false;
+    pushBreakAndNodesAfterToParent(content) {
+        var _a;
+        this.pushNodesAfterBreakToParent(content);
+        (_a = this.parentNode) === null || _a === void 0 ? void 0 : _a.insertBefore(content, this.nextSibling);
     }
-    connectedCallback() {
-        super.connectedCallback();
-        //this.setAttribute("contenteditable", "true");
-        this.addEventListener("input", () => {
-            this.normalizeChildren();
-        });
-        this.addEventListener('selectstart', () => {
-            this.selection = true;
-            // get the document
-            // console.log('focus ' + this.tagName);
-        });
-        this._selectionChangeHandler = this.documentSelectionChange.bind(this);
-        // this._selectionChangeHandler = this.documentSelectionChange;
-        document.addEventListener('selectionchange', this._selectionChangeHandler);
-    }
-    // selectionToBlock(elementName: string) {
-    //   const selection = document.getSelection()!;
-    //   const selection_text = selection.toString();
-    //   const element = document.createElement(elementName);
-    //   element.textContent = selection_text;
-    //   const range = selection.getRangeAt(0);
-    //   range.deleteContents();
-    //   range.insertNode(element);
-    //   this.normalizeChildren();
-    // }
     normalizeChildren() {
         var _a, _b, _c, _d, _e, _f;
         let changed = false;
@@ -2770,7 +2758,7 @@ class LeafElement extends BlockElement {
                     currentChanged = true;
                     break;
                 }
-                else if (content instanceof LeafElement) {
+                else if (content instanceof MarkdownLitElement) {
                     // if there is something right of selection, add sibling
                     if (i < this.childNodes.length - 1 && !(i + 1 == this.childNodes.length - 1 && ((_c = (_b = this.childNodes[i + 1]) === null || _b === void 0 ? void 0 : _b.nodeValue) === null || _c === void 0 ? void 0 : _c.replace(/\s/g, '').length) == 0)) {
                         const next = document.createElement(this.tagName);
@@ -2813,6 +2801,51 @@ class LeafElement extends BlockElement {
           }
         });*/
     }
+    getMarkdown() {
+        return Array.from(this.children).map((child) => {
+            if (isMarkdownElement(child)) {
+                return child.getMarkdown();
+            }
+            else {
+                return '';
+            }
+        }).join('');
+    }
+}
+
+class BlockElement extends MarkdownLitElement {
+}
+
+class LeafElement extends BlockElement {
+    constructor() {
+        super(...arguments);
+        this.selection = false;
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        //this.setAttribute("contenteditable", "true");
+        /*this.addEventListener("input", () => {
+          this.normalizeChildren()
+        });*/
+        this.addEventListener('selectstart', () => {
+            this.selection = true;
+            // get the document
+            // console.log('focus ' + this.tagName);
+        });
+        this._selectionChangeHandler = this.documentSelectionChange.bind(this);
+        // this._selectionChangeHandler = this.documentSelectionChange;
+        document.addEventListener('selectionchange', this._selectionChangeHandler);
+    }
+    // selectionToBlock(elementName: string) {
+    //   const selection = document.getSelection()!;
+    //   const selection_text = selection.toString();
+    //   const element = document.createElement(elementName);
+    //   element.textContent = selection_text;
+    //   const range = selection.getRangeAt(0);
+    //   range.deleteContents();
+    //   range.insertNode(element);
+    //   this.normalizeChildren();
+    // }
     firstUpdated() {
     }
     disconnectedCallback() {
@@ -2831,6 +2864,31 @@ class LeafElement extends BlockElement {
         else {
             this.selection = false;
         }
+    }
+    /* normalize for an inline element consists of finding <br>s and
+      - create a new element of the same type with the content after the <br>
+      - remove the <br>
+      - move the content after the <br> (which is in the newly created element) to the parent
+      
+    <parent>content1 <leaf>content2 <br/> content3</leaf> content4</parent>
+        becomes
+    <parent>content1 <leaf>content2 </leaf><leaf> content3</leaf> content4</parent>
+  */
+    normalize() {
+        for (let i = 0; i < this.childNodes.length; i++) {
+            const content = this.childNodes[i];
+            if (content instanceof HTMLBRElement) {
+                this.pushNodesAfterBreakToParent(content);
+                this.removeChild(content);
+                return false;
+            }
+            else if (content instanceof MarkdownLitElement) {
+                if (content.normalize()) {
+                    return this.normalize();
+                }
+            }
+        }
+        return false;
     }
 }
 
@@ -45626,6 +45684,32 @@ class InlineElement extends MarkdownLitElement {
         super.connectedCallback();
         //this.setAttribute("contenteditable", "true");
     }
+    /* normalize for an inline element consists of finding <br>s and
+        - create a new element of the same type with the content after the <br>
+        - move the br to the parent, next to this
+        - move the content after, in the newly created element to the parent, after the <br>
+  
+      <parent>content1 <inline>content2 <br/> content3</inline> content4</parent>
+          becomes
+      <parent>content1 <inline>content2 </inline><br/><inline> content3</inline> content4</parent>
+  
+      It is up to the parent to deal with the <br> at this point.
+    */
+    normalize() {
+        for (let i = 0; i < this.childNodes.length; i++) {
+            const content = this.childNodes[i];
+            if (content instanceof HTMLBRElement) {
+                this.pushBreakAndNodesAfterToParent(content);
+                return true;
+            }
+            else if (content instanceof MarkdownLitElement) {
+                if (content.normalize()) {
+                    return this.normalize();
+                }
+            }
+        }
+        return false;
+    }
     getMarkdown() {
         return getMarkdownWithTextForElement(this);
     }
@@ -47209,32 +47293,12 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 }
             }
         });
-        document.addEventListener('keyup', (e) => {
-            // manage br rules in paragraphs:
-            // 1. there is should not be br in markdown-paragraph, if any text
-            //    exists
-            // 2. there is should be br, if there is no content in markdown-paragraph,
-            //    to prevent disappearing of empty line
-            this.querySelectorAll('markdown-paragraph').forEach(markdownParagraphEl => {
-                if (markdownParagraphEl.childNodes.length > 1) {
-                    markdownParagraphEl.childNodes.forEach(el => {
-                        if (el.nodeName === 'BR') {
-                            el.remove();
-                        }
-                    });
-                }
-                // this rule is triggered when all text is erased from
-                // paragraph node
-                if (markdownParagraphEl.childNodes.length === 0) {
-                    markdownParagraphEl.appendChild(document.createElement('br'));
-                }
-            });
-        });
-        document.addEventListener('keydown', (e) => {
+        this.addEventListener('keydown', (e) => {
             console.log(e.code);
             if (e.code === 'Enter') {
                 e.preventDefault();
                 this.handleEnterKeyDown();
+                //this.normalize();  // If you do uncomment this enter handling, the normalize in the input is redundant!
             }
             else if (e.code === 'Backspace') {
                 this.handleBackspaceKeyDown();
@@ -47250,7 +47314,24 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 this.handleArrowRightKeyDown(e);
             }
         });
-        this.addEventListener("input", () => this.onChange());
+        this.addEventListener("input", () => {
+            this.normalize();
+            this.onChange();
+        });
+    }
+    normalize() {
+        Array.from(this.children).forEach((child) => {
+            if (child instanceof MarkdownLitElement) {
+                child.normalize();
+            }
+            else if (child instanceof HTMLDivElement) {
+                // on chromium new lines are handled by divs, it splits up the tags properly.
+                Array.from(child.childNodes).forEach((divChild) => {
+                    this.append(divChild);
+                });
+                child.remove();
+            }
+        });
     }
     onChange() {
         this.dispatchEvent(new CustomEvent("change")); // TODO, what should be the event details? also add other changes than inputs
@@ -47381,49 +47462,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
     }
     handleEnterKeyDown() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
-        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
-        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
-        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
-        if (parent && typeof anchorOffset !== 'undefined' && typeof focusOffset !== 'undefined') {
-            let replacementLeft, replacementRight;
-            if ((parent === null || parent === void 0 ? void 0 : parent.tagName.toLowerCase()) === 'markdown-paragraph') {
-                replacementLeft = document.createElement('markdown-paragraph');
-                replacementRight = document.createElement('markdown-paragraph');
-            }
-            else if ((parent === null || parent === void 0 ? void 0 : parent.tagName.toLowerCase()) === 'markdown-list-item') {
-                replacementLeft = document.createElement('markdown-list-item');
-                replacementRight = document.createElement('markdown-list-item');
-            }
-            else ;
-            if (replacementLeft && replacementRight) {
-                replacementLeft.innerHTML = (_e = parent === null || parent === void 0 ? void 0 : parent.innerHTML) === null || _e === void 0 ? void 0 : _e.slice(0, anchorOffset);
-                replacementRight.innerHTML = (_f = parent === null || parent === void 0 ? void 0 : parent.innerHTML) === null || _f === void 0 ? void 0 : _f.slice(focusOffset);
-                if (replacementLeft.innerHTML.length === 0) {
-                    replacementLeft.innerHTML = "<br />";
-                }
-                if (replacementRight.innerHTML.length === 0) {
-                    replacementRight.innerHTML = "<br />";
-                }
-                parent.replaceWith(replacementLeft);
-                replacementLeft.after(replacementRight);
-                if (replacementRight === null || replacementRight === void 0 ? void 0 : replacementRight.firstChild) {
-                    const range = document.createRange();
-                    if ((replacementRight === null || replacementRight === void 0 ? void 0 : replacementRight.firstChild.nodeName.toLowerCase()) === "br") {
-                        range.selectNodeContents(replacementRight);
-                        range.collapse(true);
-                        (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.removeAllRanges();
-                        (_h = this.currentSelection) === null || _h === void 0 ? void 0 : _h.addRange(range);
-                    }
-                    else {
-                        range.selectNodeContents(replacementRight === null || replacementRight === void 0 ? void 0 : replacementRight.firstChild);
-                        range.collapse(true);
-                        (_j = this.currentSelection) === null || _j === void 0 ? void 0 : _j.removeAllRanges();
-                        (_k = this.currentSelection) === null || _k === void 0 ? void 0 : _k.addRange(range);
-                    }
-                }
-            }
-        }
+        document.execCommand('insertHTML', false, '<br/>');
     }
     makeBreak() {
         var _a, _b, _c, _d, _e, _f, _g, _h;
@@ -47796,6 +47835,22 @@ exports.ListItem = class ListItem extends ContainerElement {
                 return ((_a = child.textContent) === null || _a === void 0 ? void 0 : _a.trim()) + '\n'; // trim to avoid extra spaces and end of lines, which could be interpreted as paragraph
             }
         }).join('');
+    }
+    normalize() {
+        for (let i = 0; i < this.childNodes.length; i++) {
+            const content = this.childNodes[i];
+            if (content instanceof HTMLBRElement) {
+                this.pushNodesAfterBreakToParent(content);
+                this.removeChild(content);
+                return false;
+            }
+            else if (content instanceof MarkdownLitElement) {
+                if (content.normalize()) {
+                    return this.normalize();
+                }
+            }
+        }
+        return false;
     }
 };
 exports.ListItem.styles = css$1 `

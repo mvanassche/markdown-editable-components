@@ -6,6 +6,7 @@ import { parse } from '../marked-renderer';
 import { Toolbar } from './markdown-toolbar';
 import { MarkdownImage } from '../markdown-components/markdown-image';
 import { MarkdownLink } from '../markdown-components/markdown-link';
+import { MarkdownLitElement } from '../markdown-components/abstract/markdown-lit-element';
 
 @customElement('markdown-document')
 export class MarkdownDocument extends LitElement {
@@ -96,37 +97,14 @@ export class MarkdownDocument extends LitElement {
       }
     });
 
-    document.addEventListener('keyup', (e: KeyboardEvent) => {
-      e;
 
-      // manage br rules in paragraphs:
-      // 1. there is should not be br in markdown-paragraph, if any text
-      //    exists
-      // 2. there is should be br, if there is no content in markdown-paragraph,
-      //    to prevent disappearing of empty line
-      this.querySelectorAll('markdown-paragraph').forEach(markdownParagraphEl => {
-        if (markdownParagraphEl.childNodes.length > 1) {
-          markdownParagraphEl.childNodes.forEach(el => {
-            if (el.nodeName === 'BR') {
-              el.remove();
-            }
-          })
-        }
-
-        // this rule is triggered when all text is erased from
-        // paragraph node
-        if (markdownParagraphEl.childNodes.length === 0) {
-          markdownParagraphEl.appendChild(document.createElement('br'));
-        }
-      });
-    });
-
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
+    this.addEventListener('keydown', (e: KeyboardEvent) => {
       console.log(e.code);
 
       if (e.code === 'Enter') {
         e.preventDefault();
         this.handleEnterKeyDown();
+        //this.normalize();  // If you do uncomment this enter handling, the normalize in the input is redundant!
       } else if (e.code === 'Backspace') {
         this.handleBackspaceKeyDown();
       } else if (e.code === 'Tab') {
@@ -139,8 +117,25 @@ export class MarkdownDocument extends LitElement {
       }
     });
 
-    this.addEventListener("input", () => this.onChange());
+    this.addEventListener("input", () => {
+      this.normalize();
+      this.onChange();
+    });
 
+  }
+
+  normalize() {
+    Array.from(this.children).forEach((child) => {
+      if(child instanceof MarkdownLitElement) {
+        child.normalize();
+      } else if (child instanceof HTMLDivElement) {
+          // on chromium new lines are handled by divs, it splits up the tags properly.
+        Array.from(child.childNodes).forEach((divChild) => {
+          this.append(divChild);
+        })
+        child.remove();
+      }
+    });
   }
 
   onChange() {
@@ -291,54 +286,7 @@ export class MarkdownDocument extends LitElement {
   }
 
   handleEnterKeyDown() {
-    const anchorOffset = this.currentSelection?.anchorOffset;
-    const focusOffset = this.currentSelection?.focusOffset;
-    const parent = this.currentSelection?.anchorNode?.parentElement;
-
-    if (parent && typeof anchorOffset !== 'undefined' && typeof focusOffset !== 'undefined') {
-      let replacementLeft, replacementRight;
-
-      if (parent?.tagName.toLowerCase() === 'markdown-paragraph') {
-        replacementLeft = document.createElement('markdown-paragraph');
-        replacementRight = document.createElement('markdown-paragraph');
-      } else if (parent?.tagName.toLowerCase() === 'markdown-list-item') {
-        replacementLeft = document.createElement('markdown-list-item');
-        replacementRight = document.createElement('markdown-list-item');
-      } else {
-        //
-      }
-
-      if (replacementLeft && replacementRight) {
-        replacementLeft.innerHTML = parent?.innerHTML?.slice(0, anchorOffset);
-        replacementRight.innerHTML = parent?.innerHTML?.slice(focusOffset);
-
-        if (replacementLeft.innerHTML.length === 0) {
-          replacementLeft.innerHTML = "<br />";
-        }
-
-        if (replacementRight.innerHTML.length === 0) {
-          replacementRight.innerHTML = "<br />";
-        }
-
-        parent.replaceWith(replacementLeft);
-        replacementLeft.after(replacementRight);
-
-        if (replacementRight?.firstChild) {
-          const range = document.createRange();
-          if (replacementRight?.firstChild.nodeName.toLowerCase() === "br") {
-            range.selectNodeContents(replacementRight);
-            range.collapse(true);
-            this.currentSelection?.removeAllRanges();
-            this.currentSelection?.addRange(range);
-          } else {
-            range.selectNodeContents(replacementRight?.firstChild);
-            range.collapse(true);
-            this.currentSelection?.removeAllRanges();
-            this.currentSelection?.addRange(range);
-          }
-        }
-      }
-    }
+    document.execCommand('insertHTML', false, '<br/>');
   }
 
   makeBreak() {
@@ -377,7 +325,7 @@ export class MarkdownDocument extends LitElement {
   }
 
   handleBackspaceKeyDown() {
-
+    
   }
 
   handleTabKeyDown() {

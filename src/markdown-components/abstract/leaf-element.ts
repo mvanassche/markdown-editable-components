@@ -1,4 +1,5 @@
 import { BlockElement } from "./block-element";
+import { MarkdownLitElement } from "./markdown-lit-element";
 
 export abstract class LeafElement extends BlockElement {
 
@@ -10,9 +11,9 @@ export abstract class LeafElement extends BlockElement {
 
     //this.setAttribute("contenteditable", "true");
 
-    this.addEventListener("input", () => {
+    /*this.addEventListener("input", () => {
       this.normalizeChildren()
-    });
+    });*/
 
     this.addEventListener('selectstart', () => {
       this.selection = true;
@@ -41,67 +42,6 @@ export abstract class LeafElement extends BlockElement {
   //   this.normalizeChildren();
   // }
 
-  normalizeChildren() {
-    let changed = false;
-
-    do {
-      let currentChanged = false;
-
-      for (let i = 0; i < this.childNodes.length; i++) {
-        const content = this.childNodes[i];
-
-        if (content instanceof HTMLDivElement) {
-          content.remove();
-          const next = document.createElement(this.tagName);
-          next.innerText = content.innerText;
-          this.parentNode?.insertBefore(next, this.nextSibling);
-          //this.parentElement?.append(next);
-          currentChanged = true;
-          break;
-        } else if (content instanceof LeafElement) {
-          // if there is something right of selection, add sibling
-          if (i < this.childNodes.length - 1 && !(i + 1 == this.childNodes.length - 1 && this.childNodes[i + 1]?.nodeValue?.replace(/\s/g, '').length == 0)) {
-            const next = document.createElement(this.tagName);
-
-            while (i + 1 < this.childNodes.length) {
-              next.append(this.childNodes[i + 1]);
-            }
-
-            content.remove();
-            this.parentNode?.insertBefore(next, this.nextSibling);
-            this.parentNode?.insertBefore(content, this.nextSibling);
-            //this.parentElement?.append(content);
-            //this.parentElement?.append(next);
-            (next as LeafElement).normalizeChildren();
-          } else {
-            content.remove();
-            this.parentNode?.insertBefore(content, this.nextSibling);
-            //this.parentElement?.append(content);
-            // no need to break or change, we are done here
-          }
-        }
-      }
-      changed = currentChanged;  
-    } while (changed)
-    /*Array.from(this.children).forEach((content) => {
-      if (content instanceof HTMLDivElement) {
-        content.remove();
-        let next = document.createElement(this.tagName);
-        next.innerText = content.innerText;
-        this.parentElement?.append(next);
-      }
-      if (content instanceof LeafElement) {
-        // if there is something right of selection, add sibling
-        if (content.nextSibling != null) {
-          let next = document.createElement(this.tagName);
-          next.innerText = content.nextSibling.innerText;
-        }
-        content.remove();
-        this.parentElement?.append(content);
-        this.parentElement?.append(next);
-      }  
-    });*/
-  }
 
   firstUpdated() {
   }
@@ -124,4 +64,30 @@ export abstract class LeafElement extends BlockElement {
       this.selection = false;
     }
   }
+
+    /* normalize for an inline element consists of finding <br>s and
+      - create a new element of the same type with the content after the <br>
+      - remove the <br>
+      - move the content after the <br> (which is in the newly created element) to the parent
+      
+    <parent>content1 <leaf>content2 <br/> content3</leaf> content4</parent>
+        becomes
+    <parent>content1 <leaf>content2 </leaf><leaf> content3</leaf> content4</parent>
+  */
+  normalize(): boolean {
+    for (let i = 0; i < this.childNodes.length; i++) {
+      const content = this.childNodes[i];
+      if (content instanceof HTMLBRElement) {
+        this.pushNodesAfterBreakToParent(content);
+        this.removeChild(content);
+        return false;
+      } else if(content instanceof MarkdownLitElement) {
+        if(content.normalize()) {
+          return this.normalize();
+        }
+      }
+    }
+    return false;
+  }
+
 }

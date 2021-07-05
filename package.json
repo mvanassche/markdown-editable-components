@@ -7,7 +7,8 @@
   "types": "./types/index.d.ts",
   "scripts": {
     "build": "tsc && rollup --config",
-    "build:watch": "tsc --watch",
+    "tsc:watch": "tsc --watch",
+    "rollup:watch": "rollup --config --watch",
     "clean": "rimraf markdown-editable-components.{d.ts,d.ts.map,js,js.map} test/markdown-editable-components.{d.ts,d.ts.map,js,js.map} test/markdown-editable-components_test.{d.ts,d.ts.map,js,js.map}",
     "lint": "npm run lint:lit-analyzer && npm run lint:eslint",
     "lint:eslint": "eslint 'src/**/*.ts'",

@@ -95,11 +95,17 @@ export abstract class LeafElement extends BlockElement {
   }
 
 
-  mergeWithPrevious() {
+  mergeWithPrevious(currentSelection: Selection | null) {
     if(this.previousElementSibling instanceof LeafElement) {
+      // TODO modularize in top element
+      if(currentSelection?.containsNode(this, true)) {
+        this.previousElementSibling.setSelectionToEnd(currentSelection);
+      }
+
       Array.from(this.childNodes).forEach((child) => {
         this.previousElementSibling?.appendChild(child);
       });
+      
       this.remove();
     }
   }

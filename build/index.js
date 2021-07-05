@@ -2742,9 +2742,22 @@ class MarkdownLitElement extends LitElement {
         this.pushNodesAfterBreakToParent(content);
         (_a = this.parentNode) === null || _a === void 0 ? void 0 : _a.insertBefore(content, this.nextSibling);
     }
-    mergeWithPrevious() {
+    mergeWithPrevious(currentSelection) {
     }
     mergeNextIn() {
+    }
+    setSelectionToEnd(currentSelection) {
+        var last = this;
+        while (last.lastChild != null) {
+            last = last.lastChild;
+        }
+        if (last instanceof Text) {
+            const range = document.createRange();
+            range.setStart(last, last.length);
+            range.collapse(true);
+            currentSelection === null || currentSelection === void 0 ? void 0 : currentSelection.removeAllRanges();
+            currentSelection === null || currentSelection === void 0 ? void 0 : currentSelection.addRange(range);
+        }
     }
     getMarkdown() {
         return Array.from(this.children).map((child) => {
@@ -2839,8 +2852,12 @@ class LeafElement extends BlockElement {
         }
         return false;
     }
-    mergeWithPrevious() {
+    mergeWithPrevious(currentSelection) {
         if (this.previousElementSibling instanceof LeafElement) {
+            // TODO modularize in top element
+            if (currentSelection === null || currentSelection === void 0 ? void 0 : currentSelection.containsNode(this, true)) {
+                this.previousElementSibling.setSelectionToEnd(currentSelection);
+            }
             Array.from(this.childNodes).forEach((child) => {
                 var _a;
                 (_a = this.previousElementSibling) === null || _a === void 0 ? void 0 : _a.appendChild(child);
@@ -45679,9 +45696,9 @@ class InlineElement extends MarkdownLitElement {
     getMarkdown() {
         return getMarkdownWithTextForElement(this);
     }
-    mergeWithPrevious() {
+    mergeWithPrevious(currentSelection) {
         if (this.parentNode instanceof MarkdownLitElement) {
-            this.parentNode.mergeWithPrevious();
+            this.parentNode.mergeWithPrevious(currentSelection);
         }
     }
 }
@@ -47394,7 +47411,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
         if (parent && anchorOffset == 0 && focusOffset == 0 && parent instanceof MarkdownLitElement) {
             e.preventDefault();
-            parent.mergeWithPrevious();
+            parent.mergeWithPrevious(this.currentSelection);
         }
     }
     handleDeleteKeyDown(e) {

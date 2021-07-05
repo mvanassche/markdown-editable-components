@@ -262,7 +262,7 @@ export class MarkdownDocument extends LitElement {
     const parent = this.currentSelection?.anchorNode?.parentElement;
     if (parent && anchorOffset == 0 && focusOffset == 0 && parent instanceof MarkdownLitElement) {
       e.preventDefault();
-      parent.mergeWithPrevious();
+      parent.mergeWithPrevious(this.currentSelection);
     }
   }
 

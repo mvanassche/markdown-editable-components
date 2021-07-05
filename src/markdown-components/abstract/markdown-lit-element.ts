@@ -45,10 +45,25 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
   }
 
 
-  mergeWithPrevious() {
+  mergeWithPrevious(currentSelection: Selection | null) {
   }
 
   mergeNextIn() {
+  }
+
+
+  setSelectionToEnd(currentSelection: Selection | null) {
+    var last: Node = this;
+    while(last.lastChild != null) {
+      last = last.lastChild;
+    }
+    if(last instanceof Text) {
+      const range = document.createRange();
+      range.setStart(last, last.length);
+      range.collapse(true);
+      currentSelection?.removeAllRanges();
+      currentSelection?.addRange(range);
+    }
   }
 
 

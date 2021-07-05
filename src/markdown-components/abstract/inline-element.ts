@@ -38,9 +38,9 @@ export abstract class InlineElement extends MarkdownLitElement {
     return getMarkdownWithTextForElement(this);
   }
 
-  mergeWithPrevious() {
+  mergeWithPrevious(currentSelection: Selection | null) {
     if(this.parentNode instanceof MarkdownLitElement) {
-      this.parentNode.mergeWithPrevious();
+      this.parentNode.mergeWithPrevious(currentSelection);
     }
   }
 

@@ -90,4 +90,23 @@ export abstract class LeafElement extends BlockElement {
     return false;
   }
 
+
+  mergeWithPrevious() {
+    if(this.previousElementSibling instanceof LeafElement) {
+      Array.from(this.childNodes).forEach((child) => {
+        this.previousElementSibling?.appendChild(child);
+      });
+      this.remove();
+    }
+  }
+
+  mergeNextIn() {
+    if(this.nextElementSibling instanceof LeafElement) {
+      Array.from(this.nextElementSibling.childNodes).forEach((child) => {
+        this.appendChild(child);
+      });
+      this.nextElementSibling.remove();
+    }
+  }
+
 }

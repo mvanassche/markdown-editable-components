@@ -37,4 +37,11 @@ export abstract class InlineElement extends MarkdownLitElement {
   getMarkdown(): string {
     return getMarkdownWithTextForElement(this);
   }
+
+  mergeWithPrevious() {
+    if(this.parentNode instanceof MarkdownLitElement) {
+      this.parentNode.mergeWithPrevious();
+    }
+  }
+
 }

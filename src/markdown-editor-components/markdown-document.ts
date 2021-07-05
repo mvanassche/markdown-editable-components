@@ -106,7 +106,9 @@ export class MarkdownDocument extends LitElement {
         this.handleEnterKeyDown();
         //this.normalize();  // If you do uncomment this enter handling, the normalize in the input is redundant!
       } else if (e.code === 'Backspace') {
-        this.handleBackspaceKeyDown();
+        this.handleBackspaceKeyDown(e);
+      } else if (e.code === 'Delete') {
+        this.handleDeleteKeyDown(e);
       } else if (e.code === 'Tab') {
         e.preventDefault();
         this.handleTabKeyDown();
@@ -324,8 +326,25 @@ export class MarkdownDocument extends LitElement {
     }
   }
 
-  handleBackspaceKeyDown() {
-    
+  handleBackspaceKeyDown(e: KeyboardEvent) {
+    const anchorOffset = this.currentSelection?.anchorOffset;
+    const focusOffset = this.currentSelection?.focusOffset;
+    const parent = this.currentSelection?.anchorNode?.parentElement;
+    if (parent && anchorOffset == 0 && focusOffset == 0 && parent instanceof MarkdownLitElement) {
+      e.preventDefault();
+      parent.mergeWithPrevious();
+    }
+  }
+
+  handleDeleteKeyDown(e: KeyboardEvent) {
+    const anchor = this.currentSelection?.anchorNode;
+    const anchorOffset = this.currentSelection?.anchorOffset;
+    const focusOffset = this.currentSelection?.focusOffset;
+    const parent = anchor?.parentElement;
+    if (parent && anchor instanceof Text && anchorOffset == anchor.length && focusOffset == anchor.length && parent instanceof MarkdownLitElement) {
+      e.preventDefault();
+      parent.mergeNextIn();
+    }
   }
 
   handleTabKeyDown() {

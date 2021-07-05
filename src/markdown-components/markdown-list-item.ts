@@ -70,4 +70,22 @@ export class ListItem extends ContainerElement {
     return false;
   }
 
+  mergeWithPrevious() {
+    if(this.previousElementSibling instanceof ListItem) {
+      Array.from(this.childNodes).forEach((child) => {
+        this.previousElementSibling?.appendChild(child);
+      });
+      this.remove();
+    }
+  }
+
+  mergeNextIn() {
+    if(this.nextElementSibling instanceof ListItem) {
+      Array.from(this.nextElementSibling.childNodes).forEach((child) => {
+        this.appendChild(child);
+      });
+      this.nextElementSibling.remove();
+    }
+  }
+
 }

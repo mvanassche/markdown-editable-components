@@ -2742,64 +2742,9 @@ class MarkdownLitElement extends LitElement {
         this.pushNodesAfterBreakToParent(content);
         (_a = this.parentNode) === null || _a === void 0 ? void 0 : _a.insertBefore(content, this.nextSibling);
     }
-    normalizeChildren() {
-        var _a, _b, _c, _d, _e, _f;
-        let changed = false;
-        do {
-            let currentChanged = false;
-            for (let i = 0; i < this.childNodes.length; i++) {
-                const content = this.childNodes[i];
-                if (content instanceof HTMLDivElement) {
-                    content.remove();
-                    const next = document.createElement(this.tagName);
-                    next.innerText = content.innerText;
-                    (_a = this.parentNode) === null || _a === void 0 ? void 0 : _a.insertBefore(next, this.nextSibling);
-                    //this.parentElement?.append(next);
-                    currentChanged = true;
-                    break;
-                }
-                else if (content instanceof MarkdownLitElement) {
-                    // if there is something right of selection, add sibling
-                    if (i < this.childNodes.length - 1 && !(i + 1 == this.childNodes.length - 1 && ((_c = (_b = this.childNodes[i + 1]) === null || _b === void 0 ? void 0 : _b.nodeValue) === null || _c === void 0 ? void 0 : _c.replace(/\s/g, '').length) == 0)) {
-                        const next = document.createElement(this.tagName);
-                        while (i + 1 < this.childNodes.length) {
-                            next.append(this.childNodes[i + 1]);
-                        }
-                        content.remove();
-                        (_d = this.parentNode) === null || _d === void 0 ? void 0 : _d.insertBefore(next, this.nextSibling);
-                        (_e = this.parentNode) === null || _e === void 0 ? void 0 : _e.insertBefore(content, this.nextSibling);
-                        //this.parentElement?.append(content);
-                        //this.parentElement?.append(next);
-                        next.normalizeChildren();
-                    }
-                    else {
-                        content.remove();
-                        (_f = this.parentNode) === null || _f === void 0 ? void 0 : _f.insertBefore(content, this.nextSibling);
-                        //this.parentElement?.append(content);
-                        // no need to break or change, we are done here
-                    }
-                }
-            }
-            changed = currentChanged;
-        } while (changed);
-        /*Array.from(this.children).forEach((content) => {
-          if (content instanceof HTMLDivElement) {
-            content.remove();
-            let next = document.createElement(this.tagName);
-            next.innerText = content.innerText;
-            this.parentElement?.append(next);
-          }
-          if (content instanceof LeafElement) {
-            // if there is something right of selection, add sibling
-            if (content.nextSibling != null) {
-              let next = document.createElement(this.tagName);
-              next.innerText = content.nextSibling.innerText;
-            }
-            content.remove();
-            this.parentElement?.append(content);
-            this.parentElement?.append(next);
-          }
-        });*/
+    mergeWithPrevious() {
+    }
+    mergeNextIn() {
     }
     getMarkdown() {
         return Array.from(this.children).map((child) => {
@@ -2889,6 +2834,23 @@ class LeafElement extends BlockElement {
             }
         }
         return false;
+    }
+    mergeWithPrevious() {
+        if (this.previousElementSibling instanceof LeafElement) {
+            Array.from(this.childNodes).forEach((child) => {
+                var _a;
+                (_a = this.previousElementSibling) === null || _a === void 0 ? void 0 : _a.appendChild(child);
+            });
+            this.remove();
+        }
+    }
+    mergeNextIn() {
+        if (this.nextElementSibling instanceof LeafElement) {
+            Array.from(this.nextElementSibling.childNodes).forEach((child) => {
+                this.appendChild(child);
+            });
+            this.nextElementSibling.remove();
+        }
     }
 }
 
@@ -45713,6 +45675,11 @@ class InlineElement extends MarkdownLitElement {
     getMarkdown() {
         return getMarkdownWithTextForElement(this);
     }
+    mergeWithPrevious() {
+        if (this.parentNode instanceof MarkdownLitElement) {
+            this.parentNode.mergeWithPrevious();
+        }
+    }
 }
 
 var __decorate$x = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
@@ -47301,7 +47268,10 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 //this.normalize();  // If you do uncomment this enter handling, the normalize in the input is redundant!
             }
             else if (e.code === 'Backspace') {
-                this.handleBackspaceKeyDown();
+                this.handleBackspaceKeyDown(e);
+            }
+            else if (e.code === 'Delete') {
+                this.handleDeleteKeyDown(e);
             }
             else if (e.code === 'Tab') {
                 e.preventDefault();
@@ -47492,7 +47462,26 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             this.onChange();
         }
     }
-    handleBackspaceKeyDown() {
+    handleBackspaceKeyDown(e) {
+        var _a, _b, _c, _d;
+        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
+        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
+        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
+        if (parent && anchorOffset == 0 && focusOffset == 0 && parent instanceof MarkdownLitElement) {
+            e.preventDefault();
+            parent.mergeWithPrevious();
+        }
+    }
+    handleDeleteKeyDown(e) {
+        var _a, _b, _c;
+        const anchor = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode;
+        const anchorOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorOffset;
+        const focusOffset = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.focusOffset;
+        const parent = anchor === null || anchor === void 0 ? void 0 : anchor.parentElement;
+        if (parent && anchor instanceof Text && anchorOffset == anchor.length && focusOffset == anchor.length && parent instanceof MarkdownLitElement) {
+            e.preventDefault();
+            parent.mergeNextIn();
+        }
     }
     handleTabKeyDown() {
         var _a, _b;
@@ -47804,7 +47793,8 @@ var __decorate$r = (undefined && undefined.__decorate) || function (decorators, 
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-exports.ListItem = class ListItem extends ContainerElement {
+var ListItem_1;
+exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
     render() {
         return html `
       <div class='item-container'><slot></slot></div>
@@ -47852,6 +47842,23 @@ exports.ListItem = class ListItem extends ContainerElement {
         }
         return false;
     }
+    mergeWithPrevious() {
+        if (this.previousElementSibling instanceof ListItem_1) {
+            Array.from(this.childNodes).forEach((child) => {
+                var _a;
+                (_a = this.previousElementSibling) === null || _a === void 0 ? void 0 : _a.appendChild(child);
+            });
+            this.remove();
+        }
+    }
+    mergeNextIn() {
+        if (this.nextElementSibling instanceof ListItem_1) {
+            Array.from(this.nextElementSibling.childNodes).forEach((child) => {
+                this.appendChild(child);
+            });
+            this.nextElementSibling.remove();
+        }
+    }
 };
 exports.ListItem.styles = css$1 `
     :host {
@@ -47862,7 +47869,7 @@ exports.ListItem.styles = css$1 `
 __decorate$r([
     property({ type: Boolean })
 ], exports.ListItem.prototype, "spread", void 0);
-exports.ListItem = __decorate$r([
+exports.ListItem = ListItem_1 = __decorate$r([
     customElement('markdown-list-item')
 ], exports.ListItem);
 

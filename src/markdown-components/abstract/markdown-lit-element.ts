@@ -45,6 +45,12 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
   }
 
 
+  mergeWithPrevious() {
+  }
+
+  mergeNextIn() {
+  }
+
 
   getMarkdown(): string {
     return Array.from(this.children).map((child) => {

@@ -122,9 +122,13 @@ export class MarkdownDocument extends LitElement {
   }
 
   normalize() {
-    Array.from(this.children).forEach((child) => {
+    for (let i = 0; i < this.childNodes.length; i++) {
+      const child = this.childNodes[i];
       if(child instanceof MarkdownLitElement) {
-        child.normalize();
+        if(child.normalize()) {
+          this.normalize();
+          break;
+        }
       } else if (child instanceof HTMLDivElement) {
           // on chromium new lines are handled by divs, it splits up the tags properly.
         Array.from(child.childNodes).forEach((divChild) => {

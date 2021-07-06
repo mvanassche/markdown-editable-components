@@ -14,6 +14,7 @@ export class MarkdownParagraph extends LeafElement {
     }
     p {
       min-height: 1em;
+      /*white-space: pre-wrap;*/
     }
   `;
 

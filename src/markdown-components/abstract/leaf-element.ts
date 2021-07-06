@@ -76,19 +76,24 @@ export abstract class LeafElement extends BlockElement {
   */
   normalize(): boolean {
     if(this.childNodes.length == 0) {
-        // This does not help... don't understand, it's just not showing!
-      this.appendChild(document.createTextNode(''));
+      this.fillEmptyElement();
     }
     for (let i = 0; i < this.childNodes.length; i++) {
       const content = this.childNodes[i];
       if (content instanceof HTMLBRElement) {
         this.pushNodesAfterBreakToParent(content);
         this.removeChild(content);
-        return false;
+        return true;
       } else if(content instanceof MarkdownLitElement) {
         if(content.normalize()) {
           return this.normalize();
         }
+      } else if(content instanceof Text) {
+        // TODO should this be higher up? not just leaves?
+        if(content.length > 1 && content.textContent!.indexOf('\u200b') >= 0) {
+          content.textContent = content.textContent!.replace('\u200b', '');
+        }
+        //content.normalize() // TODO
       }
     }
     return false;

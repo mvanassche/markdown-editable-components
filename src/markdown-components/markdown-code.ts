@@ -10,13 +10,7 @@ export class CodeBlock extends LeafElement {
   static styles = css``;
 
   render() {
-    return html`
-      <pre>
-        <code>
-          <slot></slot>
-        </code>
-      </pre>
-    `;
+    return html`<pre><code><slot></slot></code></pre>`;
   }
 
   getMarkdown(): string {

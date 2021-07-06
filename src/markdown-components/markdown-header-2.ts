@@ -8,14 +8,11 @@ export class Header2 extends Heading {
   static styles = css`
       :host {
       position: relative;
+      min-height: 1em;
     }
 `;
 
   render() {
-    return html`
-      <h2>
-        <slot></slot>
-      </h2>
-    `;
+    return html`<h2><slot></slot></h2>`;
   }
 }

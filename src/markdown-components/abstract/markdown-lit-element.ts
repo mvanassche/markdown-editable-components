@@ -45,11 +45,22 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
     }
   }
 
-  newEmptyElementAfterBreak(): HTMLElement {
-    let result = document.createElement(this.newEmptyElementNameAfterBreak());
-    let textNode = document.createTextNode(''); //\u200b');
-    result.appendChild(textNode);
+  newEmptyElement(tagName: string): HTMLElement {
+    let result = document.createElement(tagName);
+    if(result instanceof MarkdownLitElement) {
+      result.fillEmptyElement();
+    }
     return result;
+  }
+
+  fillEmptyElement() {
+    let textNode = document.createTextNode('\u200b'); // put in a whitespace to avoid the issue of being inaccessible when empty
+    this.appendChild(textNode);
+  }
+
+
+  newEmptyElementAfterBreak(): HTMLElement {
+    return this.newEmptyElement(this.newEmptyElementNameAfterBreak());
   }
 
   newEmptyElementNameAfterBreak(): string {

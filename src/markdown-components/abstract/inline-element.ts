@@ -25,6 +25,7 @@ export abstract class InlineElement extends MarkdownLitElement {
       if (content instanceof HTMLBRElement) {
         this.pushBreakAndNodesAfterToParent(content);
         return true;
+        //return this.normalize();
       } else if(content instanceof MarkdownLitElement) {
         if(content.normalize()) {
           return this.normalize();

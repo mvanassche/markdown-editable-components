@@ -99,7 +99,6 @@ export class MarkdownDocument extends LitElement {
 
 
     this.addEventListener('keydown', (e: KeyboardEvent) => {
-      console.log(e.code);
 
       if (e.code === 'Enter') {
         e.preventDefault();

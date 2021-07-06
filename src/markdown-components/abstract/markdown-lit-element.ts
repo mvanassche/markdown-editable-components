@@ -4,8 +4,6 @@ import { MarkdownElement } from '../interfaces/markdown-element';
 
 export abstract class MarkdownLitElement extends LitElement implements MarkdownElement {
 
-
-
   // returns a boolean that if true, it means that the element changed something that will impact a ancestor, so normalize should be redone
   normalize(): boolean {
     for (let i = 0; i < this.childNodes.length; i++) {
@@ -48,7 +46,14 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
   }
 
   newEmptyElementAfterBreak(): HTMLElement {
-    return document.createElement(this.tagName);
+    let result = document.createElement(this.newEmptyElementNameAfterBreak());
+    let textNode = document.createTextNode(''); //\u200b');
+    result.appendChild(textNode);
+    return result;
+  }
+
+  newEmptyElementNameAfterBreak(): string {
+    return this.tagName;
   }
 
 
@@ -92,3 +97,4 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
     }).join('');
   }
 }
+

@@ -12,14 +12,13 @@ export class MarkdownParagraph extends LeafElement {
     :host {
       position: relative;
     }
+    p {
+      min-height: 1em;
+    }
   `;
 
   render() {
-    return html`
-      <p>
-        <slot></slot>
-      </p>
-    `;
+    return html`<p><slot></slot></p>`;
   }
 
   getMarkdown(): string {

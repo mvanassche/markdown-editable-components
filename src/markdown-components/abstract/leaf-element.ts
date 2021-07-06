@@ -124,4 +124,8 @@ export abstract class LeafElement extends BlockElement {
     }
   }
 
+  endOfLineEquivalentLength(): number {
+    return 1; // leaves are equivalent to a line
+  }
+
 }

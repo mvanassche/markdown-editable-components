@@ -32,6 +32,8 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
       let rightElement: HTMLElement
       if(elementsToMove.length == 0) {
         rightElement = this.newEmptyElementAfterBreak();
+      } else if(elementsToMove.length == 1 && elementsToMove[0] instanceof Text && elementsToMove[0].textContent == '\u200b') {
+        rightElement = document.createElement(this.newEmptyElementNameAfterBreak());
       } else {
         rightElement = document.createElement(this.tagName);
       }
@@ -40,7 +42,6 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
         //this.removeChild(elementToMove);
         rightElement.append(elementToMove);
       });
-
       this.parentNode.insertBefore(rightElement, this.nextSibling);
     }
   }
@@ -94,6 +95,65 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
       range.collapse(true);
       currentSelection?.removeAllRanges();
       currentSelection?.addRange(range);
+    }
+  }
+
+  contentLength(): number {
+    var result = 0;
+    Array.from(this.childNodes).forEach((child) => {
+      if(child instanceof MarkdownLitElement) {
+        result += child.contentLength();
+      } else if(child instanceof HTMLBRElement) {
+        result++;
+      } else {
+        // TODO remove special chars like zerowidth
+        result += child.textContent?.replace('\u200b', '')?.length ?? 0;
+      }
+    });
+    return result + this.endOfLineEquivalentLength();
+  }
+
+  contentLengthUntil(child: ChildNode): number {
+    const childNodes = Array.from(this.childNodes);
+    const indexOfChild = childNodes.indexOf(child);
+    if(indexOfChild >= 0) {
+      var result = 0;
+      childNodes.slice(0, indexOfChild).forEach((child) => {
+        if(child instanceof MarkdownLitElement) {
+          result += child.contentLength();
+        } else if(child instanceof HTMLBRElement) {
+          result++;
+        } else {
+          result += child.textContent?.replace('\u200b', '')?.length ?? 0;
+        }
+      });
+      return result;
+    } else {
+      return 0;
+    }
+  }
+
+  endOfLineEquivalentLength(): number {
+    return 0;
+  }
+
+  getNodeAndOffsetFromContentOffset(contentOffset: number): [Node, number] {
+    if(this.childNodes.length > 0) {
+      var resultNode = this.childNodes[0];
+      for (let i = 0; i < this.childNodes.length; i++) {
+        const child = this.childNodes[i];
+        if(this.contentLengthUntil(child) > contentOffset) {
+          break; // stay on the previous node
+        }
+        resultNode = child;
+      }
+      if(resultNode instanceof MarkdownLitElement) {
+        return resultNode.getNodeAndOffsetFromContentOffset(contentOffset - this.contentLengthUntil(resultNode));
+      } else {
+        return [resultNode, Math.round(contentOffset) - this.contentLengthUntil(resultNode)];
+      }
+    } else {
+      return [this, Math.round(contentOffset)]; // FIXME
     }
   }
 

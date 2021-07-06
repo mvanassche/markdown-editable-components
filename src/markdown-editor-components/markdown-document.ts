@@ -90,6 +90,7 @@ export class MarkdownDocument extends LitElement {
       if (selection?.anchorNode) {
         if (this.contains(selection?.anchorNode)) {
           this.currentSelection = selection;
+          this.debugSelection();
           this.affectToolbar();
         } else {
           //
@@ -115,18 +116,150 @@ export class MarkdownDocument extends LitElement {
     });
 
     this.addEventListener("input", () => {
-      this.normalize();
-      this.onChange();
+      // setTimeout because input come before enter! see handleEnterKeyDown
+      setTimeout(() => {
+        this.normalize();
+        this.onChange();
+      }, 0);
     });
 
   }
 
+  debugSelection() {
+    //console.log("selection " + this.selectionToContentRange())
+    /*let ancohor = document.getSelection()?.anchorNode;
+    if(ancohor instanceof Text) {
+      console.log("     selection " + ancohor.textContent + " " + document.getSelection()?.anchorOffset)
+    } else if(ancohor instanceof HTMLElement) {
+      console.log("     selection " + ancohor.tagName + " " + document.getSelection()?.anchorOffset)
+    }*/
+  }
+
+  // content range is a way to represent a selection that is less browser specific, and more markdown specific
+  selectionToContentRange(): ([number, number] | null) {
+    let selection = document.getSelection()
+    if(selection && selection.anchorNode && selection.focusNode) {
+      let anchorOffset = this.selectionNodeAndOffsetToContentOffset(selection.anchorNode, selection.anchorOffset);
+      let focusOffset = this.selectionNodeAndOffsetToContentOffset(selection.focusNode, selection.focusOffset);
+      if(anchorOffset != null && focusOffset != null) {
+        return [anchorOffset, focusOffset];
+      } else {
+        return null;
+      }
+    } else {
+      return null;
+    }
+  }
+
+  selectionNodeAndOffsetToContentOffset(node: Node, offset: number): (number | null) {
+    if(node == this) {
+      return this.contentLengthUntil(this.childNodes[offset]);
+    } else if(node instanceof MarkdownLitElement) {
+      if(node.parentNode) {
+        let parent = this.selectionNodeAndOffsetToContentOffset(node.parentNode, 
+          Array.from(node.parentNode.childNodes).indexOf(node));
+        if(parent != null) {
+          return parent + node.contentLengthUntil(node.childNodes[offset]);
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    } else if(node instanceof Text) {
+      // find the parent
+      if(node.parentNode) {
+        let parent = this.selectionNodeAndOffsetToContentOffset(node.parentNode, 
+          Array.from(node.parentNode.childNodes).indexOf(node));
+        if(parent != null) {
+          var littleBit = 0;
+          /*if(offset == 0) {
+            littleBit += 0.1;
+          }
+          if(offset == node.textContent?.replaceAll('\u200b', '').length) {
+            littleBit -= 0.1;
+          }*/
+          // count the number of special characters that are not part of the content like the zero width space
+          // before the offset!
+          let numberOfSpecialChars = (node.textContent?.slice(0, offset)?.split('\u200b')?.length ?? 1) - 1;
+          return parent + offset - numberOfSpecialChars + littleBit;
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    } else {
+      return null;
+    }
+  }
+
+  contentLengthUntil(child: ChildNode): number {
+    const childNodes = Array.from(this.childNodes);
+    const indexOfChild = childNodes.indexOf(child);
+    if(indexOfChild >= 0) {
+      var result = 0;
+      childNodes.slice(0, indexOfChild).forEach((child) => {
+        if(child instanceof MarkdownLitElement) {
+          result += child.contentLength();
+        }
+      });
+      return result;  
+    } else {
+      return 0;
+    }
+  }
+
+  setSelectionToContentRange(contentRange: [number, number]) {
+    let [anchorNode, anchorOffset] = this.getNodeAndOffsetFromContentOffset(contentRange[0]);
+    let [focusNode, focusOffset] = this.getNodeAndOffsetFromContentOffset(contentRange[1]);
+    const range = document.createRange();
+    range.setStart(anchorNode, anchorOffset);
+    range.setEnd(focusNode, focusOffset);
+    this.currentSelection?.removeAllRanges();
+    this.currentSelection?.addRange(range);
+  }
+
+  getNodeAndOffsetFromContentOffset(contentOffset: number): [Node, number] {
+    if(this.children.length > 0) {
+      var resultNode = this.children[0];
+      for (let i = 0; i < this.children.length; i++) {
+        const child = this.children[i];
+        if(this.contentLengthUntil(child) > contentOffset) {
+          break; // stay on the previous node
+        }
+        resultNode = child;
+      }
+      if(resultNode instanceof MarkdownLitElement) {
+        return resultNode.getNodeAndOffsetFromContentOffset(contentOffset - this.contentLengthUntil(resultNode));
+      } else {
+        return [resultNode, Math.round(contentOffset) - this.contentLengthUntil(resultNode)];
+      }
+    } else {
+      return [this, Math.round(contentOffset)]; // FIXME
+    }
+  }
+
+
   normalize() {
+    const selectionContentRangeBefore = this.selectionToContentRange();
+    this.normalizeDOM();
+    const selectionContentRangeAfter = this.selectionToContentRange();
+    const equals = (a: any, b: any) => a.length === b.length && a.every((v: any, i: any) => v === b[i]);
+    if(!equals(selectionContentRangeBefore, selectionContentRangeAfter)) {
+      if(selectionContentRangeBefore) {
+        this.setSelectionToContentRange(selectionContentRangeBefore);
+      }
+    }
+    this.debugSelection();
+  }
+  
+  normalizeDOM() {
     for (let i = 0; i < this.childNodes.length; i++) {
       const child = this.childNodes[i];
       if(child instanceof MarkdownLitElement) {
         if(child.normalize()) {
-          this.normalize();
+          this.normalizeDOM();
           break;
         }
       } else if (child instanceof HTMLDivElement) {
@@ -136,8 +269,21 @@ export class MarkdownDocument extends LitElement {
         })
         child.remove();
       }
-    });
+    }
   }
+
+  contentLength(): number {
+    var result = 0;
+    Array.from(this.children).forEach((child) => {
+      if(child instanceof MarkdownLitElement) {
+        result += child.contentLength();
+      }/* else {
+        result += child.textContent?.length ?? 0; // What would that be??? what if not normalized? divs?
+      }*/
+    });
+    return result;
+  }
+
 
   onChange() {
     this.dispatchEvent(new CustomEvent("change")); // TODO, what should be the event details? also add other changes than inputs
@@ -221,7 +367,7 @@ export class MarkdownDocument extends LitElement {
 
 
   handleEnterKeyDown() {
-    document.execCommand('insertHTML', false, '<br/>');
+    document.execCommand('insertHTML', false, '<br/>&ZeroWidthSpace;');
   }
 
   makeBreak() {

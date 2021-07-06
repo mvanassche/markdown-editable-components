@@ -104,7 +104,7 @@ export class MarkdownDocument extends LitElement {
       if (e.code === 'Enter') {
         e.preventDefault();
         this.handleEnterKeyDown();
-        //this.normalize();  // If you do uncomment this enter handling, the normalize in the input is redundant!
+        //this.normalizeContent();  // If you do uncomment this enter handling, the normalize in the input is redundant!
       } else if (e.code === 'Backspace') {
         this.handleBackspaceKeyDown(e);
       } else if (e.code === 'Delete') {
@@ -113,15 +113,19 @@ export class MarkdownDocument extends LitElement {
         e.preventDefault();
         this.handleTabKeyDown();
       }
+
+      this.normalizeContent();
+      this.onChange();
     });
 
-    this.addEventListener("input", () => {
+    /*this.addEventListener("input", () => {
       // setTimeout because input come before enter! see handleEnterKeyDown
       setTimeout(() => {
-        this.normalize();
+        console.log("input")
+        this.normalizeContent();
         this.onChange();
       }, 0);
-    });
+    });*/
 
   }
 
@@ -211,6 +215,7 @@ export class MarkdownDocument extends LitElement {
   }
 
   setSelectionToContentRange(contentRange: [number, number]) {
+    //console.log("Reset selection to " + contentRange);
     let [anchorNode, anchorOffset] = this.getNodeAndOffsetFromContentOffset(contentRange[0]);
     let [focusNode, focusOffset] = this.getNodeAndOffsetFromContentOffset(contentRange[1]);
     const range = document.createRange();
@@ -241,11 +246,12 @@ export class MarkdownDocument extends LitElement {
   }
 
 
-  normalize() {
+  normalizeContent() {
     const selectionContentRangeBefore = this.selectionToContentRange();
     this.normalizeDOM();
     const selectionContentRangeAfter = this.selectionToContentRange();
-    const equals = (a: any, b: any) => a.length === b.length && a.every((v: any, i: any) => v === b[i]);
+    //console.log(selectionContentRangeBefore + " -> " + selectionContentRangeAfter);
+    const equals = (a: any, b: any) => (a == null && b == null) || (a.length === b.length && a.every((v: any, i: any) => v === b[i]));
     if(!equals(selectionContentRangeBefore, selectionContentRangeAfter)) {
       if(selectionContentRangeBefore) {
         this.setSelectionToContentRange(selectionContentRangeBefore);
@@ -258,7 +264,7 @@ export class MarkdownDocument extends LitElement {
     for (let i = 0; i < this.childNodes.length; i++) {
       const child = this.childNodes[i];
       if(child instanceof MarkdownLitElement) {
-        if(child.normalize()) {
+        if(child.normalizeContent()) {
           this.normalizeDOM();
           break;
         }

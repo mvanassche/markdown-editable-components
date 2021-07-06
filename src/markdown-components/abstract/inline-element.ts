@@ -19,16 +19,16 @@ export abstract class InlineElement extends MarkdownLitElement {
 
     It is up to the parent to deal with the <br> at this point.
   */
-  normalize(): boolean {
+  normalizeContent(): boolean {
     for (let i = 0; i < this.childNodes.length; i++) {
       const content = this.childNodes[i];
       if (content instanceof HTMLBRElement) {
         this.pushBreakAndNodesAfterToParent(content);
         return true;
-        //return this.normalize();
+        //return this.normalizeContent();
       } else if(content instanceof MarkdownLitElement) {
-        if(content.normalize()) {
-          return this.normalize();
+        if(content.normalizeContent()) {
+          return this.normalizeContent();
         }
       }
     }

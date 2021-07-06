@@ -34,9 +34,7 @@ export class List extends ContainerElement {
   `;
 
   render() {
-    return html`
-      <slot></slot>
-  `;
+    return html`<slot></slot>`;
   }
 
   connectedCallback() {

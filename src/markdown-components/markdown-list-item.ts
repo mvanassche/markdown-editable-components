@@ -18,9 +18,7 @@ export class ListItem extends ContainerElement {
   spread?: boolean
 
   render() {
-    return html`
-      <div class='item-container'><slot></slot></div>
-    `;
+    return html`<div class='item-container'><slot></slot></div>`;
   }
 
   getDepth(): number {
@@ -54,7 +52,7 @@ export class ListItem extends ContainerElement {
     }).join('');
   }
 
-  normalize(): boolean {
+  normalizeContent(): boolean {
     /*if(this.childNodes.length == 1 && this.childNodes[0] instanceof HTMLBRElement) {
       TODO: unindent, fallback to previous level, or paragraph, warning leave the rest of the items, meaning split the list.
       return true;
@@ -67,8 +65,8 @@ export class ListItem extends ContainerElement {
         this.removeChild(content)
         return false;
       } else if(content instanceof MarkdownLitElement) {
-        if(content.normalize()) {
-          return this.normalize();
+        if(content.normalizeContent()) {
+          return this.normalizeContent();
         }
       }
     }
@@ -92,5 +90,10 @@ export class ListItem extends ContainerElement {
       this.nextElementSibling.remove();
     }
   }
+
+  endOfLineEquivalentLength(): number {
+    return 1; // leaves are equivalent to a line
+  }
+
 
 }

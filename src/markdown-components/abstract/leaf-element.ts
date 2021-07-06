@@ -74,7 +74,8 @@ export abstract class LeafElement extends BlockElement {
         becomes
     <parent>content1 <leaf>content2 </leaf><leaf> content3</leaf> content4</parent>
   */
-  normalize(): boolean {
+  normalizeContent(): boolean {
+    this.normalize();
     if(this.childNodes.length == 0) {
       this.fillEmptyElement();
     }
@@ -85,15 +86,14 @@ export abstract class LeafElement extends BlockElement {
         this.removeChild(content);
         return true;
       } else if(content instanceof MarkdownLitElement) {
-        if(content.normalize()) {
-          return this.normalize();
+        if(content.normalizeContent()) {
+          return this.normalizeContent();
         }
       } else if(content instanceof Text) {
         // TODO should this be higher up? not just leaves?
         if(content.length > 1 && content.textContent!.indexOf('\u200b') >= 0) {
           content.textContent = content.textContent!.replace('\u200b', '');
         }
-        //content.normalize() // TODO
       }
     }
     return false;

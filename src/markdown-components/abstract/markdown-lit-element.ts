@@ -5,12 +5,12 @@ import { MarkdownElement } from '../interfaces/markdown-element';
 export abstract class MarkdownLitElement extends LitElement implements MarkdownElement {
 
   // returns a boolean that if true, it means that the element changed something that will impact a ancestor, so normalize should be redone
-  normalize(): boolean {
+  normalizeContent(): boolean {
     for (let i = 0; i < this.childNodes.length; i++) {
       const content = this.childNodes[i];
       if(content instanceof MarkdownLitElement) {
-        if(content.normalize()) {
-          return this.normalize();
+        if(content.normalizeContent()) {
+          return this.normalizeContent();
         }
       }
     }

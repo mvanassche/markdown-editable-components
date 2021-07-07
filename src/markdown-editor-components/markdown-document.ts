@@ -50,7 +50,7 @@ export class MarkdownDocument extends LitElement {
 
   currentSelection: Selection | null = null
 
-
+  _selectionchange: any;
 
 
   render() {
@@ -78,6 +78,8 @@ export class MarkdownDocument extends LitElement {
 
     /*document.addEventListener('selectstart', () => {
     });*/
+
+    this._selectionchange = this.selectionchange.bind(this);
 
     document.addEventListener('selectionchange', this._selectionchange);
 
@@ -109,11 +111,11 @@ export class MarkdownDocument extends LitElement {
   }
 
   disconnectedCallback() {
-    window.removeEventListener('resize', this._selectionchange);
+    document.removeEventListener('selectionchange', this._selectionchange);
     super.disconnectedCallback();
   }
 
-  _selectionchange() {
+  selectionchange() {
     let selection;
     if(this.selectionRoot.getSelection != null) {
       selection = this.selectionRoot.getSelection();

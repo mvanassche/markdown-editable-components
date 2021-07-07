@@ -76,28 +76,10 @@ export class MarkdownDocument extends LitElement {
       this.setAttribute("spellcheck", "false");
     }
 
-    document.addEventListener('selectstart', () => {
-    });
+    /*document.addEventListener('selectstart', () => {
+    });*/
 
-    document.addEventListener('selectionchange', () => {
-      let selection;
-      if(this.selectionRoot.getSelection != null) {
-        selection = this.selectionRoot.getSelection();
-      } else {
-        selection = this.ownerDocument.getSelection();
-      }
-
-      if (selection?.anchorNode) {
-        if (this.contains(selection?.anchorNode)) {
-          this.currentSelection = selection;
-          this.debugSelection();
-          this.affectToolbar();
-        } else {
-          //
-        }
-      }
-    });
-
+    document.addEventListener('selectionchange', this._selectionchange);
 
     this.addEventListener('keydown', (e: KeyboardEvent) => {
 
@@ -125,6 +107,30 @@ export class MarkdownDocument extends LitElement {
     });
 
   }
+
+  disconnectedCallback() {
+    window.removeEventListener('resize', this._selectionchange);
+    super.disconnectedCallback();
+  }
+
+  _selectionchange() {
+    let selection;
+    if(this.selectionRoot.getSelection != null) {
+      selection = this.selectionRoot.getSelection();
+    } else {
+      selection = this.ownerDocument.getSelection();
+    }
+
+    if (selection?.anchorNode) {
+      if (this.contains(selection?.anchorNode)) {
+        this.currentSelection = selection;
+        this.debugSelection();
+        this.affectToolbar();
+      } else {
+        //
+      }
+    }
+}
 
   debugSelection() {
     //console.log("selection " + this.selectionToContentRange())

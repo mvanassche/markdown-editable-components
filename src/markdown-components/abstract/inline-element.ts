@@ -45,4 +45,10 @@ export abstract class InlineElement extends MarkdownLitElement {
     }
   }
 
+  mergeNextIn() {
+    if(this.parentNode instanceof MarkdownLitElement) {
+      this.parentNode.mergeNextIn();
+    }
+  }
+
 }

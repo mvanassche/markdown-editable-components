@@ -73,14 +73,23 @@ export class ListItem extends ContainerElement {
     return false;
   }
 
-  mergeWithPrevious() {
+  
+  mergeWithPrevious(currentSelection: Selection | null) {
     if(this.previousElementSibling instanceof ListItem) {
+      // TODO modularize in top element
+      if(currentSelection?.containsNode(this, true)) {
+        this.previousElementSibling.setSelectionToEnd(currentSelection);
+      }
+
       Array.from(this.childNodes).forEach((child) => {
         this.previousElementSibling?.appendChild(child);
       });
+      
       this.remove();
     }
   }
+
+
 
   mergeNextIn() {
     if(this.nextElementSibling instanceof ListItem) {

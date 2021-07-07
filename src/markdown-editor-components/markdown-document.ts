@@ -233,12 +233,22 @@ export class MarkdownDocument extends LitElement {
   getNodeAndOffsetFromContentOffset(contentOffset: number): [Node, number] {
     if(this.children.length > 0) {
       var resultNode = this.children[0];
+      var previousNodeWasEol = false;
+        // keep the first that will fit the offset
       for (let i = 0; i < this.children.length; i++) {
-        const child = this.children[i];
-        if(this.contentLengthUntil(child) > contentOffset) {
-          break; // stay on the previous node
+        let child = this.children[i];
+        var lengthUntilChild = this.contentLengthUntil(child);
+        if(contentOffset == lengthUntilChild) {
+          if(previousNodeWasEol) {
+            resultNode = child;
+          }
+          break;
+        }
+        if(contentOffset < lengthUntilChild) {
+          break;
         }
         resultNode = child;
+        previousNodeWasEol = (child instanceof MarkdownLitElement && child.elementEndWithEndOfLineEquivalent());
       }
       if(resultNode instanceof MarkdownLitElement) {
         return resultNode.getNodeAndOffsetFromContentOffset(contentOffset - this.contentLengthUntil(resultNode));

@@ -128,13 +128,8 @@ export abstract class LeafElement extends BlockElement {
     }
   }
 
-  endOfLineEquivalentLength(): number {
-    if((this.textContent && this.textContent?.length > 0) || this.children.length > 0) {
-      return 1; // leaves are equivalent to a line
-    } else {
-      // if the leaf is completetly empty then it's to be ignored
-      return 0;
-    }
+  elementEndWithEndOfLineEquivalent(): boolean {
+    return ((this.textContent && this.textContent?.length > 0) || this.children.length > 0);
   }
 
 }

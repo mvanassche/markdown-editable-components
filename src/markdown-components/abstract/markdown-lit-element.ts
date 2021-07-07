@@ -116,8 +116,8 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
   contentLengthUntil(child: ChildNode): number {
     const childNodes = Array.from(this.childNodes);
     const indexOfChild = childNodes.indexOf(child);
+    var result = 0;
     if(indexOfChild >= 0) {
-      var result = 0;
       childNodes.slice(0, indexOfChild).forEach((child) => {
         if(child instanceof MarkdownLitElement) {
           result += child.contentLength();
@@ -127,25 +127,42 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
           result += child.textContent?.replace('\u200b', '')?.length ?? 0;
         }
       });
-      return result;
+    }
+    return result;
+  }
+
+
+  elementEndWithEndOfLineEquivalent(): boolean {
+    return false;
+  }
+
+  endOfLineEquivalentLength(): number {
+    if(this.elementEndWithEndOfLineEquivalent()) {
+      return 1;
     } else {
       return 0;
     }
   }
 
-  endOfLineEquivalentLength(): number {
-    return 0;
-  }
-
   getNodeAndOffsetFromContentOffset(contentOffset: number): [Node, number] {
     if(this.childNodes.length > 0) {
       var resultNode = this.childNodes[0];
+      var previousNodeWasEol = false;
+        // keep the first that will fit the offset
       for (let i = 0; i < this.childNodes.length; i++) {
-        const child = this.childNodes[i];
-        if(this.contentLengthUntil(child) > contentOffset) {
-          break; // stay on the previous node
+        let child = this.childNodes[i];
+        var lengthUntilChild = this.contentLengthUntil(child);
+        if(contentOffset == lengthUntilChild) {
+          if(previousNodeWasEol) {
+            resultNode = child;
+          }
+          break;
+        }
+        if(contentOffset < lengthUntilChild) {
+          break;
         }
         resultNode = child;
+        previousNodeWasEol = (child instanceof MarkdownLitElement && child.elementEndWithEndOfLineEquivalent());
       }
       if(resultNode instanceof MarkdownLitElement) {
         return resultNode.getNodeAndOffsetFromContentOffset(contentOffset - this.contentLengthUntil(resultNode));

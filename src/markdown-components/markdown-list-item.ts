@@ -53,24 +53,66 @@ export class ListItem extends ContainerElement {
   }
 
   normalizeContent(): boolean {
-    /*if(this.childNodes.length == 1 && this.childNodes[0] instanceof HTMLBRElement) {
-      TODO: unindent, fallback to previous level, or paragraph, warning leave the rest of the items, meaning split the list.
+    this.normalize();
+    if(this.childNodes.length == 0) {
+      //this.fillEmptyElement();
+      // remove empty leaf!
+      this.remove();
       return true;
-    }*/
-
+    }
     for (let i = 0; i < this.childNodes.length; i++) {
       const content = this.childNodes[i];
       if (content instanceof HTMLBRElement) {
         this.pushNodesAfterBreakToParent(content);
-        this.removeChild(content)
-        return false;
+        this.removeChild(content);
+        return true;
       } else if(content instanceof MarkdownLitElement) {
         if(content.normalizeContent()) {
           return this.normalizeContent();
         }
+      } else if(content instanceof Text) {
+        // TODO should this be higher up? not just leaves?
+        if(content.length > 1 && content.textContent!.indexOf('\u200b') >= 0) {
+          content.textContent = content.textContent!.replace('\u200b', '');
+        }
+        
       }
     }
     return false;
+  }
+
+
+  contentLength(): number {
+    var result = 0;
+    Array.from(this.childNodes).forEach((child) => {
+      if(child instanceof MarkdownLitElement) {
+        result += child.contentLength();
+      } else if(child instanceof HTMLBRElement) {
+        result++;
+      } else {
+        // TODO remove special chars like zerowidth
+        result += child.textContent?.replace('\u200b', '')?.length ?? 0;
+      }
+    });
+    return result + this.endOfLineEquivalentLength();
+  }
+
+  contentLengthUntil(child: ChildNode): number {
+    const childNodes = Array.from(this.childNodes);
+    const indexOfChild = childNodes.indexOf(child);
+    var result = 0;
+    if(indexOfChild >= 0) {
+      childNodes.slice(0, indexOfChild).forEach((child) => {
+        if(child instanceof MarkdownLitElement) {
+          result += child.contentLength();
+        } else if(child instanceof HTMLBRElement) {
+          result++;
+        } else {
+          result += child.textContent?.replace('\u200b', '')?.length ?? 0;
+        }
+      });
+    }
+    return result;
   }
 
   
@@ -100,8 +142,8 @@ export class ListItem extends ContainerElement {
     }
   }
 
-  endOfLineEquivalentLength(): number {
-    return 1; // leaves are equivalent to a line
+  elementEndWithEndOfLineEquivalent(): boolean {
+    return (this.textContent && this.textContent?.length > 0) || this.children.length > 0;
   }
 
 

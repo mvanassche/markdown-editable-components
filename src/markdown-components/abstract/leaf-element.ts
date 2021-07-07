@@ -77,7 +77,10 @@ export abstract class LeafElement extends BlockElement {
   normalizeContent(): boolean {
     this.normalize();
     if(this.childNodes.length == 0) {
-      this.fillEmptyElement();
+      //this.fillEmptyElement();
+      // remove empty leaf!
+      this.remove();
+      return true;
     }
     for (let i = 0; i < this.childNodes.length; i++) {
       const content = this.childNodes[i];
@@ -94,6 +97,7 @@ export abstract class LeafElement extends BlockElement {
         if(content.length > 1 && content.textContent!.indexOf('\u200b') >= 0) {
           content.textContent = content.textContent!.replace('\u200b', '');
         }
+        
       }
     }
     return false;
@@ -125,7 +129,12 @@ export abstract class LeafElement extends BlockElement {
   }
 
   endOfLineEquivalentLength(): number {
-    return 1; // leaves are equivalent to a line
+    if((this.textContent && this.textContent?.length > 0) || this.children.length > 0) {
+      return 1; // leaves are equivalent to a line
+    } else {
+      // if the leaf is completetly empty then it's to be ignored
+      return 0;
+    }
   }
 
 }

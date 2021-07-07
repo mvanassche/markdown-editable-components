@@ -104,7 +104,6 @@ export class MarkdownDocument extends LitElement {
       if (e.code === 'Enter') {
         e.preventDefault();
         this.handleEnterKeyDown();
-        //this.normalizeContent();  // If you do uncomment this enter handling, the normalize in the input is redundant!
       } else if (e.code === 'Backspace') {
         this.handleBackspaceKeyDown(e);
       } else if (e.code === 'Delete') {
@@ -113,19 +112,17 @@ export class MarkdownDocument extends LitElement {
         e.preventDefault();
         this.handleTabKeyDown();
       }
+      if(e.defaultPrevented) {
+        // if default prevented, chances are that input is note triggered.
+        this.normalizeContent();
+        this.onChange();  
+      }
+    });
 
+    this.addEventListener("input", () => {
       this.normalizeContent();
       this.onChange();
     });
-
-    /*this.addEventListener("input", () => {
-      // setTimeout because input come before enter! see handleEnterKeyDown
-      setTimeout(() => {
-        console.log("input")
-        this.normalizeContent();
-        this.onChange();
-      }, 0);
-    });*/
 
   }
 
@@ -251,7 +248,14 @@ export class MarkdownDocument extends LitElement {
     this.normalizeDOM();
     const selectionContentRangeAfter = this.selectionToContentRange();
     //console.log(selectionContentRangeBefore + " -> " + selectionContentRangeAfter);
-    const equals = (a: any, b: any) => (a == null && b == null) || (a.length === b.length && a.every((v: any, i: any) => v === b[i]));
+    const equals = (a: ([number, number] | null), b: ([number, number] | null)) => {
+      if(a == null && b == null) return true;
+      if(a != null && b != null) {
+        return a[0] == b[0] && a[1] == b[1];
+      } else {
+        return false;
+      }
+    };
     if(!equals(selectionContentRangeBefore, selectionContentRangeAfter)) {
       if(selectionContentRangeBefore) {
         this.setSelectionToContentRange(selectionContentRangeBefore);
@@ -261,6 +265,7 @@ export class MarkdownDocument extends LitElement {
   }
   
   normalizeDOM() {
+    //console.log("doc normalize")
     for (let i = 0; i < this.childNodes.length; i++) {
       const child = this.childNodes[i];
       if(child instanceof MarkdownLitElement) {
@@ -373,7 +378,7 @@ export class MarkdownDocument extends LitElement {
 
 
   handleEnterKeyDown() {
-    document.execCommand('insertHTML', false, '<br/>&ZeroWidthSpace;');
+    document.execCommand('insertHTML', false, '&ZeroWidthSpace;<br/>&ZeroWidthSpace;');
   }
 
   makeBreak() {

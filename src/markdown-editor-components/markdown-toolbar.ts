@@ -37,6 +37,9 @@ export class Toolbar extends LitElement {
       border: solid 1px gray;
       padding: 5px;
     }
+    :host(.focus-disabled) {
+      opacity: 0.1;
+    }
     .toolbar {
       height: 24px;
       display: flex;

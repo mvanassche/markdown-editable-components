@@ -12,6 +12,10 @@ export class HTML extends LeafElement {
     `;
   }
 
+  isEditable(): boolean {
+    return false;
+  }
+
   getMarkdown(): string {
     return this.innerHTML.trimLeft().trimRight() + '\n\n';
   }

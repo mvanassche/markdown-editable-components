@@ -108,6 +108,11 @@ export class MarkdownDocument extends LitElement {
       this.onChange();
     });
 
+
+    this.addEventListener('blur', () => {
+      this.disableEditable();
+    });
+
   }
 
   disconnectedCallback() {
@@ -125,14 +130,43 @@ export class MarkdownDocument extends LitElement {
 
     if (selection?.anchorNode) {
       if (this.contains(selection?.anchorNode)) {
+        var element = selection.anchorNode;
+        while(element && !(element instanceof MarkdownLitElement)) element = element.parentNode;
+        if(element instanceof MarkdownLitElement && element.isEditable()) {
+          this.enableEditable();
+        } else {
+          this.disableEditable();
+        }
+
         this.currentSelection = selection;
         this.debugSelection();
         this.affectToolbar();
       } else {
         //
+        this.disableEditable();
       }
+    } else {
+      this.disableEditable();
     }
-}
+  }
+
+  editable = false;
+
+  enableEditable() {
+    if(!this.editable) {
+      this.editable = true;
+      this.toolbar?.classList.add('focus-enabled');
+      this.toolbar?.classList.remove('focus-disabled');
+    }
+  }
+  disableEditable() {
+    if(this.editable) {
+      this.editable = false;
+      this.toolbar?.classList.remove('focus-enabled');
+      this.toolbar?.classList.add('focus-disabled');
+    }
+  }
+
 
   debugSelection() {
     //console.log("selection " + this.selectionToContentRange())

@@ -4,6 +4,10 @@ import { MarkdownElement } from '../interfaces/markdown-element';
 
 export abstract class MarkdownLitElement extends LitElement implements MarkdownElement {
 
+  isEditable(): boolean {
+    return true;
+  }
+
   // returns a boolean that if true, it means that the element changed something that will impact a ancestor, so normalize should be redone
   normalizeContent(): boolean {
     for (let i = 0; i < this.childNodes.length; i++) {

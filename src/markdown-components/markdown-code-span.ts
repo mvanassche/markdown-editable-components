@@ -1,4 +1,4 @@
-import { html, customElement, css } from 'lit-element';
+import { html, customElement } from 'lit-element';
 import { InlineElement } from './abstract/inline-element';
 
 @customElement('markdown-code-span')

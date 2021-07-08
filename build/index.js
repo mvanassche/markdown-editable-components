@@ -2709,26 +2709,40 @@ function getMarkdownWithTextForElement(element) {
 }
 
 class MarkdownLitElement extends LitElement {
+    isEditable() {
+        return true;
+    }
     // returns a boolean that if true, it means that the element changed something that will impact a ancestor, so normalize should be redone
-    normalize() {
+    normalizeContent() {
         for (let i = 0; i < this.childNodes.length; i++) {
             const content = this.childNodes[i];
             if (content instanceof MarkdownLitElement) {
-                if (content.normalize()) {
-                    return this.normalize();
+                if (content.normalizeContent()) {
+                    return this.normalizeContent();
                 }
             }
         }
         return false;
     }
     pushNodesAfterBreakToParent(content) {
+        var _a;
         if (this.parentNode != null) {
             // extract the br out of this element and take what's right of br, encapsulate in an element of the same type as this
             const elementsToMove = [];
-            const rightElement = document.createElement(this.tagName);
             let indexOfBreak = Array.from(this.childNodes).indexOf(content);
             for (let j = indexOfBreak + 1; j < this.childNodes.length; j++) {
                 elementsToMove.push(this.childNodes[j]);
+                if ((_a = document.getSelection()) === null || _a === void 0 ? void 0 : _a.containsNode(this.childNodes[j], true)) ;
+            }
+            let rightElement;
+            if (elementsToMove.length == 0) {
+                rightElement = this.newEmptyElementAfterBreak();
+            }
+            else if (elementsToMove.length == 1 && elementsToMove[0] instanceof Text && elementsToMove[0].textContent == '\u200b') {
+                rightElement = document.createElement(this.newEmptyElementNameAfterBreak());
+            }
+            else {
+                rightElement = document.createElement(this.tagName);
             }
             elementsToMove.forEach((elementToMove) => {
                 //this.removeChild(elementToMove);
@@ -2737,12 +2751,29 @@ class MarkdownLitElement extends LitElement {
             this.parentNode.insertBefore(rightElement, this.nextSibling);
         }
     }
+    newEmptyElement(tagName) {
+        let result = document.createElement(tagName);
+        if (result instanceof MarkdownLitElement) {
+            result.fillEmptyElement();
+        }
+        return result;
+    }
+    fillEmptyElement() {
+        let textNode = document.createTextNode('\u200b'); // put in a whitespace to avoid the issue of being inaccessible when empty
+        this.appendChild(textNode);
+    }
+    newEmptyElementAfterBreak() {
+        return this.newEmptyElement(this.newEmptyElementNameAfterBreak());
+    }
+    newEmptyElementNameAfterBreak() {
+        return this.tagName;
+    }
     pushBreakAndNodesAfterToParent(content) {
         var _a;
         this.pushNodesAfterBreakToParent(content);
         (_a = this.parentNode) === null || _a === void 0 ? void 0 : _a.insertBefore(content, this.nextSibling);
     }
-    mergeWithPrevious(currentSelection) {
+    mergeWithPrevious(_) {
     }
     mergeNextIn() {
     }
@@ -2757,6 +2788,85 @@ class MarkdownLitElement extends LitElement {
             range.collapse(true);
             currentSelection === null || currentSelection === void 0 ? void 0 : currentSelection.removeAllRanges();
             currentSelection === null || currentSelection === void 0 ? void 0 : currentSelection.addRange(range);
+        }
+    }
+    contentLength() {
+        var result = 0;
+        Array.from(this.childNodes).forEach((child) => {
+            var _a, _b, _c;
+            if (child instanceof MarkdownLitElement) {
+                result += child.contentLength();
+            }
+            else if (child instanceof HTMLBRElement) {
+                result++;
+            }
+            else {
+                // TODO remove special chars like zerowidth
+                result += (_c = (_b = (_a = child.textContent) === null || _a === void 0 ? void 0 : _a.replace('\u200b', '')) === null || _b === void 0 ? void 0 : _b.length) !== null && _c !== void 0 ? _c : 0;
+            }
+        });
+        return result + this.endOfLineEquivalentLength();
+    }
+    contentLengthUntil(child) {
+        const childNodes = Array.from(this.childNodes);
+        const indexOfChild = childNodes.indexOf(child);
+        var result = 0;
+        if (indexOfChild >= 0) {
+            childNodes.slice(0, indexOfChild).forEach((child) => {
+                var _a, _b, _c;
+                if (child instanceof MarkdownLitElement) {
+                    result += child.contentLength();
+                }
+                else if (child instanceof HTMLBRElement) {
+                    result++;
+                }
+                else {
+                    result += (_c = (_b = (_a = child.textContent) === null || _a === void 0 ? void 0 : _a.replace('\u200b', '')) === null || _b === void 0 ? void 0 : _b.length) !== null && _c !== void 0 ? _c : 0;
+                }
+            });
+        }
+        return result;
+    }
+    elementEndWithEndOfLineEquivalent() {
+        return false;
+    }
+    endOfLineEquivalentLength() {
+        if (this.elementEndWithEndOfLineEquivalent()) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
+    getNodeAndOffsetFromContentOffset(contentOffset) {
+        if (this.childNodes.length > 0) {
+            var resultNode = this.childNodes[0];
+            var previousNodeWasEol = false;
+            // keep the first that will fit the offset
+            for (let i = 0; i < this.childNodes.length; i++) {
+                let child = this.childNodes[i];
+                var lengthUntilChild = this.contentLengthUntil(child);
+                if (contentOffset == lengthUntilChild) {
+                    if (previousNodeWasEol) {
+                        resultNode = child;
+                    }
+                    break;
+                }
+                if (contentOffset < lengthUntilChild) {
+                    break;
+                }
+                resultNode = child;
+                previousNodeWasEol = (child instanceof MarkdownLitElement && child.elementEndWithEndOfLineEquivalent());
+            }
+            if (resultNode instanceof MarkdownLitElement) {
+                return resultNode.getNodeAndOffsetFromContentOffset(contentOffset - this.contentLengthUntil(resultNode));
+            }
+            else {
+                return [resultNode, Math.round(contentOffset) - this.contentLengthUntil(resultNode)];
+            }
+        }
+        else {
+            return [this, Math.round(contentOffset)]; // FIXME
         }
     }
     getMarkdown() {
@@ -2832,21 +2942,30 @@ class LeafElement extends BlockElement {
         becomes
     <parent>content1 <leaf>content2 </leaf><leaf> content3</leaf> content4</parent>
   */
-    normalize() {
+    normalizeContent() {
+        this.normalize();
         if (this.childNodes.length == 0) {
-            // This does not help... don't understand, it's just not showing!
-            this.appendChild(document.createTextNode(''));
+            //this.fillEmptyElement();
+            // remove empty leaf!
+            this.remove();
+            return true;
         }
         for (let i = 0; i < this.childNodes.length; i++) {
             const content = this.childNodes[i];
             if (content instanceof HTMLBRElement) {
                 this.pushNodesAfterBreakToParent(content);
                 this.removeChild(content);
-                return false;
+                return true;
             }
             else if (content instanceof MarkdownLitElement) {
-                if (content.normalize()) {
-                    return this.normalize();
+                if (content.normalizeContent()) {
+                    return this.normalizeContent();
+                }
+            }
+            else if (content instanceof Text) {
+                // TODO should this be higher up? not just leaves?
+                if (content.length > 1 && content.textContent.indexOf('\u200b') >= 0) {
+                    content.textContent = content.textContent.replace('\u200b', '');
                 }
             }
         }
@@ -2872,6 +2991,10 @@ class LeafElement extends BlockElement {
             });
             this.nextElementSibling.remove();
         }
+    }
+    elementEndWithEndOfLineEquivalent() {
+        var _a;
+        return ((this.textContent && ((_a = this.textContent) === null || _a === void 0 ? void 0 : _a.length) > 0) || this.children.length > 0);
     }
 }
 
@@ -45624,13 +45747,7 @@ var __decorate$y = (undefined && undefined.__decorate) || function (decorators, 
 };
 exports.CodeBlock = class CodeBlock extends LeafElement {
     render() {
-        return html `
-      <pre>
-        <code>
-          <slot></slot>
-        </code>
-      </pre>
-    `;
+        return html `<pre><code><slot></slot></code></pre>`;
     }
     getMarkdown() {
         const lang = this.getAttribute("lang");
@@ -45678,16 +45795,17 @@ class InlineElement extends MarkdownLitElement {
   
       It is up to the parent to deal with the <br> at this point.
     */
-    normalize() {
+    normalizeContent() {
         for (let i = 0; i < this.childNodes.length; i++) {
             const content = this.childNodes[i];
             if (content instanceof HTMLBRElement) {
                 this.pushBreakAndNodesAfterToParent(content);
                 return true;
+                //return this.normalizeContent();
             }
             else if (content instanceof MarkdownLitElement) {
-                if (content.normalize()) {
-                    return this.normalize();
+                if (content.normalizeContent()) {
+                    return this.normalizeContent();
                 }
             }
         }
@@ -45699,6 +45817,11 @@ class InlineElement extends MarkdownLitElement {
     mergeWithPrevious(currentSelection) {
         if (this.parentNode instanceof MarkdownLitElement) {
             this.parentNode.mergeWithPrevious(currentSelection);
+        }
+    }
+    mergeNextIn() {
+        if (this.parentNode instanceof MarkdownLitElement) {
+            this.parentNode.mergeNextIn();
         }
     }
 }
@@ -45732,6 +45855,9 @@ exports.HTML = class HTML extends LeafElement {
         return html `
       <slot></slot>
     `;
+    }
+    isEditable() {
+        return false;
     }
     getMarkdown() {
         return this.innerHTML.trimLeft().trimRight() + '\n\n';
@@ -45814,6 +45940,31 @@ exports.MarkdownLink = __decorate$u([
 ], exports.MarkdownLink);
 
 class ContainerElement extends MarkdownLitElement {
+    contentLength() {
+        var result = 0;
+        Array.from(this.childNodes).forEach((child) => {
+            if (child instanceof MarkdownLitElement) {
+                result += child.contentLength();
+            }
+        });
+        return result + this.endOfLineEquivalentLength();
+    }
+    contentLengthUntil(child) {
+        const childNodes = Array.from(this.childNodes);
+        const indexOfChild = childNodes.indexOf(child);
+        var result = 0;
+        if (indexOfChild >= 0) {
+            childNodes.slice(0, indexOfChild).forEach((child) => {
+                if (child instanceof MarkdownLitElement) {
+                    result += child.contentLength();
+                }
+            });
+        }
+        return result;
+    }
+    elementEndWithEndOfLineEquivalent() {
+        return (this.children.length > 0);
+    }
 }
 
 var __decorate$t = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
@@ -45824,9 +45975,7 @@ var __decorate$t = (undefined && undefined.__decorate) || function (decorators, 
 };
 exports.List = class List extends ContainerElement {
     render() {
-        return html `
-      <slot></slot>
-  `;
+        return html `<slot></slot>`;
     }
     connectedCallback() {
         super.connectedCallback();
@@ -47230,6 +47379,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         this.toolbar = null;
         this.selectionRoot = document;
         this.currentSelection = null;
+        this.editable = false;
     }
     get markdown() { return this.getMarkdown(); }
     set markdown(markdown) { this.renderMarkdown(markdown); }
@@ -47252,29 +47402,14 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         if (this.getAttribute("spellcheck") == null) {
             this.setAttribute("spellcheck", "false");
         }
-        document.addEventListener('selectstart', () => {
-        });
-        document.addEventListener('selectionchange', () => {
-            let selection;
-            if (this.selectionRoot.getSelection != null) {
-                selection = this.selectionRoot.getSelection();
-            }
-            else {
-                selection = this.ownerDocument.getSelection();
-            }
-            if (selection === null || selection === void 0 ? void 0 : selection.anchorNode) {
-                if (this.contains(selection === null || selection === void 0 ? void 0 : selection.anchorNode)) {
-                    this.currentSelection = selection;
-                    this.affectToolbar();
-                }
-            }
-        });
+        /*document.addEventListener('selectstart', () => {
+        });*/
+        this._selectionchange = this.selectionchange.bind(this);
+        document.addEventListener('selectionchange', this._selectionchange);
         this.addEventListener('keydown', (e) => {
-            console.log(e.code);
             if (e.code === 'Enter') {
                 e.preventDefault();
                 this.handleEnterKeyDown();
-                //this.normalize();  // If you do uncomment this enter handling, the normalize in the input is redundant!
             }
             else if (e.code === 'Backspace') {
                 this.handleBackspaceKeyDown(e);
@@ -47286,16 +47421,235 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 e.preventDefault();
                 this.handleTabKeyDown();
             }
+            if (e.defaultPrevented) {
+                // if default prevented, chances are that input is note triggered.
+                this.normalizeContent();
+                this.onChange();
+            }
         });
         this.addEventListener("input", () => {
-            this.normalize();
+            this.normalizeContent();
             this.onChange();
         });
+        this.addEventListener('blur', () => {
+            this.disableEditable();
+        });
     }
-    normalize() {
-        Array.from(this.children).forEach((child) => {
+    disconnectedCallback() {
+        document.removeEventListener('selectionchange', this._selectionchange);
+        super.disconnectedCallback();
+    }
+    selectionchange() {
+        let selection;
+        if (this.selectionRoot.getSelection != null) {
+            selection = this.selectionRoot.getSelection();
+        }
+        else {
+            selection = this.ownerDocument.getSelection();
+        }
+        if (selection === null || selection === void 0 ? void 0 : selection.anchorNode) {
+            if (this.contains(selection === null || selection === void 0 ? void 0 : selection.anchorNode)) {
+                var element = selection.anchorNode;
+                while (element && !(element instanceof MarkdownLitElement))
+                    element = element.parentNode;
+                if (element instanceof MarkdownLitElement && element.isEditable()) {
+                    this.enableEditable();
+                }
+                else {
+                    this.disableEditable();
+                }
+                this.currentSelection = selection;
+                this.debugSelection();
+                this.affectToolbar();
+            }
+            else {
+                //
+                this.disableEditable();
+            }
+        }
+        else {
+            this.disableEditable();
+        }
+    }
+    enableEditable() {
+        var _a, _b;
+        if (!this.editable) {
+            this.editable = true;
+            (_a = this.toolbar) === null || _a === void 0 ? void 0 : _a.classList.add('focus-enabled');
+            (_b = this.toolbar) === null || _b === void 0 ? void 0 : _b.classList.remove('focus-disabled');
+        }
+    }
+    disableEditable() {
+        var _a, _b;
+        if (this.editable) {
+            this.editable = false;
+            (_a = this.toolbar) === null || _a === void 0 ? void 0 : _a.classList.remove('focus-enabled');
+            (_b = this.toolbar) === null || _b === void 0 ? void 0 : _b.classList.add('focus-disabled');
+        }
+    }
+    debugSelection() {
+        //console.log("selection " + this.selectionToContentRange())
+        /*let ancohor = document.getSelection()?.anchorNode;
+        if(ancohor instanceof Text) {
+          console.log("     selection " + ancohor.textContent + " " + document.getSelection()?.anchorOffset)
+        } else if(ancohor instanceof HTMLElement) {
+          console.log("     selection " + ancohor.tagName + " " + document.getSelection()?.anchorOffset)
+        }*/
+    }
+    // content range is a way to represent a selection that is less browser specific, and more markdown specific
+    selectionToContentRange() {
+        let selection = document.getSelection();
+        if (selection && selection.anchorNode && selection.focusNode) {
+            let anchorOffset = this.selectionNodeAndOffsetToContentOffset(selection.anchorNode, selection.anchorOffset);
+            let focusOffset = this.selectionNodeAndOffsetToContentOffset(selection.focusNode, selection.focusOffset);
+            if (anchorOffset != null && focusOffset != null) {
+                return [anchorOffset, focusOffset];
+            }
+            else {
+                return null;
+            }
+        }
+        else {
+            return null;
+        }
+    }
+    selectionNodeAndOffsetToContentOffset(node, offset) {
+        var _a, _b, _c, _d;
+        if (node == this) {
+            return this.contentLengthUntil(this.childNodes[offset]);
+        }
+        else if (node instanceof MarkdownLitElement) {
+            if (node.parentNode) {
+                let parent = this.selectionNodeAndOffsetToContentOffset(node.parentNode, Array.from(node.parentNode.childNodes).indexOf(node));
+                if (parent != null) {
+                    return parent + node.contentLengthUntil(node.childNodes[offset]);
+                }
+                else {
+                    return null;
+                }
+            }
+            else {
+                return null;
+            }
+        }
+        else if (node instanceof Text) {
+            // find the parent
+            if (node.parentNode) {
+                let parent = this.selectionNodeAndOffsetToContentOffset(node.parentNode, Array.from(node.parentNode.childNodes).indexOf(node));
+                if (parent != null) {
+                    var littleBit = 0;
+                    /*if(offset == 0) {
+                      littleBit += 0.1;
+                    }
+                    if(offset == node.textContent?.replaceAll('\u200b', '').length) {
+                      littleBit -= 0.1;
+                    }*/
+                    // count the number of special characters that are not part of the content like the zero width space
+                    // before the offset!
+                    let numberOfSpecialChars = ((_d = (_c = (_b = (_a = node.textContent) === null || _a === void 0 ? void 0 : _a.slice(0, offset)) === null || _b === void 0 ? void 0 : _b.split('\u200b')) === null || _c === void 0 ? void 0 : _c.length) !== null && _d !== void 0 ? _d : 1) - 1;
+                    return parent + offset - numberOfSpecialChars + littleBit;
+                }
+                else {
+                    return null;
+                }
+            }
+            else {
+                return null;
+            }
+        }
+        else {
+            return null;
+        }
+    }
+    contentLengthUntil(child) {
+        const childNodes = Array.from(this.childNodes);
+        const indexOfChild = childNodes.indexOf(child);
+        if (indexOfChild >= 0) {
+            var result = 0;
+            childNodes.slice(0, indexOfChild).forEach((child) => {
+                if (child instanceof MarkdownLitElement) {
+                    result += child.contentLength();
+                }
+            });
+            return result;
+        }
+        else {
+            return 0;
+        }
+    }
+    setSelectionToContentRange(contentRange) {
+        var _a, _b;
+        //console.log("Reset selection to " + contentRange);
+        let [anchorNode, anchorOffset] = this.getNodeAndOffsetFromContentOffset(contentRange[0]);
+        let [focusNode, focusOffset] = this.getNodeAndOffsetFromContentOffset(contentRange[1]);
+        const range = document.createRange();
+        range.setStart(anchorNode, anchorOffset);
+        range.setEnd(focusNode, focusOffset);
+        (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.removeAllRanges();
+        (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.addRange(range);
+    }
+    getNodeAndOffsetFromContentOffset(contentOffset) {
+        if (this.children.length > 0) {
+            var resultNode = this.children[0];
+            var previousNodeWasEol = false;
+            // keep the first that will fit the offset
+            for (let i = 0; i < this.children.length; i++) {
+                let child = this.children[i];
+                var lengthUntilChild = this.contentLengthUntil(child);
+                if (contentOffset == lengthUntilChild) {
+                    if (previousNodeWasEol) {
+                        resultNode = child;
+                    }
+                    break;
+                }
+                if (contentOffset < lengthUntilChild) {
+                    break;
+                }
+                resultNode = child;
+                previousNodeWasEol = (child instanceof MarkdownLitElement && child.elementEndWithEndOfLineEquivalent());
+            }
+            if (resultNode instanceof MarkdownLitElement) {
+                return resultNode.getNodeAndOffsetFromContentOffset(contentOffset - this.contentLengthUntil(resultNode));
+            }
+            else {
+                return [resultNode, Math.round(contentOffset) - this.contentLengthUntil(resultNode)];
+            }
+        }
+        else {
+            return [this, Math.round(contentOffset)]; // FIXME
+        }
+    }
+    normalizeContent() {
+        const selectionContentRangeBefore = this.selectionToContentRange();
+        this.normalizeDOM();
+        const selectionContentRangeAfter = this.selectionToContentRange();
+        //console.log(selectionContentRangeBefore + " -> " + selectionContentRangeAfter);
+        const equals = (a, b) => {
+            if (a == null && b == null)
+                return true;
+            if (a != null && b != null) {
+                return a[0] == b[0] && a[1] == b[1];
+            }
+            else {
+                return false;
+            }
+        };
+        if (!equals(selectionContentRangeBefore, selectionContentRangeAfter)) {
+            if (selectionContentRangeBefore) {
+                this.setSelectionToContentRange(selectionContentRangeBefore);
+            }
+        }
+        this.debugSelection();
+    }
+    normalizeDOM() {
+        //console.log("doc normalize")
+        for (let i = 0; i < this.childNodes.length; i++) {
+            const child = this.childNodes[i];
             if (child instanceof MarkdownLitElement) {
-                child.normalize();
+                if (child.normalizeContent()) {
+                    this.normalizeDOM();
+                    break;
+                }
             }
             else if (child instanceof HTMLDivElement) {
                 // on chromium new lines are handled by divs, it splits up the tags properly.
@@ -47304,7 +47658,18 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 });
                 child.remove();
             }
+        }
+    }
+    contentLength() {
+        var result = 0;
+        Array.from(this.children).forEach((child) => {
+            if (child instanceof MarkdownLitElement) {
+                result += child.contentLength();
+            } /* else {
+              result += child.textContent?.length ?? 0; // What would that be??? what if not normalized? divs?
+            }*/
         });
+        return result;
     }
     onChange() {
         this.dispatchEvent(new CustomEvent("change")); // TODO, what should be the event details? also add other changes than inputs
@@ -47374,7 +47739,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         return null;
     }
     handleEnterKeyDown() {
-        document.execCommand('insertHTML', false, '<br/>');
+        document.execCommand('insertHTML', false, '&ZeroWidthSpace;<br/>&ZeroWidthSpace;');
     }
     makeBreak() {
         var _a, _b, _c, _d, _e, _f, _g, _h;
@@ -47738,9 +48103,7 @@ var __decorate$r = (undefined && undefined.__decorate) || function (decorators, 
 var ListItem_1;
 exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
     render() {
-        return html `
-      <div class='item-container'><slot></slot></div>
-    `;
+        return html `<div class='item-container'><slot></slot></div>`;
     }
     getDepth() {
         let depth = 0;
@@ -47768,28 +48131,78 @@ exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
             }
         }).join('');
     }
-    normalize() {
-        /*if(this.childNodes.length == 1 && this.childNodes[0] instanceof HTMLBRElement) {
-          TODO: unindent, fallback to previous level, or paragraph, warning leave the rest of the items, meaning split the list.
-          return true;
-        }*/
+    normalizeContent() {
+        this.normalize();
+        if (this.childNodes.length == 0) {
+            //this.fillEmptyElement();
+            // remove empty leaf!
+            this.remove();
+            return true;
+        }
         for (let i = 0; i < this.childNodes.length; i++) {
             const content = this.childNodes[i];
             if (content instanceof HTMLBRElement) {
                 this.pushNodesAfterBreakToParent(content);
                 this.removeChild(content);
-                return false;
+                return true;
             }
             else if (content instanceof MarkdownLitElement) {
-                if (content.normalize()) {
-                    return this.normalize();
+                if (content.normalizeContent()) {
+                    return this.normalizeContent();
+                }
+            }
+            else if (content instanceof Text) {
+                // TODO should this be higher up? not just leaves?
+                if (content.length > 1 && content.textContent.indexOf('\u200b') >= 0) {
+                    content.textContent = content.textContent.replace('\u200b', '');
                 }
             }
         }
         return false;
     }
-    mergeWithPrevious() {
+    contentLength() {
+        var result = 0;
+        Array.from(this.childNodes).forEach((child) => {
+            var _a, _b, _c;
+            if (child instanceof MarkdownLitElement) {
+                result += child.contentLength();
+            }
+            else if (child instanceof HTMLBRElement) {
+                result++;
+            }
+            else {
+                // TODO remove special chars like zerowidth
+                result += (_c = (_b = (_a = child.textContent) === null || _a === void 0 ? void 0 : _a.replace('\u200b', '')) === null || _b === void 0 ? void 0 : _b.length) !== null && _c !== void 0 ? _c : 0;
+            }
+        });
+        return result + this.endOfLineEquivalentLength();
+    }
+    contentLengthUntil(child) {
+        const childNodes = Array.from(this.childNodes);
+        const indexOfChild = childNodes.indexOf(child);
+        var result = 0;
+        if (indexOfChild >= 0) {
+            childNodes.slice(0, indexOfChild).forEach((child) => {
+                var _a, _b, _c;
+                if (child instanceof MarkdownLitElement) {
+                    result += child.contentLength();
+                }
+                else if (child instanceof HTMLBRElement) {
+                    result++;
+                }
+                else {
+                    result += (_c = (_b = (_a = child.textContent) === null || _a === void 0 ? void 0 : _a.replace('\u200b', '')) === null || _b === void 0 ? void 0 : _b.length) !== null && _c !== void 0 ? _c : 0;
+                }
+            });
+        }
+        return result;
+    }
+    mergeWithPrevious(currentSelection) {
         if (this.previousElementSibling instanceof ListItem_1) {
+            // TODO modularize in top element
+            if (currentSelection === null || currentSelection === void 0 ? void 0 : currentSelection.containsNode(this, true)) {
+                this.previousElementSibling.setSelectionToEnd(currentSelection);
+            }
             Array.from(this.childNodes).forEach((child) => {
                 var _a;
                 (_a = this.previousElementSibling) === null || _a === void 0 ? void 0 : _a.appendChild(child);
@@ -47804,6 +48217,10 @@ exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
             });
             this.nextElementSibling.remove();
         }
+    }
+    elementEndWithEndOfLineEquivalent() {
+        var _a;
+        return (this.textContent && ((_a = this.textContent) === null || _a === void 0 ? void 0 : _a.length) > 0) || this.children.length > 0;
     }
 };
 exports.ListItem.styles = css$1 `
@@ -47831,11 +48248,7 @@ var __decorate$q = (undefined && undefined.__decorate) || function (decorators, 
 */
 exports.MarkdownParagraph = class MarkdownParagraph extends LeafElement {
     render() {
-        return html `
-      <p>
-        <slot></slot>
-      </p>
-    `;
+        return html `<p><slot></slot></p>`;
     }
     getMarkdown() {
         return Array.from(this.childNodes).map((child) => {
@@ -47857,6 +48270,10 @@ exports.MarkdownParagraph = class MarkdownParagraph extends LeafElement {
 exports.MarkdownParagraph.styles = css$1 `
     :host {
       position: relative;
+    }
+    p {
+      min-height: 1em;
+      /*white-space: pre-wrap;*/
     }
   `;
 exports.MarkdownParagraph = __decorate$q([
@@ -48185,6 +48602,10 @@ class Heading extends LeafElement {
     getMarkdown() {
         return '#'.repeat(this.depth) + ' ' + getMarkdownWithTextForElement(this) + '\n';
     }
+    newEmptyElementNameAfterBreak() {
+        // after a title, we typically want a paragraph!
+        return 'markdown-paragraph';
+    }
 }
 
 var __decorate$f = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
@@ -48199,16 +48620,13 @@ exports.Header1 = class Header1 extends Heading {
         this.depth = 1;
     }
     render() {
-        return html `
-      <h1>
-        <slot></slot>
-      </h1>
-    `;
+        return html `<h1><slot></slot></h1>`;
     }
 };
 exports.Header1.styles = css$1 `
       :host {
       position: relative;
+      min-height: 1em;
     }
 `;
 exports.Header1 = __decorate$f([
@@ -48227,16 +48645,13 @@ exports.Header2 = class Header2 extends Heading {
         this.depth = 2;
     }
     render() {
-        return html `
-      <h2>
-        <slot></slot>
-      </h2>
-    `;
+        return html `<h2><slot></slot></h2>`;
     }
 };
 exports.Header2.styles = css$1 `
       :host {
       position: relative;
+      min-height: 1em;
     }
 `;
 exports.Header2 = __decorate$e([
@@ -48255,16 +48670,13 @@ exports.Header3 = class Header3 extends Heading {
         this.depth = 3;
     }
     render() {
-        return html `
-      <h3>
-        <slot></slot>
-      </h3>
-    `;
+        return html `<h3><slot></slot></h3>`;
     }
 };
 exports.Header3.styles = css$1 `
       :host {
       position: relative;
+      min-height: 1em;
     }
 `;
 exports.Header3 = __decorate$d([
@@ -48283,16 +48695,13 @@ exports.Header4 = class Header4 extends Heading {
         this.depth = 4;
     }
     render() {
-        return html `
-      <h4>
-        <slot></slot>
-      </h4>
-    `;
+        return html `<h4><slot></slot></h4>`;
     }
 };
 exports.Header4.styles = css$1 `
       :host {
       position: relative;
+      min-height: 1em;
     }
 `;
 exports.Header4 = __decorate$c([
@@ -48311,16 +48720,13 @@ exports.Header5 = class Header5 extends Heading {
         this.depth = 5;
     }
     render() {
-        return html `
-      <h5>
-        <slot></slot>
-      </h5>
-    `;
+        return html `<h5><slot></slot></h5>`;
     }
 };
 exports.Header5.styles = css$1 `
       :host {
       position: relative;
+      min-height: 1em;
     }
 `;
 exports.Header5 = __decorate$b([
@@ -48339,16 +48745,13 @@ exports.Header6 = class Header6 extends Heading {
         this.depth = 6;
     }
     render() {
-        return html `
-      <h6>
-        <slot></slot>
-      </h6>
-    `;
+        return html `<h6><slot></slot></h6>`;
     }
 };
 exports.Header6.styles = css$1 `
       :host {
       position: relative;
+      min-height: 1em;
     }
 `;
 exports.Header6 = __decorate$a([
@@ -49004,6 +49407,9 @@ exports.Toolbar.styles = css$1 `
       display: block;
       border: solid 1px gray;
       padding: 5px;
+    }
+    :host(.focus-disabled) {
+      opacity: 0.1;
     }
     .toolbar {
       height: 24px;

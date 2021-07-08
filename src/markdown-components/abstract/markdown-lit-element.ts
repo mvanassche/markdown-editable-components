@@ -81,7 +81,7 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
   }
 
 
-  mergeWithPrevious(currentSelection: Selection | null) {
+  mergeWithPrevious(_: Selection | null) {
   }
 
   mergeNextIn() {

@@ -3,8 +3,6 @@ import { MarkdownLitElement } from "./markdown-lit-element";
 
 export abstract class LeafElement extends BlockElement {
 
-  selection = false;
-  _selectionChangeHandler: any;
 
   connectedCallback() {
     super.connectedCallback();
@@ -15,17 +13,6 @@ export abstract class LeafElement extends BlockElement {
       this.normalizeChildren()
     });*/
 
-    this.addEventListener('selectstart', () => {
-      this.selection = true;
-
-      // get the document
-      // console.log('focus ' + this.tagName);
-    });
-
-    this._selectionChangeHandler = this.documentSelectionChange.bind(this);
-    // this._selectionChangeHandler = this.documentSelectionChange;
-
-    document.addEventListener('selectionchange', this._selectionChangeHandler);
   }
 
   // selectionToBlock(elementName: string) {
@@ -47,23 +34,8 @@ export abstract class LeafElement extends BlockElement {
   }
 
   disconnectedCallback() {
-    if (this._selectionChangeHandler) {
-      document.removeEventListener('selectionchange', this._selectionChangeHandler);
-    }
   }
 
-  documentSelectionChange() {
-    if (
-      this.ownerDocument.getSelection()?.rangeCount == 1
-      && !this.ownerDocument.getSelection()?.getRangeAt(0).collapsed
-      && this.ownerDocument.getSelection()?.anchorNode != null
-      && this.contains((this.ownerDocument.getSelection()?.anchorNode as Node))
-    ) {
-      this.selection = true;
-    } else {
-      this.selection = false;
-    }
-  }
 
     /* normalize for an inline element consists of finding <br>s and
       - create a new element of the same type with the content after the <br>

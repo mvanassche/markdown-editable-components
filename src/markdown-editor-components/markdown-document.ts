@@ -120,17 +120,20 @@ export class MarkdownDocument extends LitElement {
     super.disconnectedCallback();
   }
 
-  selectionchange() {
-    let selection;
+  getSelection(): Selection|null {
     if(this.selectionRoot.getSelection != null) {
-      selection = this.selectionRoot.getSelection();
+      return this.selectionRoot.getSelection();
     } else {
-      selection = this.ownerDocument.getSelection();
+      return this.ownerDocument.getSelection();
     }
+  }
+
+  selectionchange() {
+    let selection = this.getSelection();
 
     if (selection?.anchorNode) {
       if (this.contains(selection?.anchorNode)) {
-        var element = selection.anchorNode;
+        var element: Node|null = selection.anchorNode;
         while(element && !(element instanceof MarkdownLitElement)) element = element.parentNode;
         if(element instanceof MarkdownLitElement && element.isEditable()) {
           this.enableEditable();
@@ -170,17 +173,17 @@ export class MarkdownDocument extends LitElement {
 
   debugSelection() {
     //console.log("selection " + this.selectionToContentRange())
-    /*let ancohor = document.getSelection()?.anchorNode;
+    /*let ancohor = this.getSelection()?.anchorNode;
     if(ancohor instanceof Text) {
-      console.log("     selection " + ancohor.textContent + " " + document.getSelection()?.anchorOffset)
+      console.log("     selection " + ancohor.textContent + " " + this.getSelection()?.anchorOffset)
     } else if(ancohor instanceof HTMLElement) {
-      console.log("     selection " + ancohor.tagName + " " + document.getSelection()?.anchorOffset)
+      console.log("     selection " + ancohor.tagName + " " + this.getSelection()?.anchorOffset)
     }*/
   }
 
   // content range is a way to represent a selection that is less browser specific, and more markdown specific
   selectionToContentRange(): ([number, number] | null) {
-    let selection = document.getSelection()
+    let selection = this.getSelection()
     if(selection && selection.anchorNode && selection.focusNode) {
       let anchorOffset = this.selectionNodeAndOffsetToContentOffset(selection.anchorNode, selection.anchorOffset);
       let focusOffset = this.selectionNodeAndOffsetToContentOffset(selection.focusNode, selection.focusOffset);
@@ -402,12 +405,7 @@ export class MarkdownDocument extends LitElement {
   }
 
   public getCurrentLeafBlock(): LeafElement | null {
-    let selection;
-    if(this.selectionRoot.getSelection != null) {
-      selection = this.selectionRoot.getSelection();
-    } else {
-      selection = this.ownerDocument.getSelection();
-    }
+    let selection = this.getSelection();
 
     const anchorNode = selection?.anchorNode;
     // console.log('anchorNode');

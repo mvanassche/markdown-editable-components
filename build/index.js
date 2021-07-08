@@ -2725,14 +2725,12 @@ class MarkdownLitElement extends LitElement {
         return false;
     }
     pushNodesAfterBreakToParent(content) {
-        var _a;
         if (this.parentNode != null) {
             // extract the br out of this element and take what's right of br, encapsulate in an element of the same type as this
             const elementsToMove = [];
             let indexOfBreak = Array.from(this.childNodes).indexOf(content);
             for (let j = indexOfBreak + 1; j < this.childNodes.length; j++) {
                 elementsToMove.push(this.childNodes[j]);
-                if ((_a = document.getSelection()) === null || _a === void 0 ? void 0 : _a.containsNode(this.childNodes[j], true)) ;
             }
             let rightElement;
             if (elementsToMove.length == 0) {
@@ -2885,24 +2883,12 @@ class BlockElement extends MarkdownLitElement {
 }
 
 class LeafElement extends BlockElement {
-    constructor() {
-        super(...arguments);
-        this.selection = false;
-    }
     connectedCallback() {
         super.connectedCallback();
         //this.setAttribute("contenteditable", "true");
         /*this.addEventListener("input", () => {
           this.normalizeChildren()
         });*/
-        this.addEventListener('selectstart', () => {
-            this.selection = true;
-            // get the document
-            // console.log('focus ' + this.tagName);
-        });
-        this._selectionChangeHandler = this.documentSelectionChange.bind(this);
-        // this._selectionChangeHandler = this.documentSelectionChange;
-        document.addEventListener('selectionchange', this._selectionChangeHandler);
     }
     // selectionToBlock(elementName: string) {
     //   const selection = document.getSelection()!;
@@ -2917,21 +2903,6 @@ class LeafElement extends BlockElement {
     firstUpdated() {
     }
     disconnectedCallback() {
-        if (this._selectionChangeHandler) {
-            document.removeEventListener('selectionchange', this._selectionChangeHandler);
-        }
-    }
-    documentSelectionChange() {
-        var _a, _b, _c, _d;
-        if (((_a = this.ownerDocument.getSelection()) === null || _a === void 0 ? void 0 : _a.rangeCount) == 1
-            && !((_b = this.ownerDocument.getSelection()) === null || _b === void 0 ? void 0 : _b.getRangeAt(0).collapsed)
-            && ((_c = this.ownerDocument.getSelection()) === null || _c === void 0 ? void 0 : _c.anchorNode) != null
-            && this.contains((_d = this.ownerDocument.getSelection()) === null || _d === void 0 ? void 0 : _d.anchorNode)) {
-            this.selection = true;
-        }
-        else {
-            this.selection = false;
-        }
     }
     /* normalize for an inline element consists of finding <br>s and
       - create a new element of the same type with the content after the <br>
@@ -47439,14 +47410,16 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         document.removeEventListener('selectionchange', this._selectionchange);
         super.disconnectedCallback();
     }
-    selectionchange() {
-        let selection;
+    getSelection() {
         if (this.selectionRoot.getSelection != null) {
-            selection = this.selectionRoot.getSelection();
+            return this.selectionRoot.getSelection();
         }
         else {
-            selection = this.ownerDocument.getSelection();
+            return this.ownerDocument.getSelection();
         }
+    }
+    selectionchange() {
+        let selection = this.getSelection();
         if (selection === null || selection === void 0 ? void 0 : selection.anchorNode) {
             if (this.contains(selection === null || selection === void 0 ? void 0 : selection.anchorNode)) {
                 var element = selection.anchorNode;
@@ -47489,16 +47462,16 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
     }
     debugSelection() {
         //console.log("selection " + this.selectionToContentRange())
-        /*let ancohor = document.getSelection()?.anchorNode;
+        /*let ancohor = this.getSelection()?.anchorNode;
         if(ancohor instanceof Text) {
-          console.log("     selection " + ancohor.textContent + " " + document.getSelection()?.anchorOffset)
+          console.log("     selection " + ancohor.textContent + " " + this.getSelection()?.anchorOffset)
         } else if(ancohor instanceof HTMLElement) {
-          console.log("     selection " + ancohor.tagName + " " + document.getSelection()?.anchorOffset)
+          console.log("     selection " + ancohor.tagName + " " + this.getSelection()?.anchorOffset)
         }*/
     }
     // content range is a way to represent a selection that is less browser specific, and more markdown specific
     selectionToContentRange() {
-        let selection = document.getSelection();
+        let selection = this.getSelection();
         if (selection && selection.anchorNode && selection.focusNode) {
             let anchorOffset = this.selectionNodeAndOffsetToContentOffset(selection.anchorNode, selection.anchorOffset);
             let focusOffset = this.selectionNodeAndOffsetToContentOffset(selection.focusNode, selection.focusOffset);
@@ -47717,13 +47690,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }).join('');
     }
     getCurrentLeafBlock() {
-        let selection;
-        if (this.selectionRoot.getSelection != null) {
-            selection = this.selectionRoot.getSelection();
-        }
-        else {
-            selection = this.ownerDocument.getSelection();
-        }
+        let selection = this.getSelection();
         const anchorNode = selection === null || selection === void 0 ? void 0 : selection.anchorNode;
         // console.log('anchorNode');
         // console.log(anchorNode);

@@ -29,9 +29,6 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
       let indexOfBreak = Array.from(this.childNodes).indexOf(content);
       for (let j = indexOfBreak + 1; j < this.childNodes.length; j++) {
         elementsToMove.push(this.childNodes[j]);
-        if(document.getSelection()?.containsNode(this.childNodes[j], true)) {
-          //console.log("cursor at " + this.childNodes[j])  TODO sometimes the cursor gets a little weird, so we need to fix it?
-        }
       }
       let rightElement: HTMLElement
       if(elementsToMove.length == 0) {

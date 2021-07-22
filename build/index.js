@@ -48249,11 +48249,7 @@ var __decorate$9 = (undefined && undefined.__decorate) || function (decorators, 
 */
 exports.MarkdownParagraph = class MarkdownParagraph extends LeafElement {
     render() {
-        return html `
-      <p>
-        <slot></slot>
-      </p>
-    `;
+        return html `<p><slot></slot></p>`;
     }
     getMarkdown() {
         return Array.from(this.childNodes).map((child) => {
@@ -48625,11 +48621,7 @@ exports.Header1 = class Header1 extends Heading {
         this.depth = 1;
     }
     render() {
-        return html `
-      <h1>
-        <slot></slot>
-      </h1>
-    `;
+        return html `<h1><slot></slot></h1>`;
     }
 };
 exports.Header1.styles = css `
@@ -48657,11 +48649,7 @@ exports.Header2 = class Header2 extends Heading {
         this.depth = 2;
     }
     render() {
-        return html `
-      <h2>
-        <slot></slot>
-      </h2>
-    `;
+        return html `<h2><slot></slot></h2>`;
     }
 };
 exports.Header2.styles = css `
@@ -48689,11 +48677,7 @@ exports.Header3 = class Header3 extends Heading {
         this.depth = 3;
     }
     render() {
-        return html `
-      <h3>
-        <slot></slot>
-      </h3>
-    `;
+        return html `<h3><slot></slot></h3>`;
     }
 };
 exports.Header3.styles = css `
@@ -48721,11 +48705,7 @@ exports.Header4 = class Header4 extends Heading {
         this.depth = 4;
     }
     render() {
-        return html `
-      <h4>
-        <slot></slot>
-      </h4>
-    `;
+        return html `<h4><slot></slot></h4>`;
     }
 };
 exports.Header4.styles = css `
@@ -48753,11 +48733,7 @@ exports.Header5 = class Header5 extends Heading {
         this.depth = 5;
     }
     render() {
-        return html `
-      <h5>
-        <slot></slot>
-      </h5>
-    `;
+        return html `<h5><slot></slot></h5>`;
     }
 };
 exports.Header5.styles = css `
@@ -48785,11 +48761,7 @@ exports.Header6 = class Header6 extends Heading {
         this.depth = 6;
     }
     render() {
-        return html `
-      <h6>
-        <slot></slot>
-      </h6>
-    `;
+        return html `<h6><slot></slot></h6>`;
     }
 };
 exports.Header6.styles = css `

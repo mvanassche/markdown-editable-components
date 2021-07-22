@@ -19,7 +19,11 @@ export class MarkdownParagraph extends LeafElement {
   `;
 
   render() {
-    return html`<p><slot></slot></p>`;
+    return html`
+      <p>
+        <slot></slot>
+      </p>
+    `;
   }
 
   getMarkdown(): string {

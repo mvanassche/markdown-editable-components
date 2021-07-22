@@ -6,13 +6,20 @@ export class Header5 extends Heading {
   depth = 5;
 
   static styles = css`
-      :host {
+    :host {
       position: relative;
       min-height: 1em;
     }
-`;
+    h5 {
+      font-size: (--header5-font-size);
+    }
+  `;
 
   render() {
-    return html`<h5><slot></slot></h5>`;
+    return html`
+      <h5>
+        <slot></slot>
+      </h5>
+    `;
   }
 }

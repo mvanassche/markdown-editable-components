@@ -44,6 +44,30 @@ export class Toolbar extends LitElement {
       height: 24px;
       display: flex;
     }
+    .looks-like-header1 {
+      font-size: var(--header1-font-size);
+      font-weight: bold;
+    }
+    .looks-like-header2 {
+      font-size: var(--header2-font-size);
+      font-weight: bold;
+    }
+    .looks-like-header3 {
+      font-size: var(--header3-font-size);
+      font-weight: bold;
+    }
+    .looks-like-header4 {
+      font-size: var(--header4-font-size);
+      font-weight: bold;
+    }
+    .looks-like-header5 {
+      font-size: var(--header5-font-size);
+      font-weight: bold;
+    }
+    .looks-like-header6 {
+      font-size: var(--header6-font-size);
+      font-weight: bold;
+    }
   `;
 
   render() {
@@ -54,22 +78,22 @@ export class Toolbar extends LitElement {
             <span class='dropdown-title'>Heading 1</span> ▾
             <dropdown-elements slot='dropdown-elements'>
               <dropdown-element @mousedown=${this.header1Element}>
-                <markdown-header-1>Heading 1</markdown-header-1>
+                <div class='looks-like-header1'>Heading 1</div>
               </dropdown-element>
               <dropdown-element @mousedown=${this.header2Element}>
-                <markdown-header-2>Heading 2</markdown-header-2>
+                <div class='looks-like-header2'>Heading 2</div>
               </dropdown-element>
               <dropdown-element @mousedown=${this.header3Element}>
-                <markdown-header-3>Heading 3</markdown-header-3>
+                <div class='looks-like-header3'>Heading 3</div>
               </dropdown-element>
               <dropdown-element @mousedown=${this.header4Element}>
-                <markdown-header-4>Heading 4</markdown-header-4>
+                <div class='looks-like-header4'>Heading 4</div>
               </dropdown-element>
               <dropdown-element @mousedown=${this.header5Element}>
-                <markdown-header-5>Heading 5</markdown-header-5>
+                <div class='looks-like-header5'>Heading 5</div>
               </dropdown-element>
               <dropdown-element @mousedown=${this.header6Element}>
-                <markdown-header-6>Heading 6</markdown-header-6>
+                <div class='looks-like-header6'>Heading 6</div>
               </dropdown-element>
               <dropdown-element @mousedown=${this.pararaphElement}>
                 <markdown-paragraph>Paragraph</markdown-paragraph>

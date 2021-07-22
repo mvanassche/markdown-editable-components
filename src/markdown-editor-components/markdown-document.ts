@@ -7,30 +7,54 @@ import { Toolbar } from './markdown-toolbar';
 import { MarkdownImage } from '../markdown-components/markdown-image';
 import { MarkdownLink } from '../markdown-components/markdown-link';
 import { MarkdownLitElement } from '../markdown-components/abstract/markdown-lit-element';
+import { globalVariables } from '../styles/global-variables';
 
 @customElement('markdown-document')
 export class MarkdownDocument extends LitElement {
-  static styles = css`
-    :host {
-      display: block;
-      border: solid 1px gray;
-      border-top: none;
-      padding: 16px;
-    }
-    .toolbar {
-      z-index: 3;
-      top: 0px;
-      position: fixed;
-      right: 30%;
-      background: white;
-    }
-    .toc {
-      position: absolute;
-      z-index: 3;
-      top: 0px;
-      right: 0%;
-    }
-  `;
+  static styles = [
+    /*
+      TODO (borodanov):
+
+      I put global variables here, because
+      in this version of the editor, MarkdownDocument is the highest in the parent
+      hierarchy. Possibly better solutions to use CSS variables in Shadow and
+      Light DOM at the same time are existing but I didn't find after a lot of research.
+      Some people have already looked for the same issues:
+      https://stackoverflow.com/questions/48380267/css-variables-root-vs-host
+      https://github.com/WICG/webcomponents/issues/338
+      Importing :root { --my-var: ... } into a component is not working,
+      but that would be the best solution for particular styles importing
+      from separatly defined styles.
+
+      For now these global variables are using for the synchronization the same size of
+      markdown Headers and toolbar selectors of the current paragraph style
+      which should look like Headers but with some differences, for example
+      this selector should be without margins and paddings like in the
+      markdown document view.
+    */
+    globalVariables,
+    css`
+      :host {
+        display: block;
+        border: solid 1px gray;
+        border-top: none;
+        padding: 16px;
+      }
+      .toolbar {
+        z-index: 3;
+        top: 0px;
+        position: fixed;
+        right: 30%;
+        background: white;
+      }
+      .toc {
+        position: absolute;
+        z-index: 3;
+        top: 0px;
+        right: 0%;
+      }
+    `,
+  ];
 
   @property()
   // TODO: fix eslint-disable

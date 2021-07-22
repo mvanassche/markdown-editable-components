@@ -4,13 +4,17 @@ import { LitElement, html, customElement, css } from 'lit-element';
 export class DropdownElement extends LitElement {
 
   static styles = css`
+    .clickable:hover {
+      background-color: lightblue;
+      cursor: pointer;
+    }
   `;
 
   render() {
     return html`
-      <toolbar-button>
+      <div class='clickable'>
         <slot></slot>
-      </toolbar-button>
+      </div>
     `;
   }
 

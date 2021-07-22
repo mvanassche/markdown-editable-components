@@ -16,10 +16,6 @@ export class Header6 extends Heading {
   `;
 
   render() {
-    return html`
-      <h6>
-        <slot></slot>
-      </h6>
-    `;
+    return html`<h6><slot></slot></h6>`;
   }
 }

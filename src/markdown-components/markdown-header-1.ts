@@ -6,11 +6,14 @@ export class Header1 extends Heading {
   depth = 1;
 
   static styles = css`
-      :host {
+    :host {
       position: relative;
       min-height: 1em;
     }
-`;
+    h1 {
+      font-size: (--header1-font-size);
+    }
+  `;
 
   render() {
     return html`<h1><slot></slot></h1>`;

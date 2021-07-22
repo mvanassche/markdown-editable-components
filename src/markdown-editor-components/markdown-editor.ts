@@ -9,8 +9,10 @@ export class MarkdownEditor extends MarkdownDocument {
   markdownDocument: MarkdownDocument  | null = null
   currentSelection: Selection | null = null
 
-  static styles = css`
-  `;
+  static styles = [
+    css`
+    `
+  ];
 
   constructor() {
     super();

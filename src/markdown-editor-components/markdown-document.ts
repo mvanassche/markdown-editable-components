@@ -527,11 +527,17 @@ export class MarkdownDocument extends LitElement {
   }
 
   affectToolbar() {
-    if (this.currentSelection?.anchorNode?.parentElement?.tagName === "B") {
+    if (
+      this.currentSelection?.anchorNode?.nodeName === "MARKDOWN-STRONG" ||
+      this.currentSelection?.anchorNode?.parentElement?.nodeName === "MARKDOWN-STRONG"
+    ) {
       this.toolbar?.highlightBoldButton();
     }
 
-    if (this.currentSelection?.anchorNode?.parentElement?.tagName !== "B") {
+    if (
+      this.currentSelection?.anchorNode?.nodeName !== "MARKDOWN-STRONG" &&
+      this.currentSelection?.anchorNode?.parentElement?.nodeName !== "MARKDOWN-STRONG"
+    ) {
       this.toolbar?.removeBoldButtonHighlighting();
     }
 
@@ -585,6 +591,43 @@ export class MarkdownDocument extends LitElement {
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
       this.onChange();
+    }
+  }
+
+  removeBold() {
+    const anchorOffset = this.currentSelection?.anchorOffset;
+    const focusOffset = this.currentSelection?.focusOffset;
+    const parent = this.currentSelection?.anchorNode?.parentElement;
+    const parentOfParent = parent?.parentElement;
+
+    if (parent && typeof anchorOffset !== "undefined" && typeof focusOffset !== "undefined") {
+      const selectionLength = focusOffset - anchorOffset;
+
+      const text = this.currentSelection?.anchorNode as Text;
+
+      const partAfterSelectionStart = text.splitText(anchorOffset);
+      const partAfterSelectionEnd = partAfterSelectionStart.splitText(selectionLength);
+
+      if (text.data.length > 0) {
+        const replacement1 = document.createElement('markdown-strong');
+        replacement1.appendChild(document.createTextNode(text.data));
+        parentOfParent?.insertBefore(replacement1, parent);
+      }
+
+      if (partAfterSelectionStart.data.length > 0) {
+        const replacement2 = document.createTextNode(partAfterSelectionStart.data);
+        parentOfParent?.insertBefore(replacement2, parent);
+      }
+
+      if (partAfterSelectionEnd.data.length > 0) {
+        const replacement3 = document.createElement('markdown-strong');
+        replacement3.appendChild(document.createTextNode(partAfterSelectionEnd.data));
+        parentOfParent?.insertBefore(replacement3, parent);
+      }
+
+      parent.remove();
+
+      parentOfParent?.normalize();
     }
   }
 

@@ -293,8 +293,18 @@ export class Toolbar extends LitElement {
   boldButtonClick(e: MouseEvent) {
     // e.preventDefault();
     e;
-    // console.log(this.markdownEditor?.currentSelection);
-    this.markdownDocument?.makeBold();
+
+    if (
+      this.markdownDocument?.currentSelection?.anchorNode?.nodeName !== "MARKDOWN-STRONG" &&
+      this.markdownDocument?.currentSelection?.anchorNode?.parentElement?.nodeName !== "MARKDOWN-STRONG"
+    ) {
+      this.markdownDocument?.makeBold();
+    } else if (
+      this.markdownDocument?.currentSelection?.anchorNode?.nodeName === "MARKDOWN-STRONG" ||
+      this.markdownDocument?.currentSelection?.anchorNode?.parentElement?.nodeName === "MARKDOWN-STRONG"
+    ) {
+      this.markdownDocument?.removeBold();
+    }
   }
 
   italicButtonClick(e: MouseEvent) {

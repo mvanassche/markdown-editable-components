@@ -172,8 +172,8 @@ export function parse(markdown: string, renderer?: MarkdownEditableComponentsRen
     // /^ *(`{3,}|~{3,})[ \.]*(\S+)? +{([^}]+)} *\n([\s\S]*?)\s*\1 *(?:\n+|$)/, 
     // TODO: check that works properly:
     /^ *(`{3,}|~{3,})[ .]*(\S+)? +{([^}]+)} *\n([\s\S]*?)\s*\1 *(?:\n+|$)/,
-    (execArr) => {
-      return actualRenderer.codeWithAnchor(execArr![4], execArr![2], execArr![3])
+    function(this: MarkdownEditableComponentsRenderer, execArr) {
+      return this.codeWithAnchor(execArr![4], execArr![2], execArr![3])
     }
   );
 

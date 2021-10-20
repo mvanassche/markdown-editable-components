@@ -1,11 +1,17 @@
-import { html, customElement } from 'lit-element';
+import { html, customElement, css } from 'lit-element';
 import { InlineElement } from './abstract/inline-element';
 
 @customElement('markdown-strong')
 export class MarkdownStrong extends InlineElement {
 
+  static styles = css`
+    :host {
+      font-weight: bold;
+    }
+  `;
+
   render() {
-    return html`<strong><slot></slot></strong>`;
+    return html`<slot></slot>`;
   }
 
   getMarkdown(): string {

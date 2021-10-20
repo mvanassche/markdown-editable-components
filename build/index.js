@@ -47443,6 +47443,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                     this.disableEditable();
                 }
                 this.currentSelection = selection;
+                console.log(this.currentSelection);
                 this.debugSelection();
                 this.affectToolbar();
             }
@@ -47782,53 +47783,119 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
     }
     affectToolbar() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11;
-        if (((_c = (_b = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) === null || _b === void 0 ? void 0 : _b.parentElement) === null || _c === void 0 ? void 0 : _c.tagName) === "B") {
-            (_d = this.toolbar) === null || _d === void 0 ? void 0 : _d.highlightBoldButton();
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15;
+        if (((_b = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) === null || _b === void 0 ? void 0 : _b.nodeName) === "MARKDOWN-STRONG" ||
+            ((_e = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement) === null || _e === void 0 ? void 0 : _e.nodeName) === "MARKDOWN-STRONG") {
+            (_f = this.toolbar) === null || _f === void 0 ? void 0 : _f.highlightBoldButton();
         }
-        if (((_g = (_f = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode) === null || _f === void 0 ? void 0 : _f.parentElement) === null || _g === void 0 ? void 0 : _g.tagName) !== "B") {
-            (_h = this.toolbar) === null || _h === void 0 ? void 0 : _h.removeBoldButtonHighlighting();
+        if (((_h = (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.anchorNode) === null || _h === void 0 ? void 0 : _h.nodeName) !== "MARKDOWN-STRONG" &&
+            ((_l = (_k = (_j = this.currentSelection) === null || _j === void 0 ? void 0 : _j.anchorNode) === null || _k === void 0 ? void 0 : _k.parentElement) === null || _l === void 0 ? void 0 : _l.nodeName) !== "MARKDOWN-STRONG") {
+            (_m = this.toolbar) === null || _m === void 0 ? void 0 : _m.removeBoldButtonHighlighting();
         }
-        if (((_l = (_k = (_j = this.currentSelection) === null || _j === void 0 ? void 0 : _j.anchorNode) === null || _k === void 0 ? void 0 : _k.parentElement) === null || _l === void 0 ? void 0 : _l.tagName) === "MARKDOWN-PARAGRAPH") {
-            (_m = this.toolbar) === null || _m === void 0 ? void 0 : _m.setDropdownTitle('Paragraph');
+        if (((_q = (_p = (_o = this.currentSelection) === null || _o === void 0 ? void 0 : _o.anchorNode) === null || _p === void 0 ? void 0 : _p.parentElement) === null || _q === void 0 ? void 0 : _q.tagName) === "MARKDOWN-PARAGRAPH") {
+            (_r = this.toolbar) === null || _r === void 0 ? void 0 : _r.setDropdownTitle('Paragraph');
         }
-        if (((_q = (_p = (_o = this.currentSelection) === null || _o === void 0 ? void 0 : _o.anchorNode) === null || _p === void 0 ? void 0 : _p.parentElement) === null || _q === void 0 ? void 0 : _q.tagName) === "MARKDOWN-HEADER-1") {
-            (_r = this.toolbar) === null || _r === void 0 ? void 0 : _r.setDropdownTitle('Heading 1');
+        if (((_u = (_t = (_s = this.currentSelection) === null || _s === void 0 ? void 0 : _s.anchorNode) === null || _t === void 0 ? void 0 : _t.parentElement) === null || _u === void 0 ? void 0 : _u.tagName) === "MARKDOWN-HEADER-1") {
+            (_v = this.toolbar) === null || _v === void 0 ? void 0 : _v.setDropdownTitle('Heading 1');
         }
-        if (((_u = (_t = (_s = this.currentSelection) === null || _s === void 0 ? void 0 : _s.anchorNode) === null || _t === void 0 ? void 0 : _t.parentElement) === null || _u === void 0 ? void 0 : _u.tagName) === "MARKDOWN-HEADER-2") {
-            (_v = this.toolbar) === null || _v === void 0 ? void 0 : _v.setDropdownTitle('Heading 2');
+        if (((_y = (_x = (_w = this.currentSelection) === null || _w === void 0 ? void 0 : _w.anchorNode) === null || _x === void 0 ? void 0 : _x.parentElement) === null || _y === void 0 ? void 0 : _y.tagName) === "MARKDOWN-HEADER-2") {
+            (_z = this.toolbar) === null || _z === void 0 ? void 0 : _z.setDropdownTitle('Heading 2');
         }
-        if (((_y = (_x = (_w = this.currentSelection) === null || _w === void 0 ? void 0 : _w.anchorNode) === null || _x === void 0 ? void 0 : _x.parentElement) === null || _y === void 0 ? void 0 : _y.tagName) === "MARKDOWN-HEADER-3") {
-            (_z = this.toolbar) === null || _z === void 0 ? void 0 : _z.setDropdownTitle('Heading 3');
+        if (((_2 = (_1 = (_0 = this.currentSelection) === null || _0 === void 0 ? void 0 : _0.anchorNode) === null || _1 === void 0 ? void 0 : _1.parentElement) === null || _2 === void 0 ? void 0 : _2.tagName) === "MARKDOWN-HEADER-3") {
+            (_3 = this.toolbar) === null || _3 === void 0 ? void 0 : _3.setDropdownTitle('Heading 3');
         }
-        if (((_2 = (_1 = (_0 = this.currentSelection) === null || _0 === void 0 ? void 0 : _0.anchorNode) === null || _1 === void 0 ? void 0 : _1.parentElement) === null || _2 === void 0 ? void 0 : _2.tagName) === "MARKDOWN-HEADER-4") {
-            (_3 = this.toolbar) === null || _3 === void 0 ? void 0 : _3.setDropdownTitle('Heading 4');
+        if (((_6 = (_5 = (_4 = this.currentSelection) === null || _4 === void 0 ? void 0 : _4.anchorNode) === null || _5 === void 0 ? void 0 : _5.parentElement) === null || _6 === void 0 ? void 0 : _6.tagName) === "MARKDOWN-HEADER-4") {
+            (_7 = this.toolbar) === null || _7 === void 0 ? void 0 : _7.setDropdownTitle('Heading 4');
         }
-        if (((_6 = (_5 = (_4 = this.currentSelection) === null || _4 === void 0 ? void 0 : _4.anchorNode) === null || _5 === void 0 ? void 0 : _5.parentElement) === null || _6 === void 0 ? void 0 : _6.tagName) === "MARKDOWN-HEADER-5") {
-            (_7 = this.toolbar) === null || _7 === void 0 ? void 0 : _7.setDropdownTitle('Heading 5');
+        if (((_10 = (_9 = (_8 = this.currentSelection) === null || _8 === void 0 ? void 0 : _8.anchorNode) === null || _9 === void 0 ? void 0 : _9.parentElement) === null || _10 === void 0 ? void 0 : _10.tagName) === "MARKDOWN-HEADER-5") {
+            (_11 = this.toolbar) === null || _11 === void 0 ? void 0 : _11.setDropdownTitle('Heading 5');
         }
-        if (((_10 = (_9 = (_8 = this.currentSelection) === null || _8 === void 0 ? void 0 : _8.anchorNode) === null || _9 === void 0 ? void 0 : _9.parentElement) === null || _10 === void 0 ? void 0 : _10.tagName) === "MARKDOWN-HEADER-6") {
-            (_11 = this.toolbar) === null || _11 === void 0 ? void 0 : _11.setDropdownTitle('Heading 6');
+        if (((_14 = (_13 = (_12 = this.currentSelection) === null || _12 === void 0 ? void 0 : _12.anchorNode) === null || _13 === void 0 ? void 0 : _13.parentElement) === null || _14 === void 0 ? void 0 : _14.tagName) === "MARKDOWN-HEADER-6") {
+            (_15 = this.toolbar) === null || _15 === void 0 ? void 0 : _15.setDropdownTitle('Heading 6');
         }
     }
+    // makeBold is the general pattern how to implement #text changing to an inline element
+    // TODO (borodanov): understand what is more to left: anchornode or focusNode
     makeBold() {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
+        // check an existing of the anchorNode and the focusNode of the current selection
+        if (!((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) || !((_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusNode))
+            return;
+        // check that the anchorNode is the Text, so below
+        // we can do (this.currentSelection.anchorNode as Text)
+        if (this.currentSelection.anchorNode.nodeType !== Node.TEXT_NODE)
+            return;
+        // TODO (borodanov): make the undependency of more to left element
+        // for now we admit that anchorNode is more to left than focusNode
+        // we do checking that the anchorNode is not equal focusNode,
+        // do clearing of inner selection elements and the normalizing of the text.
+        // so if we have:
+        // "tex|>t <b>text</b> t<|ext"
+        // where |> is the origin of the selection and <| is the end
+        // after the applying we will have:
+        // "tex|>t text t<|ext"
+        // and more complex case. if we have:
+        // "tex|>t <b>t</b>ex<b>t</b> t<|ext"
+        // after the applying we will have the same:
+        // "tex|>t text t<|ext"
+        //
+        // TODO (borodanov): handle an inline of inner inline element, like this:
+        // "tex|>t <b>t<i>e</i></b>x<b>t</b> t<|ext"
+        while (this.currentSelection.anchorNode !== this.currentSelection.focusNode) {
+            if (!((_c = this.currentSelection.anchorNode.nextSibling) === null || _c === void 0 ? void 0 : _c.firstChild))
+                break;
+            this.currentSelection.anchorNode.nextSibling
+                .replaceWith(this.currentSelection.anchorNode.nextSibling.firstChild);
+            (_d = this.currentSelection.anchorNode.parentNode) === null || _d === void 0 ? void 0 : _d.normalize();
+        }
+        const secondPart = this.currentSelection.anchorNode
+            .splitText((_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorOffset);
+        secondPart.splitText((_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.focusOffset);
+        const replacement = document.createElement('markdown-strong');
+        replacement.appendChild(document.createTextNode(secondPart.data));
+        secondPart.replaceWith(replacement);
+        if (replacement.firstChild) {
+            const range = document.createRange();
+            range.selectNodeContents(replacement.firstChild);
+            (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.removeAllRanges();
+            (_h = this.currentSelection) === null || _h === void 0 ? void 0 : _h.addRange(range);
+        }
+        this.onChange();
+    }
+    removeBold() {
         var _a, _b, _c, _d, _e, _f, _g;
         const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
         const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
         const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
-        if (parent && anchorOffset && focusOffset) {
+        const parentOfParent = parent === null || parent === void 0 ? void 0 : parent.parentElement;
+        let replacement2;
+        if (parent && typeof anchorOffset !== "undefined" && typeof focusOffset !== "undefined") {
             const selectionLength = focusOffset - anchorOffset;
             const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
-            const secondPart = text.splitText(anchorOffset);
-            const thirdPart = secondPart.splitText(selectionLength);
-            const replacement = document.createElement('markdown-strong');
-            replacement.appendChild(document.createTextNode(secondPart.data));
-            secondPart.replaceWith(replacement);
-            const range = document.createRange();
-            range.selectNodeContents(replacement);
-            (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
-            (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
-            this.onChange();
+            const partAfterSelectionStart = text.splitText(anchorOffset);
+            const partAfterSelectionEnd = partAfterSelectionStart.splitText(selectionLength);
+            if (text.data.length > 0) {
+                const replacement1 = document.createElement('markdown-strong');
+                replacement1.appendChild(document.createTextNode(text.data));
+                parentOfParent === null || parentOfParent === void 0 ? void 0 : parentOfParent.insertBefore(replacement1, parent);
+            }
+            if (partAfterSelectionStart.data.length > 0) {
+                replacement2 = document.createTextNode(partAfterSelectionStart.data);
+                parentOfParent === null || parentOfParent === void 0 ? void 0 : parentOfParent.insertBefore(replacement2, parent);
+            }
+            if (partAfterSelectionEnd.data.length > 0) {
+                const replacement3 = document.createElement('markdown-strong');
+                replacement3.appendChild(document.createTextNode(partAfterSelectionEnd.data));
+                parentOfParent === null || parentOfParent === void 0 ? void 0 : parentOfParent.insertBefore(replacement3, parent);
+            }
+            parent.remove();
+            parentOfParent === null || parentOfParent === void 0 ? void 0 : parentOfParent.normalize();
+            if (replacement2 === null || replacement2 === void 0 ? void 0 : replacement2.firstChild) {
+                const range = document.createRange();
+                range.selectNodeContents(replacement2.firstChild);
+                (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
+                (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
+            }
         }
     }
     makeItalic() {
@@ -48319,12 +48386,17 @@ var __decorate$b = (undefined && undefined.__decorate) || function (decorators, 
 };
 let MarkdownStrong = class MarkdownStrong extends InlineElement {
     render() {
-        return html `<strong><slot></slot></strong>`;
+        return html `<slot></slot>`;
     }
     getMarkdown() {
         return '**' + super.getMarkdown().trim() + '**';
     }
 };
+MarkdownStrong.styles = css `
+    :host {
+      font-weight: bold;
+    }
+  `;
 MarkdownStrong = __decorate$b([
     customElement('markdown-strong')
 ], MarkdownStrong);
@@ -49349,9 +49421,15 @@ exports.Toolbar = class Toolbar extends LitElement {
         (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.makeCodeBlock();
     }
     boldButtonClick(e) {
-        var _a;
-        // console.log(this.markdownEditor?.currentSelection);
-        (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.makeBold();
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
+        if (((_c = (_b = (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorNode) === null || _c === void 0 ? void 0 : _c.nodeName) !== "MARKDOWN-STRONG" &&
+            ((_g = (_f = (_e = (_d = this.markdownDocument) === null || _d === void 0 ? void 0 : _d.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode) === null || _f === void 0 ? void 0 : _f.parentElement) === null || _g === void 0 ? void 0 : _g.nodeName) !== "MARKDOWN-STRONG") {
+            (_h = this.markdownDocument) === null || _h === void 0 ? void 0 : _h.makeBold();
+        }
+        else if (((_l = (_k = (_j = this.markdownDocument) === null || _j === void 0 ? void 0 : _j.currentSelection) === null || _k === void 0 ? void 0 : _k.anchorNode) === null || _l === void 0 ? void 0 : _l.nodeName) === "MARKDOWN-STRONG" ||
+            ((_q = (_p = (_o = (_m = this.markdownDocument) === null || _m === void 0 ? void 0 : _m.currentSelection) === null || _o === void 0 ? void 0 : _o.anchorNode) === null || _p === void 0 ? void 0 : _p.parentElement) === null || _q === void 0 ? void 0 : _q.nodeName) === "MARKDOWN-STRONG") {
+            (_r = this.markdownDocument) === null || _r === void 0 ? void 0 : _r.removeBold();
+        }
     }
     italicButtonClick(e) {
         var _a;

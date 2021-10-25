@@ -51,6 +51,8 @@ export * from './markdown-components/markdown-image';
 export * from './markdown-components/markdown-link';
 export * from './markdown-components/markdown-list';
 export * from './markdown-components/markdown-list-item';
+export * from './markdown-components/markdown-numeric-list';
+export * from './markdown-components/markdown-numeric-list-item';
 export * from './markdown-components/markdown-paragraph';
 export * from './markdown-components/markdown-quote';
 export * from './markdown-components/markdown-table';

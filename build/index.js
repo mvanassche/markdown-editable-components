@@ -47361,6 +47361,8 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         this.toolbar = null;
         this.selectionRoot = document;
         this.currentSelection = null;
+        this._mouseSelection = false;
+        this.isChrome = !!window.chrome;
         this.editable = false;
     }
     get markdown() { return this.getMarkdown(); }
@@ -47384,8 +47386,14 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         if (this.getAttribute("spellcheck") == null) {
             this.setAttribute("spellcheck", "false");
         }
-        /*document.addEventListener('selectstart', () => {
-        });*/
+        this._mousedown = this.mousedown.bind(this);
+        this.addEventListener('mousedown', this._mousedown);
+        //ocument.addEventListener('mousedown', this._mousedown);
+        this._mouseup = this.mouseup.bind(this);
+        this.addEventListener('mouseup', this._mouseup);
+        //document.addEventListener('mouseup', this._mouseup);
+        this._selectstart = this.selectstart.bind(this);
+        document.addEventListener('selectstart', this._selectstart);
         this._selectionchange = this.selectionchange.bind(this);
         document.addEventListener('selectionchange', this._selectionchange);
         this.addEventListener('keydown', (e) => {
@@ -47419,6 +47427,9 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
     }
     disconnectedCallback() {
         document.removeEventListener('selectionchange', this._selectionchange);
+        document.removeEventListener('selectstart', this._selectstart);
+        //document.removeEventListener('mouseup', this._mouseup);
+        //document.removeEventListener('mousedown', this._mousedown);
         super.disconnectedCallback();
     }
     getSelection() {
@@ -47429,7 +47440,37 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             return this.ownerDocument.getSelection();
         }
     }
+    onMouseSelection() {
+        // see https://bugs.chromium.org/p/chromium/issues/detail?id=1162730
+        if (this.isChrome) {
+            this.setAttribute("contenteditable", "false");
+        }
+    }
+    onEndMouseSelection() {
+        if (this.isChrome) {
+            this.setAttribute("contenteditable", "true");
+            this.focus();
+        }
+    }
+    mousedown() {
+        // e.buttons % 2 == 1 ???
+        this._mouseSelection = true;
+    }
+    mouseup() {
+        this._mouseSelection = false;
+        this.onEndMouseSelection();
+    }
+    selectstart() {
+        if (this._mouseSelection) {
+            this.onMouseSelection();
+        }
+    }
     selectionchange() {
+        if (this._mouseSelection) {
+            this.onMouseSelection();
+        } /* else {
+          this.onEndMouseSelection();
+        }*/
         let selection = this.getSelection();
         if (selection === null || selection === void 0 ? void 0 : selection.anchorNode) {
             if (this.contains(selection === null || selection === void 0 ? void 0 : selection.anchorNode)) {
@@ -47443,7 +47484,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                     this.disableEditable();
                 }
                 this.currentSelection = selection;
-                console.log(this.currentSelection);
+                //console.log(this.currentSelection);
                 this.debugSelection();
                 this.affectToolbar();
             }
@@ -47872,15 +47913,15 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         if (parent && typeof anchorOffset !== "undefined" && typeof focusOffset !== "undefined") {
             const selectionLength = focusOffset - anchorOffset;
             const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
-            const partAfterSelectionStart = text.splitText(anchorOffset);
-            const partAfterSelectionEnd = partAfterSelectionStart.splitText(selectionLength);
+            const partAfterselectstart = text.splitText(anchorOffset);
+            const partAfterSelectionEnd = partAfterselectstart.splitText(selectionLength);
             if (text.data.length > 0) {
                 const replacement1 = document.createElement('markdown-strong');
                 replacement1.appendChild(document.createTextNode(text.data));
                 parentOfParent === null || parentOfParent === void 0 ? void 0 : parentOfParent.insertBefore(replacement1, parent);
             }
-            if (partAfterSelectionStart.data.length > 0) {
-                replacement2 = document.createTextNode(partAfterSelectionStart.data);
+            if (partAfterselectstart.data.length > 0) {
+                replacement2 = document.createTextNode(partAfterselectstart.data);
                 parentOfParent === null || parentOfParent === void 0 ? void 0 : parentOfParent.insertBefore(replacement2, parent);
             }
             if (partAfterSelectionEnd.data.length > 0) {

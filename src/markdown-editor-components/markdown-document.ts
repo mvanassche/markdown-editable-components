@@ -76,6 +76,7 @@ export class MarkdownDocument extends LitElement {
 
   _selectionchange: any;
   _selectstart: any;
+  stashedSelection: any;
   _mousedown: any;
   _mouseup: any;
   _mouseSelection = false;
@@ -193,18 +194,20 @@ export class MarkdownDocument extends LitElement {
   }
 
   selectionchange() {
+    const selection = this.getSelection();
     if(this._mouseSelection) {
       this.onMouseSelection();
     }/* else {
       this.onEndMouseSelection();
     }*/
-    let selection = this.getSelection();
 
     if (selection?.anchorNode) {
       if (this.contains(selection?.anchorNode)) {
-        var element: Node|null = selection.anchorNode;
-        while(element && !(element instanceof MarkdownLitElement)) element = element.parentNode;
-        if(element instanceof MarkdownLitElement && element.isEditable()) {
+        let element: Node | null = selection.anchorNode;
+        while (element && !(element instanceof MarkdownLitElement)) {
+          element = element.parentNode;
+        }
+        if (element instanceof MarkdownLitElement && element.isEditable()) {
           this.enableEditable();
         } else {
           this.disableEditable();
@@ -212,6 +215,12 @@ export class MarkdownDocument extends LitElement {
 
         this.currentSelection = selection;
         //console.log(this.currentSelection);
+        this.stashedSelection = {
+          anchorNode: selection.anchorNode,
+          anchorOffset: selection.anchorOffset,
+          focusNode: selection.focusNode,
+          focusOffset: selection.focusOffset,
+        };
         this.debugSelection();
         this.affectToolbar();
       } else {
@@ -496,7 +505,7 @@ export class MarkdownDocument extends LitElement {
     return null;
   }
 
-
+  
   handleEnterKeyDown() {
     document.execCommand('insertHTML', false, '&ZeroWidthSpace;<br/>&ZeroWidthSpace;');
   }
@@ -830,6 +839,24 @@ export class MarkdownDocument extends LitElement {
     }
   }
 
+  listNumericClick() {
+    if (this.currentSelection?.anchorNode) {
+      const list = document.createElement('markdown-numeric-list');
+      const item = document.createElement('markdown-numeric-list-item');
+      item.innerHTML = "<br />";
+      list.appendChild(item);
+
+      (this.currentSelection?.anchorNode as HTMLElement).replaceWith(list);
+
+      const range = document.createRange();
+      range.selectNodeContents(item);
+      range.collapse(true);
+      this.currentSelection?.removeAllRanges();
+      this.currentSelection?.addRange(range);
+      this.onChange();
+    }
+  }
+
   insertPhoto(url: string, text: string) {
     if (this.currentSelection?.anchorNode) {
       const image = document.createElement('markdown-image') as MarkdownImage;
@@ -852,7 +879,17 @@ export class MarkdownDocument extends LitElement {
     }
   }
 
+  restoreStashedSelection() {
+    const range = document.createRange();
+    range.setStart(this.stashedSelection?.anchorNode, this.stashedSelection?.anchorOffset);
+    range.setEnd(this.stashedSelection?.focusNode, this.stashedSelection?.focusOffset);
+    this.currentSelection?.removeAllRanges();
+    this.currentSelection?.addRange(range);
+  }
+
   insertLink(url: string, text: string) {
+    this.restoreStashedSelection();
+
     if (this.currentSelection?.anchorNode) {
       const link = document.createElement('markdown-link') as MarkdownLink;
       link.destination = url;

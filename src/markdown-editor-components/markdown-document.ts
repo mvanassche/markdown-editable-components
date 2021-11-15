@@ -75,6 +75,7 @@ export class MarkdownDocument extends LitElement {
   currentSelection: Selection | null = null
 
   _selectionchange: any;
+  stashedSelection: any;
 
 
   render() {
@@ -153,19 +154,27 @@ export class MarkdownDocument extends LitElement {
   }
 
   selectionchange() {
-    let selection = this.getSelection();
+    const selection = this.getSelection();
 
     if (selection?.anchorNode) {
       if (this.contains(selection?.anchorNode)) {
-        var element: Node|null = selection.anchorNode;
-        while(element && !(element instanceof MarkdownLitElement)) element = element.parentNode;
-        if(element instanceof MarkdownLitElement && element.isEditable()) {
+        let element: Node | null = selection.anchorNode;
+        while (element && !(element instanceof MarkdownLitElement)) {
+          element = element.parentNode;
+        }
+        if (element instanceof MarkdownLitElement && element.isEditable()) {
           this.enableEditable();
         } else {
           this.disableEditable();
         }
 
         this.currentSelection = selection;
+        this.stashedSelection = {
+          anchorNode: selection.anchorNode,
+          anchorOffset: selection.anchorOffset,
+          focusNode: selection.focusNode,
+          focusOffset: selection.focusOffset,
+        };
         console.log(this.currentSelection);
         this.debugSelection();
         this.affectToolbar();
@@ -825,7 +834,17 @@ export class MarkdownDocument extends LitElement {
     }
   }
 
+  restoreStashedSelection() {
+    const range = document.createRange();
+    range.setStart(this.stashedSelection?.anchorNode, this.stashedSelection?.anchorOffset);
+    range.setEnd(this.stashedSelection?.focusNode, this.stashedSelection?.focusOffset);
+    this.currentSelection?.removeAllRanges();
+    this.currentSelection?.addRange(range);
+  }
+
   insertLink(url: string, text: string) {
+    this.restoreStashedSelection();
+
     if (this.currentSelection?.anchorNode) {
       const link = document.createElement('markdown-link') as MarkdownLink;
       link.destination = url;

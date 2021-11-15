@@ -451,7 +451,7 @@ export class MarkdownDocument extends LitElement {
     return null;
   }
 
-
+  
   handleEnterKeyDown() {
     document.execCommand('insertHTML', false, '&ZeroWidthSpace;<br/>&ZeroWidthSpace;');
   }
@@ -771,6 +771,24 @@ export class MarkdownDocument extends LitElement {
 
       const list = document.createElement('markdown-list');
       const item = document.createElement('markdown-list-item');
+      item.innerHTML = "<br />";
+      list.appendChild(item);
+
+      (this.currentSelection?.anchorNode as HTMLElement).replaceWith(list);
+
+      const range = document.createRange();
+      range.selectNodeContents(item);
+      range.collapse(true);
+      this.currentSelection?.removeAllRanges();
+      this.currentSelection?.addRange(range);
+      this.onChange();
+    }
+  }
+
+  listNumericClick() {
+    if (this.currentSelection?.anchorNode) {
+      const list = document.createElement('markdown-numeric-list');
+      const item = document.createElement('markdown-numeric-list-item');
       item.innerHTML = "<br />";
       list.appendChild(item);
 

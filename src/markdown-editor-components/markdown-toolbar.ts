@@ -137,7 +137,7 @@ export class Toolbar extends LitElement {
           <toolbar-button @click=${this.listBulletedClick}>
             <material-icon>format_list_bulleted</material-icon>
           </toolbar-button>
-          <toolbar-button>
+          <toolbar-button @click=${this.listNumericClick}>
             <material-icon>format_list_numbered</material-icon>
           </toolbar-button>
 
@@ -347,6 +347,13 @@ export class Toolbar extends LitElement {
     e;
     // console.log(this.markdownEditor?.currentSelection);
     this.markdownDocument?.listBulletedClick();
+  }
+
+  listNumericClick(e: MouseEvent) {
+    // e.preventDefault();
+    e;
+    // console.log(this.markdownEditor?.currentSelection);
+    this.markdownDocument?.listNumericClick();
   }
 
   highlightBoldButton() {

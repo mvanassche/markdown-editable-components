@@ -1243,7 +1243,7 @@ const parts = new WeakMap();
  *     container. Render options must *not* change between renders to the same
  *     container, as those changes will not effect previously rendered DOM.
  */
-const render = (result, container, options) => {
+const render$1 = (result, container, options) => {
     let part = parts.get(container);
     if (part === undefined) {
         removeNodes(container, container.firstChild);
@@ -1548,7 +1548,7 @@ const prepareTemplateStyles = (scopeName, renderedDOM, template) => {
  * non-shorthand names (for example `border` and `border-width`) is not
  * supported.
  */
-const render$1 = (result, container, options) => {
+const render = (result, container, options) => {
     if (!options || typeof options !== 'object' || !options.scopeName) {
         throw new Error('The `scopeName` option is required.');
     }
@@ -1562,7 +1562,7 @@ const render$1 = (result, container, options) => {
     // On first scope render, render into a fragment; this cannot be a single
     // fragment that is reused since nested renders can occur synchronously.
     const renderContainer = firstScopeRender ? document.createDocumentFragment() : container;
-    render(result, renderContainer, Object.assign({ templateFactory: shadyTemplateFactory(scopeName) }, options));
+    render$1(result, renderContainer, Object.assign({ templateFactory: shadyTemplateFactory(scopeName) }, options));
     // When performing first scope render,
     // (1) We've rendered into a fragment so that there's a chance to
     // `prepareTemplateStyles` before sub-elements hit the DOM
@@ -2464,7 +2464,7 @@ const textFromCSSResult = (value) => {
  * string values may be used. To incorporate non-literal values [[`unsafeCSS`]]
  * may be used inside a template string part.
  */
-const css = (strings, ...values) => {
+const css$1 = (strings, ...values) => {
     const cssText = values.reduce((acc, v, idx) => acc + textFromCSSResult(v) + strings[idx + 1], strings[0]);
     return new CSSResult(cssText, constructionToken);
 };
@@ -2692,7 +2692,7 @@ LitElement['finalized'] = true;
  *
  * @nocollapse
  */
-LitElement.render = render$1;
+LitElement.render = render;
 
 function isMarkdownElement(x) {
     return 'getMarkdown' in x;
@@ -2969,7 +2969,7 @@ class LeafElement extends BlockElement {
     }
 }
 
-var __decorate = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$B = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -2985,7 +2985,7 @@ exports.ThematicBreak = class ThematicBreak extends LeafElement {
         return "-----------------------\n";
     }
 };
-exports.ThematicBreak = __decorate([
+exports.ThematicBreak = __decorate$B([
     customElement('markdown-break')
 ], exports.ThematicBreak);
 
@@ -3324,7 +3324,7 @@ class TokenTreeEmitter extends TokenTree {
  * @param {string} value
  * @returns {RegExp}
  * */
-function escape(value) {
+function escape$1(value) {
   return new RegExp(value.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'm');
 }
 
@@ -3332,7 +3332,7 @@ function escape(value) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source(re) {
+function source$z(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -3343,8 +3343,8 @@ function source(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat(...args) {
-  const joined = args.map((x) => source(x)).join("");
+function concat$y(...args) {
+  const joined = args.map((x) => source$z(x)).join("");
   return joined;
 }
 
@@ -3355,8 +3355,8 @@ function concat(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either(...args) {
-  const joined = '(' + args.map((x) => source(x)).join("|") + ")";
+function either$c(...args) {
+  const joined = '(' + args.map((x) => source$z(x)).join("|") + ")";
   return joined;
 }
 
@@ -3402,7 +3402,7 @@ function join(regexps, separator = "|") {
   for (let i = 0; i < regexps.length; i++) {
     numCaptures += 1;
     const offset = numCaptures;
-    let re = source(regexps[i]);
+    let re = source$z(regexps[i]);
     if (i > 0) {
       ret += separator;
     }
@@ -3431,7 +3431,7 @@ function join(regexps, separator = "|") {
 }
 
 // Common regexps
-const IDENT_RE = '[a-zA-Z]\\w*';
+const IDENT_RE$2 = '[a-zA-Z]\\w*';
 const UNDERSCORE_IDENT_RE = '[a-zA-Z_]\\w*';
 const NUMBER_RE = '\\b\\d+(\\.\\d+)?';
 const C_NUMBER_RE = '(-?)(\\b0[xX][a-fA-F0-9]+|(\\b\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)'; // 0x..., 0..., decimal, float
@@ -3444,7 +3444,7 @@ const RE_STARTERS_RE = '!|!=|!==|%|%=|&|&&|&=|\\*|\\*=|\\+|\\+=|,|-|-=|/=|/|:|;|
 const SHEBANG = (opts = {}) => {
   const beginShebang = /^#![ ]*\//;
   if (opts.binary) {
-    opts.begin = concat(
+    opts.begin = concat$y(
       beginShebang,
       /.*\b/,
       opts.binary,
@@ -3566,7 +3566,7 @@ const REGEXP_MODE = {
 };
 const TITLE_MODE = {
   className: 'title',
-  begin: IDENT_RE,
+  begin: IDENT_RE$2,
   relevance: 0
 };
 const UNDERSCORE_TITLE_MODE = {
@@ -3599,7 +3599,7 @@ const END_SAME_AS_BEGIN = function(mode) {
 
 var MODES = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    IDENT_RE: IDENT_RE,
+    IDENT_RE: IDENT_RE$2,
     UNDERSCORE_IDENT_RE: UNDERSCORE_IDENT_RE,
     NUMBER_RE: NUMBER_RE,
     C_NUMBER_RE: C_NUMBER_RE,
@@ -3683,7 +3683,7 @@ function beginKeywords(mode, parent) {
 function compileIllegal(mode, _parent) {
   if (!Array.isArray(mode.illegal)) return;
 
-  mode.illegal = either(...mode.illegal);
+  mode.illegal = either$c(...mode.illegal);
 }
 
 /**
@@ -3808,7 +3808,7 @@ function compileLanguage(language, { plugins }) {
    */
   function langRe(value, global) {
     return new RegExp(
-      source(value),
+      source$z(value),
       'm' + (language.case_insensitive ? 'i' : '') + (global ? 'g' : '')
     );
   }
@@ -4111,7 +4111,7 @@ function compileLanguage(language, { plugins }) {
       if (mode.endSameAsBegin) mode.end = mode.begin;
       if (!mode.end && !mode.endsWithParent) mode.end = /\B|\b/;
       if (mode.end) cmode.endRe = langRe(mode.end);
-      cmode.terminatorEnd = source(mode.end) || '';
+      cmode.terminatorEnd = source$z(mode.end) || '';
       if (mode.endsWithParent && parent.terminatorEnd) {
         cmode.terminatorEnd += (mode.end ? '|' : '') + parent.terminatorEnd;
       }
@@ -4462,7 +4462,7 @@ Syntax highlighting with language autodetection.
 https://highlightjs.org/
 */
 
-const escape$1 = escapeHTML;
+const escape$1$1 = escapeHTML;
 const inherit$1 = inherit;
 const NO_MATCH = Symbol("nomatch");
 
@@ -4745,7 +4745,7 @@ const HLJS = function(hljs) {
       }
 
       if (newMode && newMode.endSameAsBegin) {
-        newMode.endRe = escape(lexeme);
+        newMode.endRe = escape$1(lexeme);
       }
 
       if (newMode.skip) {
@@ -4972,14 +4972,14 @@ const HLJS = function(hljs) {
           },
           sofar: result,
           relevance: 0,
-          value: escape$1(codeToHighlight),
+          value: escape$1$1(codeToHighlight),
           emitter: emitter
         };
       } else if (SAFE_MODE) {
         return {
           illegal: false,
           relevance: 0,
-          value: escape$1(codeToHighlight),
+          value: escape$1$1(codeToHighlight),
           emitter: emitter,
           language: languageName,
           top: top,
@@ -5002,7 +5002,7 @@ const HLJS = function(hljs) {
     const result = {
       relevance: 0,
       emitter: new options.__emitter(options),
-      value: escape$1(code),
+      value: escape$1$1(code),
       illegal: false,
       top: PLAINTEXT_LANGUAGE
     };
@@ -5899,7 +5899,7 @@ var _1c_1 = _1c;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$1(re) {
+function source$y(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -5910,8 +5910,8 @@ function source$1(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$1(...args) {
-  const joined = args.map((x) => source$1(x)).join("");
+function concat$x(...args) {
+  const joined = args.map((x) => source$y(x)).join("");
   return joined;
 }
 
@@ -5972,7 +5972,7 @@ function abnf(hljs) {
 
   const ruleDeclarationMode = {
     className: "attribute",
-    begin: concat$1(regexes.ruleDeclaration, /(?=\s*=)/)
+    begin: concat$x(regexes.ruleDeclaration, /(?=\s*=)/)
   };
 
   return {
@@ -6003,7 +6003,7 @@ var abnf_1 = abnf;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$2(re) {
+function source$x(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -6014,8 +6014,8 @@ function source$2(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$2(...args) {
-  const joined = args.map((x) => source$2(x)).join("");
+function concat$w(...args) {
+  const joined = args.map((x) => source$x(x)).join("");
   return joined;
 }
 
@@ -6026,8 +6026,8 @@ function concat$2(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$1(...args) {
-  const joined = '(' + args.map((x) => source$2(x)).join("|") + ")";
+function either$b(...args) {
+  const joined = '(' + args.map((x) => source$x(x)).join("|") + ")";
   return joined;
 }
 
@@ -6071,7 +6071,7 @@ function accesslog(_hljs) {
       // Requests
       {
         className: 'string',
-        begin: concat$2(/"/, either$1(...HTTP_VERBS)),
+        begin: concat$w(/"/, either$b(...HTTP_VERBS)),
         end: /"/,
         keywords: HTTP_VERBS.join(" "),
         illegal: /\n/,
@@ -6131,7 +6131,7 @@ var accesslog_1 = accesslog;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$3(re) {
+function source$w(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -6142,8 +6142,8 @@ function source$3(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$3(...args) {
-  const joined = args.map((x) => source$3(x)).join("");
+function concat$v(...args) {
+  const joined = args.map((x) => source$w(x)).join("");
   return joined;
 }
 
@@ -6225,7 +6225,7 @@ function actionscript(hljs) {
               AS3_REST_ARG_MODE
             ]
           },
-          { begin: concat$3(/:\s*/, IDENT_FUNC_RETURN_TYPE_RE) }
+          { begin: concat$v(/:\s*/, IDENT_FUNC_RETURN_TYPE_RE) }
         ]
       },
       hljs.METHOD_GUARD
@@ -6654,7 +6654,7 @@ var apache_1 = apache;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$4(re) {
+function source$v(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -6665,8 +6665,8 @@ function source$4(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$4(...args) {
-  const joined = args.map((x) => source$4(x)).join("");
+function concat$u(...args) {
+  const joined = args.map((x) => source$v(x)).join("");
   return joined;
 }
 
@@ -6677,8 +6677,8 @@ function concat$4(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$2(...args) {
-  const joined = '(' + args.map((x) => source$4(x)).join("|") + ")";
+function either$a(...args) {
+  const joined = '(' + args.map((x) => source$v(x)).join("|") + ")";
   return joined;
 }
 
@@ -6796,9 +6796,9 @@ function applescript(hljs) {
       hljs.C_NUMBER_MODE,
       {
         className: 'built_in',
-        begin: concat$4(
+        begin: concat$u(
           /\b/,
-          either$2(...BUILT_IN_PATTERNS),
+          either$a(...BUILT_IN_PATTERNS),
           /\b/
         )
       },
@@ -6813,9 +6813,9 @@ function applescript(hljs) {
       },
       {
         className: 'keyword',
-        begin: concat$4(
+        begin: concat$u(
           /\b/,
-          either$2(...KEYWORD_PATTERNS),
+          either$a(...KEYWORD_PATTERNS),
           /\b/
         )
       },
@@ -7011,7 +7011,7 @@ var arcade_1 = arcade;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$5(re) {
+function source$u(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -7022,16 +7022,16 @@ function source$5(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional(re) {
-  return concat$5('(', re, ')?');
+function optional$7(re) {
+  return concat$t('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$5(...args) {
-  const joined = args.map((x) => source$5(x)).join("");
+function concat$t(...args) {
+  const joined = args.map((x) => source$u(x)).join("");
   return joined;
 }
 
@@ -7042,7 +7042,7 @@ Contributors: Evgeny Stepanischev <imbolk@gmail.com>, Zaven Muradyan <megalivoit
 */
 
 /** @type LanguageFn */
-function cLike(hljs) {
+function cLike$3(hljs) {
   // added for historic reasons because `hljs.C_LINE_COMMENT_MODE` does
   // not include such support nor can we be sure all the grammars depending
   // on it would desire this behavior
@@ -7058,8 +7058,8 @@ function cLike(hljs) {
   const TEMPLATE_ARGUMENT_RE = '<[^<>]+>';
   const FUNCTION_TYPE_RE = '(' +
     DECLTYPE_AUTO_RE + '|' +
-    optional(NAMESPACE_RE) +
-    '[a-zA-Z_]\\w*' + optional(TEMPLATE_ARGUMENT_RE) +
+    optional$7(NAMESPACE_RE) +
+    '[a-zA-Z_]\\w*' + optional$7(TEMPLATE_ARGUMENT_RE) +
   ')';
   const CPP_PRIMITIVE_TYPES = {
     className: 'keyword',
@@ -7136,11 +7136,11 @@ function cLike(hljs) {
 
   const TITLE_MODE = {
     className: 'title',
-    begin: optional(NAMESPACE_RE) + hljs.IDENT_RE,
+    begin: optional$7(NAMESPACE_RE) + hljs.IDENT_RE,
     relevance: 0
   };
 
-  const FUNCTION_TITLE = optional(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
+  const FUNCTION_TITLE = optional$7(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
 
   const CPP_KEYWORDS = {
     keyword: 'int float while private char char8_t char16_t char32_t catch import module export virtual operator sizeof ' +
@@ -7327,7 +7327,7 @@ Website: https://isocpp.org
 
 /** @type LanguageFn */
 function cPlusPlus(hljs) {
-  const lang = cLike(hljs);
+  const lang = cLike$3(hljs);
   // return auto-detection back on
   lang.disableAutodetect = false;
   lang.name = 'C++';
@@ -7588,7 +7588,7 @@ var armasm_1 = armasm;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$6(re) {
+function source$t(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -7599,24 +7599,24 @@ function source$6(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead(re) {
-  return concat$6('(?=', re, ')');
+function lookahead$7(re) {
+  return concat$s('(?=', re, ')');
 }
 
 /**
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$1(re) {
-  return concat$6('(', re, ')?');
+function optional$6(re) {
+  return concat$s('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$6(...args) {
-  const joined = args.map((x) => source$6(x)).join("");
+function concat$s(...args) {
+  const joined = args.map((x) => source$t(x)).join("");
   return joined;
 }
 
@@ -7627,8 +7627,8 @@ function concat$6(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$3(...args) {
-  const joined = '(' + args.map((x) => source$6(x)).join("|") + ")";
+function either$9(...args) {
+  const joined = '(' + args.map((x) => source$t(x)).join("|") + ")";
   return joined;
 }
 
@@ -7642,7 +7642,7 @@ Audit: 2020
 /** @type LanguageFn */
 function xml(hljs) {
   // Element names can contain letters, digits, hyphens, underscores, and periods
-  const TAG_NAME_RE = concat$6(/[A-Z_]/, optional$1(/[A-Z0-9_.-]+:/), /[A-Z0-9_.-]*/);
+  const TAG_NAME_RE = concat$s(/[A-Z_]/, optional$6(/[A-Z0-9_.-]+:/), /[A-Z0-9_.-]*/);
   const XML_IDENT_RE = /[A-Za-z0-9._:-]+/;
   const XML_ENTITIES = {
     className: 'symbol',
@@ -7819,14 +7819,14 @@ function xml(hljs) {
       // open tag
       {
         className: 'tag',
-        begin: concat$6(
+        begin: concat$s(
           /</,
-          lookahead(concat$6(
+          lookahead$7(concat$s(
             TAG_NAME_RE,
             // <tag/>
             // <tag>
             // <tag ...
-            either$3(/\/>/, />/, /\s/)
+            either$9(/\/>/, />/, /\s/)
           ))
         ),
         end: /\/?>/,
@@ -7842,9 +7842,9 @@ function xml(hljs) {
       // close tag
       {
         className: 'tag',
-        begin: concat$6(
+        begin: concat$s(
           /<\//,
-          lookahead(concat$6(
+          lookahead$7(concat$s(
             TAG_NAME_RE, />/
           ))
         ),
@@ -7875,7 +7875,7 @@ var xml_1 = xml;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$7(re) {
+function source$s(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -7886,8 +7886,8 @@ function source$7(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$7(...args) {
-  const joined = args.map((x) => source$7(x)).join("");
+function concat$r(...args) {
+  const joined = args.map((x) => source$s(x)).join("");
   return joined;
 }
 
@@ -7938,7 +7938,7 @@ function asciidoc(hljs) {
     // inline unconstrained strong (multi-line)
     {
       className: 'strong',
-      begin: concat$7(
+      begin: concat$r(
         /\*\*/,
         /((\*(?!\*)|\\[^\n]|[^*\n\\])+\n)+/,
         /(\*(?!\*)|\\[^\n]|[^*\n\\])*/,
@@ -7968,7 +7968,7 @@ function asciidoc(hljs) {
     // inline unconstrained emphasis (multi-line)
     {
       className: 'emphasis',
-      begin: concat$7(
+      begin: concat$r(
         /__/,
         /((_(?!_)|\\[^\n]|[^_\n\\])+\n)+/,
         /(_(?!_)|\\[^\n]|[^_\n\\])*/,
@@ -8179,7 +8179,7 @@ var asciidoc_1 = asciidoc;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$8(re) {
+function source$r(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -8190,8 +8190,8 @@ function source$8(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$8(...args) {
-  const joined = args.map((x) => source$8(x)).join("");
+function concat$q(...args) {
+  const joined = args.map((x) => source$r(x)).join("");
   return joined;
 }
 
@@ -8285,7 +8285,7 @@ function aspectj(hljs) {
         illegal: /["\[\]]/,
         contains: [
           {
-            begin: concat$8(hljs.UNDERSCORE_IDENT_RE, /\s*\(/),
+            begin: concat$q(hljs.UNDERSCORE_IDENT_RE, /\s*\(/),
             returnBegin: true,
             contains: [ hljs.UNDERSCORE_TITLE_MODE ]
           }
@@ -8301,7 +8301,7 @@ function aspectj(hljs) {
         illegal: /["\[\]]/,
         contains: [
           {
-            begin: concat$8(hljs.UNDERSCORE_IDENT_RE, /\s*\(/),
+            begin: concat$q(hljs.UNDERSCORE_IDENT_RE, /\s*\(/),
             keywords: KEYWORDS + ' ' + SHORTKEYS,
             relevance: 0
           },
@@ -8323,7 +8323,7 @@ function aspectj(hljs) {
         excludeEnd: true,
         contains: [
           {
-            begin: concat$8(hljs.UNDERSCORE_IDENT_RE, /\s*\(/),
+            begin: concat$q(hljs.UNDERSCORE_IDENT_RE, /\s*\(/),
             returnBegin: true,
             relevance: 0,
             contains: [ hljs.UNDERSCORE_TITLE_MODE ]
@@ -8953,7 +8953,7 @@ var axapta_1 = axapta;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$9(re) {
+function source$q(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -8964,8 +8964,8 @@ function source$9(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$9(...args) {
-  const joined = args.map((x) => source$9(x)).join("");
+function concat$p(...args) {
+  const joined = args.map((x) => source$q(x)).join("");
   return joined;
 }
 
@@ -8994,7 +8994,7 @@ function bash(hljs) {
   Object.assign(VAR,{
     className: 'variable',
     variants: [
-      {begin: concat$9(/\$[\w\d#@][\w\d_]*/,
+      {begin: concat$p(/\$[\w\d#@][\w\d_]*/,
         // negative look-ahead tries to avoid matching patterns that are not
         // Perl at all like $ident$, @ident@, etc.
         `(?![\\w\\d])(?![$])`) },
@@ -9275,7 +9275,7 @@ var brainfuck_1 = brainfuck;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$a(re) {
+function source$p(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -9286,16 +9286,16 @@ function source$a(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$2(re) {
-  return concat$a('(', re, ')?');
+function optional$5(re) {
+  return concat$o('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$a(...args) {
-  const joined = args.map((x) => source$a(x)).join("");
+function concat$o(...args) {
+  const joined = args.map((x) => source$p(x)).join("");
   return joined;
 }
 
@@ -9306,7 +9306,7 @@ Contributors: Evgeny Stepanischev <imbolk@gmail.com>, Zaven Muradyan <megalivoit
 */
 
 /** @type LanguageFn */
-function cLike$1(hljs) {
+function cLike$2(hljs) {
   // added for historic reasons because `hljs.C_LINE_COMMENT_MODE` does
   // not include such support nor can we be sure all the grammars depending
   // on it would desire this behavior
@@ -9322,8 +9322,8 @@ function cLike$1(hljs) {
   const TEMPLATE_ARGUMENT_RE = '<[^<>]+>';
   const FUNCTION_TYPE_RE = '(' +
     DECLTYPE_AUTO_RE + '|' +
-    optional$2(NAMESPACE_RE) +
-    '[a-zA-Z_]\\w*' + optional$2(TEMPLATE_ARGUMENT_RE) +
+    optional$5(NAMESPACE_RE) +
+    '[a-zA-Z_]\\w*' + optional$5(TEMPLATE_ARGUMENT_RE) +
   ')';
   const CPP_PRIMITIVE_TYPES = {
     className: 'keyword',
@@ -9400,11 +9400,11 @@ function cLike$1(hljs) {
 
   const TITLE_MODE = {
     className: 'title',
-    begin: optional$2(NAMESPACE_RE) + hljs.IDENT_RE,
+    begin: optional$5(NAMESPACE_RE) + hljs.IDENT_RE,
     relevance: 0
   };
 
-  const FUNCTION_TITLE = optional$2(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
+  const FUNCTION_TITLE = optional$5(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
 
   const CPP_KEYWORDS = {
     keyword: 'int float while private char char8_t char16_t char32_t catch import module export virtual operator sizeof ' +
@@ -9583,7 +9583,7 @@ function cLike$1(hljs) {
   };
 }
 
-var cLike_1 = cLike$1;
+var cLike_1 = cLike$2;
 
 /**
  * @param {string} value
@@ -9594,7 +9594,7 @@ var cLike_1 = cLike$1;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$b(re) {
+function source$o(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -9605,16 +9605,16 @@ function source$b(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$3(re) {
-  return concat$b('(', re, ')?');
+function optional$4(re) {
+  return concat$n('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$b(...args) {
-  const joined = args.map((x) => source$b(x)).join("");
+function concat$n(...args) {
+  const joined = args.map((x) => source$o(x)).join("");
   return joined;
 }
 
@@ -9625,7 +9625,7 @@ Contributors: Evgeny Stepanischev <imbolk@gmail.com>, Zaven Muradyan <megalivoit
 */
 
 /** @type LanguageFn */
-function cLike$2(hljs) {
+function cLike$1(hljs) {
   // added for historic reasons because `hljs.C_LINE_COMMENT_MODE` does
   // not include such support nor can we be sure all the grammars depending
   // on it would desire this behavior
@@ -9641,8 +9641,8 @@ function cLike$2(hljs) {
   const TEMPLATE_ARGUMENT_RE = '<[^<>]+>';
   const FUNCTION_TYPE_RE = '(' +
     DECLTYPE_AUTO_RE + '|' +
-    optional$3(NAMESPACE_RE) +
-    '[a-zA-Z_]\\w*' + optional$3(TEMPLATE_ARGUMENT_RE) +
+    optional$4(NAMESPACE_RE) +
+    '[a-zA-Z_]\\w*' + optional$4(TEMPLATE_ARGUMENT_RE) +
   ')';
   const CPP_PRIMITIVE_TYPES = {
     className: 'keyword',
@@ -9719,11 +9719,11 @@ function cLike$2(hljs) {
 
   const TITLE_MODE = {
     className: 'title',
-    begin: optional$3(NAMESPACE_RE) + hljs.IDENT_RE,
+    begin: optional$4(NAMESPACE_RE) + hljs.IDENT_RE,
     relevance: 0
   };
 
-  const FUNCTION_TITLE = optional$3(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
+  const FUNCTION_TITLE = optional$4(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
 
   const CPP_KEYWORDS = {
     keyword: 'int float while private char char8_t char16_t char32_t catch import module export virtual operator sizeof ' +
@@ -9910,7 +9910,7 @@ Website: https://en.wikipedia.org/wiki/C_(programming_language)
 
 /** @type LanguageFn */
 function c(hljs) {
-  const lang = cLike$2(hljs);
+  const lang = cLike$1(hljs);
   // Until C is actually different than C++ there is no reason to auto-detect C
   // as it's own language since it would just fail auto-detect testing or
   // simply match with C++.
@@ -10439,7 +10439,7 @@ function cmake(hljs) {
 
 var cmake_1 = cmake;
 
-const KEYWORDS = [
+const KEYWORDS$3 = [
   "as", // for exports
   "in",
   "of",
@@ -10482,7 +10482,7 @@ const KEYWORDS = [
   "export",
   "extends"
 ];
-const LITERALS = [
+const LITERALS$3 = [
   "true",
   "false",
   "null",
@@ -10491,7 +10491,7 @@ const LITERALS = [
   "Infinity"
 ];
 
-const TYPES = [
+const TYPES$3 = [
   "Intl",
   "DataView",
   "Number",
@@ -10525,7 +10525,7 @@ const TYPES = [
   "ArrayBuffer"
 ];
 
-const ERROR_TYPES = [
+const ERROR_TYPES$3 = [
   "EvalError",
   "InternalError",
   "RangeError",
@@ -10535,7 +10535,7 @@ const ERROR_TYPES = [
   "URIError"
 ];
 
-const BUILT_IN_GLOBALS = [
+const BUILT_IN_GLOBALS$3 = [
   "setInterval",
   "setTimeout",
   "clearInterval",
@@ -10557,7 +10557,7 @@ const BUILT_IN_GLOBALS = [
   "unescape"
 ];
 
-const BUILT_IN_VARIABLES = [
+const BUILT_IN_VARIABLES$3 = [
   "arguments",
   "this",
   "super",
@@ -10569,11 +10569,11 @@ const BUILT_IN_VARIABLES = [
   "global" // Node.js
 ];
 
-const BUILT_INS = [].concat(
-  BUILT_IN_GLOBALS,
-  BUILT_IN_VARIABLES,
-  TYPES,
-  ERROR_TYPES
+const BUILT_INS$3 = [].concat(
+  BUILT_IN_GLOBALS$3,
+  BUILT_IN_VARIABLES$3,
+  TYPES$3,
+  ERROR_TYPES$3
 );
 
 /*
@@ -10620,9 +10620,9 @@ function coffeescript(hljs) {
   const excluding = (list) =>
     (kw) => !list.includes(kw);
   const KEYWORDS$1 = {
-    keyword: KEYWORDS.concat(COFFEE_KEYWORDS).filter(excluding(NOT_VALID_KEYWORDS)).join(" "),
-    literal: LITERALS.concat(COFFEE_LITERALS).join(" "),
-    built_in: BUILT_INS.concat(COFFEE_BUILT_INS).join(" ")
+    keyword: KEYWORDS$3.concat(COFFEE_KEYWORDS).filter(excluding(NOT_VALID_KEYWORDS)).join(" "),
+    literal: LITERALS$3.concat(COFFEE_LITERALS).join(" "),
+    built_in: BUILT_INS$3.concat(COFFEE_BUILT_INS).join(" ")
   };
   const JS_IDENT_RE = '[A-Za-z$_][0-9A-Za-z$_]*';
   const SUBST = {
@@ -11022,7 +11022,7 @@ var cos_1 = cos;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$c(re) {
+function source$n(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -11033,16 +11033,16 @@ function source$c(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$4(re) {
-  return concat$c('(', re, ')?');
+function optional$3(re) {
+  return concat$m('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$c(...args) {
-  const joined = args.map((x) => source$c(x)).join("");
+function concat$m(...args) {
+  const joined = args.map((x) => source$n(x)).join("");
   return joined;
 }
 
@@ -11053,7 +11053,7 @@ Contributors: Evgeny Stepanischev <imbolk@gmail.com>, Zaven Muradyan <megalivoit
 */
 
 /** @type LanguageFn */
-function cLike$3(hljs) {
+function cLike(hljs) {
   // added for historic reasons because `hljs.C_LINE_COMMENT_MODE` does
   // not include such support nor can we be sure all the grammars depending
   // on it would desire this behavior
@@ -11069,8 +11069,8 @@ function cLike$3(hljs) {
   const TEMPLATE_ARGUMENT_RE = '<[^<>]+>';
   const FUNCTION_TYPE_RE = '(' +
     DECLTYPE_AUTO_RE + '|' +
-    optional$4(NAMESPACE_RE) +
-    '[a-zA-Z_]\\w*' + optional$4(TEMPLATE_ARGUMENT_RE) +
+    optional$3(NAMESPACE_RE) +
+    '[a-zA-Z_]\\w*' + optional$3(TEMPLATE_ARGUMENT_RE) +
   ')';
   const CPP_PRIMITIVE_TYPES = {
     className: 'keyword',
@@ -11147,11 +11147,11 @@ function cLike$3(hljs) {
 
   const TITLE_MODE = {
     className: 'title',
-    begin: optional$4(NAMESPACE_RE) + hljs.IDENT_RE,
+    begin: optional$3(NAMESPACE_RE) + hljs.IDENT_RE,
     relevance: 0
   };
 
-  const FUNCTION_TITLE = optional$4(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
+  const FUNCTION_TITLE = optional$3(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
 
   const CPP_KEYWORDS = {
     keyword: 'int float while private char char8_t char16_t char32_t catch import module export virtual operator sizeof ' +
@@ -11338,7 +11338,7 @@ Website: https://isocpp.org
 
 /** @type LanguageFn */
 function cpp(hljs) {
-  const lang = cLike$3(hljs);
+  const lang = cLike(hljs);
   // return auto-detection back on
   lang.disableAutodetect = false;
   lang.name = 'C++';
@@ -12191,7 +12191,7 @@ Website: https://developer.mozilla.org/en-US/docs/Web/CSS
 */
 
 /** @type LanguageFn */
-function css$1(hljs) {
+function css(hljs) {
   var FUNCTION_LIKE = {
     begin: /[\w-]+\(/, returnBegin: true,
     contains: [
@@ -12318,7 +12318,7 @@ function css$1(hljs) {
   };
 }
 
-var css_1 = css$1;
+var css_1 = css;
 
 /*
 Language: D
@@ -12601,7 +12601,7 @@ var d_1 = d;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$d(re) {
+function source$m(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -12612,8 +12612,8 @@ function source$d(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$d(...args) {
-  const joined = args.map((x) => source$d(x)).join("");
+function concat$l(...args) {
+  const joined = args.map((x) => source$m(x)).join("");
   return joined;
 }
 
@@ -12712,7 +12712,7 @@ function markdown(hljs) {
         relevance: 2
       },
       {
-        begin: concat$d(/\[.+?\]\(/, URL_SCHEME, /:\/\/.*?\)/),
+        begin: concat$l(/\[.+?\]\(/, URL_SCHEME, /:\/\/.*?\)/),
         relevance: 2
       },
       // relative urls
@@ -14215,7 +14215,7 @@ var elm_1 = elm;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$e(re) {
+function source$l(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -14226,16 +14226,16 @@ function source$e(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$1(re) {
-  return concat$e('(?=', re, ')');
+function lookahead$6(re) {
+  return concat$k('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$e(...args) {
-  const joined = args.map((x) => source$e(x)).join("");
+function concat$k(...args) {
+  const joined = args.map((x) => source$l(x)).join("");
   return joined;
 }
 
@@ -14374,7 +14374,7 @@ function ruby(hljs) {
       // def method_name(
       // def method_name;
       // def method_name (end of line)
-      begin: concat$e(/def\s*/, lookahead$1(RUBY_METHOD_RE + "\\s*(\\(|;|$)")),
+      begin: concat$k(/def\s*/, lookahead$6(RUBY_METHOD_RE + "\\s*(\\(|;|$)")),
       keywords: "def",
       end: '$|;',
       contains: [
@@ -14515,7 +14515,7 @@ var erb_1 = erb;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$f(re) {
+function source$k(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -14526,8 +14526,8 @@ function source$f(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$f(...args) {
-  const joined = args.map((x) => source$f(x)).join("");
+function concat$j(...args) {
+  const joined = args.map((x) => source$k(x)).join("");
   return joined;
 }
 
@@ -14564,7 +14564,7 @@ function erlangRepl(hljs) {
       hljs.APOS_STRING_MODE,
       hljs.QUOTE_STRING_MODE,
       {
-        begin: concat$f(
+        begin: concat$j(
           /\?(::)?/,
           /([A-Z]\w*)/, // at least one identifier
           /((::)[A-Z]\w*)*/ // perhaps more
@@ -14937,7 +14937,7 @@ var flix_1 = flix;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$g(re) {
+function source$j(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -14948,8 +14948,8 @@ function source$g(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$g(...args) {
-  const joined = args.map((x) => source$g(x)).join("");
+function concat$i(...args) {
+  const joined = args.map((x) => source$j(x)).join("");
   return joined;
 }
 
@@ -14990,13 +14990,13 @@ function fortran(hljs) {
     className: 'number',
     variants: [
       {
-        begin: concat$g(/\b\d+/, /\.(\d*)/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
+        begin: concat$i(/\b\d+/, /\.(\d*)/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
       },
       {
-        begin: concat$g(/\b\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
+        begin: concat$i(/\b\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
       },
       {
-        begin: concat$g(/\.\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
+        begin: concat$i(/\.\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
       }
     ],
     relevance: 0
@@ -15184,7 +15184,7 @@ var fsharp_1 = fsharp;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$h(re) {
+function source$i(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -15195,7 +15195,7 @@ function source$h(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function anyNumberOfTimes(re) {
+function anyNumberOfTimes$2(re) {
   return concat$h('(', re, ')*');
 }
 
@@ -15204,7 +15204,7 @@ function anyNumberOfTimes(re) {
  * @returns {string}
  */
 function concat$h(...args) {
-  const joined = args.map((x) => source$h(x)).join("");
+  const joined = args.map((x) => source$i(x)).join("");
   return joined;
 }
 
@@ -15296,7 +15296,7 @@ function gams(hljs) {
         begin: concat$h(
           COMMENT_WORD,
           // [ ] because \s would be too broad (matching newlines)
-          anyNumberOfTimes(concat$h(/[ ]+/, COMMENT_WORD))
+          anyNumberOfTimes$2(concat$h(/[ ]+/, COMMENT_WORD))
         ),
         relevance: 0
       }
@@ -17019,7 +17019,7 @@ var gradle_1 = gradle;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$i(re) {
+function source$h(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -17030,16 +17030,16 @@ function source$i(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$2(re) {
-  return concat$i('(?=', re, ')');
+function lookahead$5(re) {
+  return concat$g('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$i(...args) {
-  const joined = args.map((x) => source$i(x)).join("");
+function concat$g(...args) {
+  const joined = args.map((x) => source$h(x)).join("");
   return joined;
 }
 
@@ -17164,7 +17164,7 @@ function groovy(hljs) {
             {
                 // highlight labeled statements
                 className: 'symbol',
-                begin: '^[ \t]*' + lookahead$2(IDENT_RE + ':'),
+                begin: '^[ \t]*' + lookahead$5(IDENT_RE + ':'),
                 excludeBegin: true,
                 end: IDENT_RE + ':',
                 relevance: 0
@@ -17303,7 +17303,7 @@ var haml_1 = haml;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$j(re) {
+function source$g(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -17315,23 +17315,23 @@ function source$j(re) {
  * @returns {string}
  */
 function anyNumberOfTimes$1(re) {
-  return concat$j('(', re, ')*');
+  return concat$f('(', re, ')*');
 }
 
 /**
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$5(re) {
-  return concat$j('(', re, ')?');
+function optional$2(re) {
+  return concat$f('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$j(...args) {
-  const joined = args.map((x) => source$j(x)).join("");
+function concat$f(...args) {
+  const joined = args.map((x) => source$g(x)).join("");
   return joined;
 }
 
@@ -17342,8 +17342,8 @@ function concat$j(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$4(...args) {
-  const joined = '(' + args.map((x) => source$j(x)).join("|") + ")";
+function either$8(...args) {
+  const joined = '(' + args.map((x) => source$g(x)).join("|") + ")";
   return joined;
 }
 
@@ -17356,7 +17356,7 @@ Website: https://handlebarsjs.com
 Category: template
 */
 
-function handlebars(hljs) {
+function handlebars$1(hljs) {
   const BUILT_INS = {
     'builtin-name': [
       'action',
@@ -17409,24 +17409,24 @@ function handlebars(hljs) {
   const BRACKET_QUOTED_ID_REGEX = /\[\]|\[[^\]]+\]/;
   const PLAIN_ID_REGEX = /[^\s!"#%&'()*+,.\/;<=>@\[\\\]^`{|}~]+/;
   const PATH_DELIMITER_REGEX = /(\.|\/)/;
-  const ANY_ID = either$4(
+  const ANY_ID = either$8(
     DOUBLE_QUOTED_ID_REGEX,
     SINGLE_QUOTED_ID_REGEX,
     BRACKET_QUOTED_ID_REGEX,
     PLAIN_ID_REGEX
     );
 
-  const IDENTIFIER_REGEX = concat$j(
-    optional$5(/\.|\.\/|\//), // relative or absolute path
+  const IDENTIFIER_REGEX = concat$f(
+    optional$2(/\.|\.\/|\//), // relative or absolute path
     ANY_ID,
-    anyNumberOfTimes$1(concat$j(
+    anyNumberOfTimes$1(concat$f(
       PATH_DELIMITER_REGEX,
       ANY_ID
     ))
   );
 
   // identifier followed by a equal-sign (without the equal sign)
-  const HASH_PARAM_REGEX = concat$j(
+  const HASH_PARAM_REGEX = concat$f(
     '(',
     BRACKET_QUOTED_ID_REGEX, '|',
     PLAIN_ID_REGEX,
@@ -17617,7 +17617,7 @@ function handlebars(hljs) {
   };
 }
 
-var handlebars_1 = handlebars;
+var handlebars_1 = handlebars$1;
 
 /*
 Language: Haskell
@@ -18026,7 +18026,7 @@ var hsp_1 = hsp;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$k(re) {
+function source$f(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -18037,24 +18037,24 @@ function source$k(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function anyNumberOfTimes$2(re) {
-  return concat$k('(', re, ')*');
+function anyNumberOfTimes(re) {
+  return concat$e('(', re, ')*');
 }
 
 /**
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$6(re) {
-  return concat$k('(', re, ')?');
+function optional$1(re) {
+  return concat$e('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$k(...args) {
-  const joined = args.map((x) => source$k(x)).join("");
+function concat$e(...args) {
+  const joined = args.map((x) => source$f(x)).join("");
   return joined;
 }
 
@@ -18065,8 +18065,8 @@ function concat$k(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$5(...args) {
-  const joined = '(' + args.map((x) => source$k(x)).join("|") + ")";
+function either$7(...args) {
+  const joined = '(' + args.map((x) => source$f(x)).join("|") + ")";
   return joined;
 }
 
@@ -18079,7 +18079,7 @@ Website: https://handlebarsjs.com
 Category: template
 */
 
-function handlebars$1(hljs) {
+function handlebars(hljs) {
   const BUILT_INS = {
     'builtin-name': [
       'action',
@@ -18132,24 +18132,24 @@ function handlebars$1(hljs) {
   const BRACKET_QUOTED_ID_REGEX = /\[\]|\[[^\]]+\]/;
   const PLAIN_ID_REGEX = /[^\s!"#%&'()*+,.\/;<=>@\[\\\]^`{|}~]+/;
   const PATH_DELIMITER_REGEX = /(\.|\/)/;
-  const ANY_ID = either$5(
+  const ANY_ID = either$7(
     DOUBLE_QUOTED_ID_REGEX,
     SINGLE_QUOTED_ID_REGEX,
     BRACKET_QUOTED_ID_REGEX,
     PLAIN_ID_REGEX
     );
 
-  const IDENTIFIER_REGEX = concat$k(
-    optional$6(/\.|\.\/|\//), // relative or absolute path
+  const IDENTIFIER_REGEX = concat$e(
+    optional$1(/\.|\.\/|\//), // relative or absolute path
     ANY_ID,
-    anyNumberOfTimes$2(concat$k(
+    anyNumberOfTimes(concat$e(
       PATH_DELIMITER_REGEX,
       ANY_ID
     ))
   );
 
   // identifier followed by a equal-sign (without the equal sign)
-  const HASH_PARAM_REGEX = concat$k(
+  const HASH_PARAM_REGEX = concat$e(
     '(',
     BRACKET_QUOTED_ID_REGEX, '|',
     PLAIN_ID_REGEX,
@@ -18349,7 +18349,7 @@ function handlebars$1(hljs) {
  */
 
 function htmlbars(hljs) {
-  const definition = handlebars$1(hljs);
+  const definition = handlebars(hljs);
 
   definition.name = "HTMLbars";
 
@@ -18379,7 +18379,7 @@ var htmlbars_1 = htmlbars;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$l(re) {
+function source$e(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -18390,8 +18390,8 @@ function source$l(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$l(...args) {
-  const joined = args.map((x) => source$l(x)).join("");
+function concat$d(...args) {
+  const joined = args.map((x) => source$e(x)).join("");
   return joined;
 }
 
@@ -18409,7 +18409,7 @@ function http(hljs) {
   const HEADERS_AND_BODY = [
     {
       className: 'attribute',
-      begin: concat$l('^', HEADER_NAME, '(?=\\:\\s)'),
+      begin: concat$d('^', HEADER_NAME, '(?=\\:\\s)'),
       starts: {
         contains: [
           {
@@ -18677,7 +18677,7 @@ var inform7_1 = inform7;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$m(re) {
+function source$d(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -18688,16 +18688,16 @@ function source$m(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$3(re) {
-  return concat$m('(?=', re, ')');
+function lookahead$4(re) {
+  return concat$c('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$m(...args) {
-  const joined = args.map((x) => source$m(x)).join("");
+function concat$c(...args) {
+  const joined = args.map((x) => source$d(x)).join("");
   return joined;
 }
 
@@ -18709,7 +18709,7 @@ function concat$m(...args) {
  * @returns {string}
  */
 function either$6(...args) {
-  const joined = '(' + args.map((x) => source$m(x)).join("|") + ")";
+  const joined = '(' + args.map((x) => source$d(x)).join("|") + ")";
   return joined;
 }
 
@@ -18804,9 +18804,9 @@ function ini(hljs) {
   const ANY_KEY = either$6(
     BARE_KEY, QUOTED_KEY_DOUBLE_QUOTE, QUOTED_KEY_SINGLE_QUOTE
   );
-  const DOTTED_KEY = concat$m(
+  const DOTTED_KEY = concat$c(
     ANY_KEY, '(\\s*\\.\\s*', ANY_KEY, ')*',
-    lookahead$3(/\s*=\s*[^#\s]/)
+    lookahead$4(/\s*=\s*[^#\s]/)
   );
 
   return {
@@ -18851,7 +18851,7 @@ var ini_1 = ini;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$n(re) {
+function source$c(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -18862,8 +18862,8 @@ function source$n(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$n(...args) {
-  const joined = args.map((x) => source$n(x)).join("");
+function concat$b(...args) {
+  const joined = args.map((x) => source$c(x)).join("");
   return joined;
 }
 
@@ -18890,13 +18890,13 @@ function irpf90(hljs) {
     className: 'number',
     variants: [
       {
-        begin: concat$n(/\b\d+/, /\.(\d*)/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
+        begin: concat$b(/\b\d+/, /\.(\d*)/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
       },
       {
-        begin: concat$n(/\b\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
+        begin: concat$b(/\b\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
       },
       {
-        begin: concat$n(/\.\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
+        begin: concat$b(/\.\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
       }
     ],
     relevance: 0
@@ -22194,30 +22194,30 @@ function isbl(hljs) {
 var isbl_1 = isbl;
 
 // https://docs.oracle.com/javase/specs/jls/se15/html/jls-3.html#jls-3.10
-var decimalDigits = '[0-9](_*[0-9])*';
-var frac = `\\.(${decimalDigits})`;
-var hexDigits = '[0-9a-fA-F](_*[0-9a-fA-F])*';
-var NUMERIC = {
+var decimalDigits$1 = '[0-9](_*[0-9])*';
+var frac$1 = `\\.(${decimalDigits$1})`;
+var hexDigits$1 = '[0-9a-fA-F](_*[0-9a-fA-F])*';
+var NUMERIC$1 = {
   className: 'number',
   variants: [
     // DecimalFloatingPointLiteral
     // including ExponentPart
-    { begin: `(\\b(${decimalDigits})((${frac})|\\.)?|(${frac}))` +
-      `[eE][+-]?(${decimalDigits})[fFdD]?\\b` },
+    { begin: `(\\b(${decimalDigits$1})((${frac$1})|\\.)?|(${frac$1}))` +
+      `[eE][+-]?(${decimalDigits$1})[fFdD]?\\b` },
     // excluding ExponentPart
-    { begin: `\\b(${decimalDigits})((${frac})[fFdD]?\\b|\\.([fFdD]\\b)?)` },
-    { begin: `(${frac})[fFdD]?\\b` },
-    { begin: `\\b(${decimalDigits})[fFdD]\\b` },
+    { begin: `\\b(${decimalDigits$1})((${frac$1})[fFdD]?\\b|\\.([fFdD]\\b)?)` },
+    { begin: `(${frac$1})[fFdD]?\\b` },
+    { begin: `\\b(${decimalDigits$1})[fFdD]\\b` },
 
     // HexadecimalFloatingPointLiteral
-    { begin: `\\b0[xX]((${hexDigits})\\.?|(${hexDigits})?\\.(${hexDigits}))` +
-      `[pP][+-]?(${decimalDigits})[fFdD]?\\b` },
+    { begin: `\\b0[xX]((${hexDigits$1})\\.?|(${hexDigits$1})?\\.(${hexDigits$1}))` +
+      `[pP][+-]?(${decimalDigits$1})[fFdD]?\\b` },
 
     // DecimalIntegerLiteral
     { begin: '\\b(0|[1-9](_*[0-9])*)[lL]?\\b' },
 
     // HexIntegerLiteral
-    { begin: `\\b0[xX](${hexDigits})[lL]?\\b` },
+    { begin: `\\b0[xX](${hexDigits$1})[lL]?\\b` },
 
     // OctalIntegerLiteral
     { begin: '\\b0(_*[0-7])*[lL]?\\b' },
@@ -22255,7 +22255,7 @@ function java(hljs) {
       },
     ]
   };
-  const NUMBER = NUMERIC;
+  const NUMBER = NUMERIC$1;
 
   return {
     name: 'Java',
@@ -22371,7 +22371,7 @@ function java(hljs) {
 var java_1 = java;
 
 const IDENT_RE$1 = '[A-Za-z$_][0-9A-Za-z$_]*';
-const KEYWORDS$1 = [
+const KEYWORDS$2 = [
   "as", // for exports
   "in",
   "of",
@@ -22414,7 +22414,7 @@ const KEYWORDS$1 = [
   "export",
   "extends"
 ];
-const LITERALS$1 = [
+const LITERALS$2 = [
   "true",
   "false",
   "null",
@@ -22423,7 +22423,7 @@ const LITERALS$1 = [
   "Infinity"
 ];
 
-const TYPES$1 = [
+const TYPES$2 = [
   "Intl",
   "DataView",
   "Number",
@@ -22457,7 +22457,7 @@ const TYPES$1 = [
   "ArrayBuffer"
 ];
 
-const ERROR_TYPES$1 = [
+const ERROR_TYPES$2 = [
   "EvalError",
   "InternalError",
   "RangeError",
@@ -22467,7 +22467,7 @@ const ERROR_TYPES$1 = [
   "URIError"
 ];
 
-const BUILT_IN_GLOBALS$1 = [
+const BUILT_IN_GLOBALS$2 = [
   "setInterval",
   "setTimeout",
   "clearInterval",
@@ -22489,7 +22489,7 @@ const BUILT_IN_GLOBALS$1 = [
   "unescape"
 ];
 
-const BUILT_IN_VARIABLES$1 = [
+const BUILT_IN_VARIABLES$2 = [
   "arguments",
   "this",
   "super",
@@ -22501,11 +22501,11 @@ const BUILT_IN_VARIABLES$1 = [
   "global" // Node.js
 ];
 
-const BUILT_INS$1 = [].concat(
-  BUILT_IN_GLOBALS$1,
-  BUILT_IN_VARIABLES$1,
-  TYPES$1,
-  ERROR_TYPES$1
+const BUILT_INS$2 = [].concat(
+  BUILT_IN_GLOBALS$2,
+  BUILT_IN_VARIABLES$2,
+  TYPES$2,
+  ERROR_TYPES$2
 );
 
 /**
@@ -22517,7 +22517,7 @@ const BUILT_INS$1 = [].concat(
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$o(re) {
+function source$b(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -22528,16 +22528,16 @@ function source$o(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$4(re) {
-  return concat$o('(?=', re, ')');
+function lookahead$3(re) {
+  return concat$a('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$o(...args) {
-  const joined = args.map((x) => source$o(x)).join("");
+function concat$a(...args) {
+  const joined = args.map((x) => source$b(x)).join("");
   return joined;
 }
 
@@ -22549,7 +22549,7 @@ Website: https://developer.mozilla.org/en-US/docs/Web/JavaScript
 */
 
 /** @type LanguageFn */
-function javascript(hljs) {
+function javascript$1(hljs) {
   /**
    * Takes a string like "<Booger" and checks to see
    * if we can find a matching "</Booger" later in the
@@ -22596,11 +22596,11 @@ function javascript(hljs) {
       }
     }
   };
-  const KEYWORDS$1$1 = {
+  const KEYWORDS$1 = {
     $pattern: IDENT_RE$1,
-    keyword: KEYWORDS$1.join(" "),
-    literal: LITERALS$1.join(" "),
-    built_in: BUILT_INS$1.join(" ")
+    keyword: KEYWORDS$2.join(" "),
+    literal: LITERALS$2.join(" "),
+    built_in: BUILT_INS$2.join(" ")
   };
 
   // https://tc39.es/ecma262/#sec-literals-numeric-literals
@@ -22636,7 +22636,7 @@ function javascript(hljs) {
     className: 'subst',
     begin: '\\$\\{',
     end: '\\}',
-    keywords: KEYWORDS$1$1,
+    keywords: KEYWORDS$1,
     contains: [] // defined later
   };
   const HTML_TEMPLATE = {
@@ -22730,7 +22730,7 @@ function javascript(hljs) {
       // it from ending too early by matching another }
       begin: /\{/,
       end: /\}/,
-      keywords: KEYWORDS$1$1,
+      keywords: KEYWORDS$1,
       contains: [
         "self"
       ].concat(SUBST_INTERNALS)
@@ -22741,7 +22741,7 @@ function javascript(hljs) {
     {
       begin: /\(/,
       end: /\)/,
-      keywords: KEYWORDS$1$1,
+      keywords: KEYWORDS$1,
       contains: ["self"].concat(SUBST_AND_COMMENTS)
     }
   ]);
@@ -22751,14 +22751,14 @@ function javascript(hljs) {
     end: /\)/,
     excludeBegin: true,
     excludeEnd: true,
-    keywords: KEYWORDS$1$1,
+    keywords: KEYWORDS$1,
     contains: PARAMS_CONTAINS
   };
 
   return {
     name: 'Javascript',
     aliases: ['js', 'jsx', 'mjs', 'cjs'],
-    keywords: KEYWORDS$1$1,
+    keywords: KEYWORDS$1,
     // this will be extended by TypeScript
     exports: { PARAMS_CONTAINS },
     illegal: /#(?![$_A-z])/,
@@ -22782,7 +22782,7 @@ function javascript(hljs) {
       COMMENT,
       NUMBER,
       { // object attr container
-        begin: concat$o(/[{,\n]\s*/,
+        begin: concat$a(/[{,\n]\s*/,
           // we need to look ahead to make sure that we actually have an
           // attribute coming up so we don't steal a comma from a potential
           // "value" container
@@ -22793,7 +22793,7 @@ function javascript(hljs) {
           // fails to find any actual attrs. But this still does the job because
           // it prevents the value contain rule from grabbing this instead and
           // prevening this rule from firing when we actually DO have keys.
-          lookahead$4(concat$o(
+          lookahead$3(concat$a(
             // we also need to allow for multiple possible comments inbetween
             // the first key:value pairing
             /(((\/\/.*$)|(\/\*(\*[^/]|[^*])*\*\/))\s*)*/,
@@ -22802,7 +22802,7 @@ function javascript(hljs) {
         contains: [
           {
             className: 'attr',
-            begin: IDENT_RE$1$1 + lookahead$4('\\s*:'),
+            begin: IDENT_RE$1$1 + lookahead$3('\\s*:'),
             relevance: 0
           }
         ]
@@ -22845,7 +22845,7 @@ function javascript(hljs) {
                     end: /\)/,
                     excludeBegin: true,
                     excludeEnd: true,
-                    keywords: KEYWORDS$1$1,
+                    keywords: KEYWORDS$1,
                     contains: PARAMS_CONTAINS
                   }
                 ]
@@ -22890,7 +22890,7 @@ function javascript(hljs) {
         beginKeywords: 'function',
         end: /[{;]/,
         excludeEnd: true,
-        keywords: KEYWORDS$1$1,
+        keywords: KEYWORDS$1,
         contains: [
           'self',
           hljs.inherit(hljs.TITLE_MODE, { begin: IDENT_RE$1$1 }),
@@ -22970,7 +22970,7 @@ function javascript(hljs) {
   };
 }
 
-var javascript_1 = javascript;
+var javascript_1 = javascript$1;
 
 /*
  Language: JBoss CLI
@@ -23569,30 +23569,30 @@ function juliaRepl(hljs) {
 var juliaRepl_1 = juliaRepl;
 
 // https://docs.oracle.com/javase/specs/jls/se15/html/jls-3.html#jls-3.10
-var decimalDigits$1 = '[0-9](_*[0-9])*';
-var frac$1 = `\\.(${decimalDigits$1})`;
-var hexDigits$1 = '[0-9a-fA-F](_*[0-9a-fA-F])*';
-var NUMERIC$1 = {
+var decimalDigits = '[0-9](_*[0-9])*';
+var frac = `\\.(${decimalDigits})`;
+var hexDigits = '[0-9a-fA-F](_*[0-9a-fA-F])*';
+var NUMERIC = {
   className: 'number',
   variants: [
     // DecimalFloatingPointLiteral
     // including ExponentPart
-    { begin: `(\\b(${decimalDigits$1})((${frac$1})|\\.)?|(${frac$1}))` +
-      `[eE][+-]?(${decimalDigits$1})[fFdD]?\\b` },
+    { begin: `(\\b(${decimalDigits})((${frac})|\\.)?|(${frac}))` +
+      `[eE][+-]?(${decimalDigits})[fFdD]?\\b` },
     // excluding ExponentPart
-    { begin: `\\b(${decimalDigits$1})((${frac$1})[fFdD]?\\b|\\.([fFdD]\\b)?)` },
-    { begin: `(${frac$1})[fFdD]?\\b` },
-    { begin: `\\b(${decimalDigits$1})[fFdD]\\b` },
+    { begin: `\\b(${decimalDigits})((${frac})[fFdD]?\\b|\\.([fFdD]\\b)?)` },
+    { begin: `(${frac})[fFdD]?\\b` },
+    { begin: `\\b(${decimalDigits})[fFdD]\\b` },
 
     // HexadecimalFloatingPointLiteral
-    { begin: `\\b0[xX]((${hexDigits$1})\\.?|(${hexDigits$1})?\\.(${hexDigits$1}))` +
-      `[pP][+-]?(${decimalDigits$1})[fFdD]?\\b` },
+    { begin: `\\b0[xX]((${hexDigits})\\.?|(${hexDigits})?\\.(${hexDigits}))` +
+      `[pP][+-]?(${decimalDigits})[fFdD]?\\b` },
 
     // DecimalIntegerLiteral
     { begin: '\\b(0|[1-9](_*[0-9])*)[lL]?\\b' },
 
     // HexIntegerLiteral
-    { begin: `\\b0[xX](${hexDigits$1})[lL]?\\b` },
+    { begin: `\\b0[xX](${hexDigits})[lL]?\\b` },
 
     // OctalIntegerLiteral
     { begin: '\\b0(_*[0-7])*[lL]?\\b' },
@@ -23709,7 +23709,7 @@ function kotlin(hljs) {
   // https://kotlinlang.org/docs/reference/whatsnew11.html#underscores-in-numeric-literals
   // According to the doc above, the number mode of kotlin is the same as java 8,
   // so the code below is copied from java.js
-  const KOTLIN_NUMBER_MODE = NUMERIC$1;
+  const KOTLIN_NUMBER_MODE = NUMERIC;
   const KOTLIN_NESTED_COMMENT = hljs.COMMENT(
     '/\\*', '\\*/',
     {
@@ -24050,7 +24050,7 @@ var lasso_1 = lasso;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$p(re) {
+function source$a(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -24064,8 +24064,8 @@ function source$p(re) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$7(...args) {
-  const joined = '(' + args.map((x) => source$p(x)).join("|") + ")";
+function either$5(...args) {
+  const joined = '(' + args.map((x) => source$a(x)).join("|") + ")";
   return joined;
 }
 
@@ -24078,7 +24078,7 @@ Category: markup
 
 /** @type LanguageFn */
 function latex(hljs) {
-  const KNOWN_CONTROL_WORDS = either$7(...[
+  const KNOWN_CONTROL_WORDS = either$5(...[
       '(?:NeedsTeXFormat|RequirePackage|GetIdInfo)',
       'Provides(?:Expl)?(?:Package|Class|File)',
       '(?:DeclareOption|ProcessOptions)',
@@ -24864,7 +24864,7 @@ function livecodeserver(hljs) {
 
 var livecodeserver_1 = livecodeserver;
 
-const KEYWORDS$2 = [
+const KEYWORDS$1 = [
   "as", // for exports
   "in",
   "of",
@@ -24907,7 +24907,7 @@ const KEYWORDS$2 = [
   "export",
   "extends"
 ];
-const LITERALS$2 = [
+const LITERALS$1 = [
   "true",
   "false",
   "null",
@@ -24916,7 +24916,7 @@ const LITERALS$2 = [
   "Infinity"
 ];
 
-const TYPES$2 = [
+const TYPES$1 = [
   "Intl",
   "DataView",
   "Number",
@@ -24950,7 +24950,7 @@ const TYPES$2 = [
   "ArrayBuffer"
 ];
 
-const ERROR_TYPES$2 = [
+const ERROR_TYPES$1 = [
   "EvalError",
   "InternalError",
   "RangeError",
@@ -24960,7 +24960,7 @@ const ERROR_TYPES$2 = [
   "URIError"
 ];
 
-const BUILT_IN_GLOBALS$2 = [
+const BUILT_IN_GLOBALS$1 = [
   "setInterval",
   "setTimeout",
   "clearInterval",
@@ -24982,7 +24982,7 @@ const BUILT_IN_GLOBALS$2 = [
   "unescape"
 ];
 
-const BUILT_IN_VARIABLES$2 = [
+const BUILT_IN_VARIABLES$1 = [
   "arguments",
   "this",
   "super",
@@ -24994,11 +24994,11 @@ const BUILT_IN_VARIABLES$2 = [
   "global" // Node.js
 ];
 
-const BUILT_INS$2 = [].concat(
-  BUILT_IN_GLOBALS$2,
-  BUILT_IN_VARIABLES$2,
-  TYPES$2,
-  ERROR_TYPES$2
+const BUILT_INS$1 = [].concat(
+  BUILT_IN_GLOBALS$1,
+  BUILT_IN_VARIABLES$1,
+  TYPES$1,
+  ERROR_TYPES$1
 );
 
 /*
@@ -25056,10 +25056,10 @@ function livescript(hljs) {
     '__bind',
     '__indexOf'
   ];
-  const KEYWORDS$1 = {
-    keyword: KEYWORDS$2.concat(LIVESCRIPT_KEYWORDS).join(" "),
-    literal: LITERALS$2.concat(LIVESCRIPT_LITERALS).join(" "),
-    built_in: BUILT_INS$2.concat(LIVESCRIPT_BUILT_INS).join(" ")
+  const KEYWORDS$1$1 = {
+    keyword: KEYWORDS$1.concat(LIVESCRIPT_KEYWORDS).join(" "),
+    literal: LITERALS$1.concat(LIVESCRIPT_LITERALS).join(" "),
+    built_in: BUILT_INS$1.concat(LIVESCRIPT_BUILT_INS).join(" ")
   };
   const JS_IDENT_RE = '[A-Za-z$_](?:-[0-9A-Za-z$_]|[0-9A-Za-z$_])*';
   const TITLE = hljs.inherit(hljs.TITLE_MODE, {
@@ -25069,13 +25069,13 @@ function livescript(hljs) {
     className: 'subst',
     begin: /#\{/,
     end: /\}/,
-    keywords: KEYWORDS$1
+    keywords: KEYWORDS$1$1
   };
   const SUBST_SIMPLE = {
     className: 'subst',
     begin: /#[A-Za-z$_]/,
     end: /(?:-[0-9A-Za-z$_]|[0-9A-Za-z$_])*/,
-    keywords: KEYWORDS$1
+    keywords: KEYWORDS$1$1
   };
   const EXPRESSIONS = [
     hljs.BINARY_NUMBER_MODE,
@@ -25167,7 +25167,7 @@ function livescript(hljs) {
       {
         begin: /\(/,
         end: /\)/,
-        keywords: KEYWORDS$1,
+        keywords: KEYWORDS$1$1,
         contains: ['self'].concat(EXPRESSIONS)
       }
     ]
@@ -25180,7 +25180,7 @@ function livescript(hljs) {
   return {
     name: 'LiveScript',
     aliases: ['ls'],
-    keywords: KEYWORDS$1,
+    keywords: KEYWORDS$1$1,
     illegal: /\/\*/,
     contains: EXPRESSIONS.concat([
       hljs.COMMENT('\\/\\*', '\\*\\/'),
@@ -25245,7 +25245,7 @@ var livescript_1 = livescript;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$q(re) {
+function source$9(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -25256,8 +25256,8 @@ function source$q(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$p(...args) {
-  const joined = args.map((x) => source$q(x)).join("");
+function concat$9(...args) {
+  const joined = args.map((x) => source$9(x)).join("");
   return joined;
 }
 
@@ -25305,7 +25305,7 @@ function llvm(hljs) {
   const VARIABLE = {
     className: 'variable',
     variants: [
-      { begin: concat$p(/%/, IDENT_RE) },
+      { begin: concat$9(/%/, IDENT_RE) },
       { begin: /%\d+/ },
       { begin: /#\d+/ },
     ]
@@ -25313,10 +25313,10 @@ function llvm(hljs) {
   const FUNCTION = {
     className: 'title',
     variants: [
-      { begin: concat$p(/@/, IDENT_RE) },
+      { begin: concat$9(/@/, IDENT_RE) },
       { begin: /@\d+/ },
-      { begin: concat$p(/!/, IDENT_RE) },
-      { begin: concat$p(/!\d+/, IDENT_RE) },
+      { begin: concat$9(/!/, IDENT_RE) },
+      { begin: concat$9(/!\d+/, IDENT_RE) },
       // https://llvm.org/docs/LangRef.html#namedmetadatastructure
       // obviously a single digit can also be used in this fashion
       { begin: /!\d+/ }
@@ -32299,7 +32299,7 @@ const SYSTEM_SYMBOLS = [
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$r(re) {
+function source$8(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -32310,16 +32310,16 @@ function source$r(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$7(re) {
-  return concat$q('(', re, ')?');
+function optional(re) {
+  return concat$8('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$q(...args) {
-  const joined = args.map((x) => source$r(x)).join("");
+function concat$8(...args) {
+  const joined = args.map((x) => source$8(x)).join("");
   return joined;
 }
 
@@ -32330,8 +32330,8 @@ function concat$q(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$8(...args) {
-  const joined = '(' + args.map((x) => source$r(x)).join("|") + ")";
+function either$4(...args) {
+  const joined = '(' + args.map((x) => source$8(x)).join("|") + ")";
   return joined;
 }
 
@@ -32352,18 +32352,18 @@ function mathematica(hljs) {
   const BASE_RE = /([2-9]|[1-2]\d|[3][0-5])\^\^/;
   const BASE_DIGITS_RE = /(\w*\.\w+|\w+\.\w*|\w+)/;
   const NUMBER_RE = /(\d*\.\d+|\d+\.\d*|\d+)/;
-  const BASE_NUMBER_RE = either$8(concat$q(BASE_RE, BASE_DIGITS_RE), NUMBER_RE);
+  const BASE_NUMBER_RE = either$4(concat$8(BASE_RE, BASE_DIGITS_RE), NUMBER_RE);
 
   const ACCURACY_RE = /``[+-]?(\d*\.\d+|\d+\.\d*|\d+)/;
   const PRECISION_RE = /`([+-]?(\d*\.\d+|\d+\.\d*|\d+))?/;
-  const APPROXIMATE_NUMBER_RE = either$8(ACCURACY_RE, PRECISION_RE);
+  const APPROXIMATE_NUMBER_RE = either$4(ACCURACY_RE, PRECISION_RE);
 
   const SCIENTIFIC_NOTATION_RE = /\*\^[+-]?\d+/;
 
-  const MATHEMATICA_NUMBER_RE = concat$q(
+  const MATHEMATICA_NUMBER_RE = concat$8(
     BASE_NUMBER_RE,
-    optional$7(APPROXIMATE_NUMBER_RE),
-    optional$7(SCIENTIFIC_NOTATION_RE)
+    optional(APPROXIMATE_NUMBER_RE),
+    optional(SCIENTIFIC_NOTATION_RE)
   );
 
   const NUMBERS = {
@@ -32424,7 +32424,7 @@ function mathematica(hljs) {
   const MESSAGES = {
     className: 'message-name',
     relevance: 0,
-    begin: concat$q("::", SYMBOL_RE)
+    begin: concat$8("::", SYMBOL_RE)
   };
 
   return {
@@ -33494,7 +33494,7 @@ var mizar_1 = mizar;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$s(re) {
+function source$7(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -33505,8 +33505,8 @@ function source$s(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$r(...args) {
-  const joined = args.map((x) => source$s(x)).join("");
+function concat$7(...args) {
+  const joined = args.map((x) => source$7(x)).join("");
   return joined;
 }
 
@@ -33560,7 +33560,7 @@ function perl(hljs) {
         begin: /\$\d/
       },
       {
-        begin: concat$r(
+        begin: concat$7(
           /[$%@](\^\w\b|#\w+(::\w+)*|\{\w+\}|\w+(::\w*)*)/,
           // negative look-ahead tries to avoid matching patterns that are not
           // Perl at all like $ident$, @ident@, etc.
@@ -33662,7 +33662,7 @@ function perl(hljs) {
         hljs.HASH_COMMENT_MODE,
         {
           className: 'regexp',
-          begin: concat$r(
+          begin: concat$7(
             /(s|tr|y)/,
             /\//,
             /(\\.|[^\\\/])*/,
@@ -33676,7 +33676,7 @@ function perl(hljs) {
         {
           className: 'regexp',
           begin: /(m|qr)?\//,
-          end: concat$r(
+          end: concat$7(
             /\//,
             REGEX_MODIFIERS
           ),
@@ -37313,7 +37313,7 @@ var q_1 = q;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$t(re) {
+function source$6(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -37324,8 +37324,8 @@ function source$t(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$s(...args) {
-  const joined = args.map((x) => source$t(x)).join("");
+function concat$6(...args) {
+  const joined = args.map((x) => source$6(x)).join("");
   return joined;
 }
 
@@ -37421,7 +37421,7 @@ function qml(hljs) {
   // Find QML object. A QML object is a QML identifier followed by { and ends at the matching }.
   // All we really care about is finding IDENT followed by { and just mark up the IDENT and ignore the {.
   const QML_OBJECT = {
-    begin: concat$s(QML_IDENT_RE, /\s*\{/),
+    begin: concat$6(QML_IDENT_RE, /\s*\{/),
     end: /\{/,
     returnBegin: true,
     relevance: 0,
@@ -37539,7 +37539,7 @@ var qml_1 = qml;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$u(re) {
+function source$5(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -37550,16 +37550,16 @@ function source$u(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$5(re) {
-  return concat$t('(?=', re, ')');
+function lookahead$2(re) {
+  return concat$5('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$t(...args) {
-  const joined = args.map((x) => source$u(x)).join("");
+function concat$5(...args) {
+  const joined = args.map((x) => source$5(x)).join("");
   return joined;
 }
 
@@ -37631,7 +37631,7 @@ function r(hljs) {
         const originalMode = Object.assign({}, mode);
         Object.keys(mode).forEach((key) => { delete mode[key]; });
 
-        mode.begin = concat$t(originalMode.beforeMatch, lookahead$5(originalMode.begin));
+        mode.begin = concat$5(originalMode.beforeMatch, lookahead$2(originalMode.begin));
         mode.starts = {
           relevance: 0,
           contains: [
@@ -37746,7 +37746,7 @@ function r(hljs) {
       },
       // relevance boost for assignment
       {
-        begin: concat$t(SIMPLE_IDENT, "\\s+<-\\s+")
+        begin: concat$5(SIMPLE_IDENT, "\\s+<-\\s+")
       },
       {
         // escaped identifier
@@ -39231,7 +39231,7 @@ function scss(hljs) {
   var HEXCOLOR = {
     className: 'number', begin: '#[0-9A-Fa-f]+'
   };
-  var DEF_INTERNALS = {
+  ({
     className: 'attribute',
     begin: '[A-Z\\_\\.\\-]+', end: ':',
     excludeEnd: true,
@@ -39249,7 +39249,7 @@ function scss(hljs) {
         }
       ]
     }
-  };
+  });
   return {
     name: 'SCSS',
     case_insensitive: true,
@@ -40295,7 +40295,7 @@ var sql_more_1 = sql_more;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$v(re) {
+function source$4(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -40306,8 +40306,8 @@ function source$v(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$u(...args) {
-  const joined = args.map((x) => source$v(x)).join("");
+function concat$4(...args) {
+  const joined = args.map((x) => source$4(x)).join("");
   return joined;
 }
 
@@ -40318,8 +40318,8 @@ function concat$u(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$9(...args) {
-  const joined = '(' + args.map((x) => source$v(x)).join("|") + ")";
+function either$3(...args) {
+  const joined = '(' + args.map((x) => source$4(x)).join("|") + ")";
   return joined;
 }
 
@@ -40924,7 +40924,7 @@ function sql(hljs) {
   };
 
   const FUNCTION_CALL = {
-    begin: concat$u(/\b/, either$9(...FUNCTIONS), /\s*\(/),
+    begin: concat$4(/\b/, either$3(...FUNCTIONS), /\s*\(/),
     keywords: {
       built_in: FUNCTIONS.join(" ")
     }
@@ -40960,7 +40960,7 @@ function sql(hljs) {
     },
     contains: [
       {
-        begin: either$9(...COMBOS),
+        begin: either$3(...COMBOS),
         keywords: {
           $pattern: /[\w\.]+/,
           keyword: KEYWORDS.concat(COMBOS).join(" "),
@@ -40970,7 +40970,7 @@ function sql(hljs) {
       },
       {
         className: "type",
-        begin: either$9(...MULTI_WORD_TYPES)
+        begin: either$3(...MULTI_WORD_TYPES)
       },
       FUNCTION_CALL,
       VARIABLE,
@@ -42180,7 +42180,7 @@ var subunit_1 = subunit;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$w(re) {
+function source$3(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -42191,16 +42191,16 @@ function source$w(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$6(re) {
-  return concat$v('(?=', re, ')');
+function lookahead$1(re) {
+  return concat$3('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$v(...args) {
-  const joined = args.map((x) => source$w(x)).join("");
+function concat$3(...args) {
+  const joined = args.map((x) => source$3(x)).join("");
   return joined;
 }
 
@@ -42211,12 +42211,12 @@ function concat$v(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$a(...args) {
-  const joined = '(' + args.map((x) => source$w(x)).join("|") + ")";
+function either$2(...args) {
+  const joined = '(' + args.map((x) => source$3(x)).join("|") + ")";
   return joined;
 }
 
-const keywordWrapper = keyword => concat$v(
+const keywordWrapper = keyword => concat$3(
   /\b/,
   keyword,
   /\w$/.test(keyword) ? /\b/ : /\B/
@@ -42405,7 +42405,7 @@ const builtIns = [
 ];
 
 // Valid first characters for operators.
-const operatorHead = either$a(
+const operatorHead = either$2(
   /[/=\-+!*%<>&|^~?]/,
   /[\u00A1-\u00A7]/,
   /[\u00A9\u00AB]/,
@@ -42427,7 +42427,7 @@ const operatorHead = either$a(
 );
 
 // Valid characters for operators.
-const operatorCharacter = either$a(
+const operatorCharacter = either$2(
   operatorHead,
   /[\u0300-\u036F]/,
   /[\u1DC0-\u1DFF]/,
@@ -42439,10 +42439,10 @@ const operatorCharacter = either$a(
 );
 
 // Valid operator.
-const operator = concat$v(operatorHead, operatorCharacter, '*');
+const operator = concat$3(operatorHead, operatorCharacter, '*');
 
 // Valid first characters for identifiers.
-const identifierHead = either$a(
+const identifierHead = either$2(
   /[a-zA-Z_]/,
   /[\u00A8\u00AA\u00AD\u00AF\u00B2-\u00B5\u00B7-\u00BA]/,
   /[\u00BC-\u00BE\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF]/,
@@ -42462,23 +42462,23 @@ const identifierHead = either$a(
 );
 
 // Valid characters for identifiers.
-const identifierCharacter = either$a(
+const identifierCharacter = either$2(
   identifierHead,
   /\d/,
   /[\u0300-\u036F\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]/
 );
 
 // Valid identifier.
-const identifier = concat$v(identifierHead, identifierCharacter, '*');
+const identifier = concat$3(identifierHead, identifierCharacter, '*');
 
 // Valid type identifier.
-const typeIdentifier = concat$v(/[A-Z]/, identifierCharacter, '*');
+const typeIdentifier = concat$3(/[A-Z]/, identifierCharacter, '*');
 
 // Built-in attributes, which are highlighted as keywords.
 // @available is handled separately.
 const keywordAttributes = [
   'autoclosure',
-  concat$v(/convention\(/, either$a('swift', 'block', 'c'), /\)/),
+  concat$3(/convention\(/, either$2('swift', 'block', 'c'), /\)/),
   'discardableResult',
   'dynamicCallable',
   'dynamicMemberLookup',
@@ -42496,7 +42496,7 @@ const keywordAttributes = [
   'NSApplicationMain',
   'NSCopying',
   'NSManaged',
-  concat$v(/objc\(/, identifier, /\)/),
+  concat$3(/objc\(/, identifier, /\)/),
   'objc',
   'objcMembers',
   'propertyWrapper',
@@ -42546,13 +42546,13 @@ function swift(hljs) {
   // https://docs.swift.org/swift-book/ReferenceManual/zzSummaryOfTheGrammar.html
   const DOT_KEYWORD = {
     className: 'keyword',
-    begin: concat$v(/\./, lookahead$6(either$a(...dotKeywords, ...optionalDotKeywords))),
-    end: either$a(...dotKeywords, ...optionalDotKeywords),
+    begin: concat$3(/\./, lookahead$1(either$2(...dotKeywords, ...optionalDotKeywords))),
+    end: either$2(...dotKeywords, ...optionalDotKeywords),
     excludeBegin: true
   };
   const KEYWORD_GUARD = {
     // Consume .keyword to prevent highlighting properties and methods as keywords.
-    begin: concat$v(/\./, either$a(...keywords)),
+    begin: concat$3(/\./, either$2(...keywords)),
     relevance: 0
   };
   const PLAIN_KEYWORDS = keywords
@@ -42566,13 +42566,13 @@ function swift(hljs) {
     variants: [
       {
         className: 'keyword',
-        begin: either$a(...REGEX_KEYWORDS, ...optionalDotKeywords)
+        begin: either$2(...REGEX_KEYWORDS, ...optionalDotKeywords)
       }
     ]
   };
   // find all the regular keywords
   const KEYWORDS = {
-    $pattern: either$a(
+    $pattern: either$2(
       /\b\w+(\(\w+\))?/, // kw or kw(arg)
       /#\w+/ // number keywords
     ),
@@ -42590,12 +42590,12 @@ function swift(hljs) {
   // https://github.com/apple/swift/tree/main/stdlib/public/core
   const BUILT_IN_GUARD = {
     // Consume .built_in to prevent highlighting properties and methods.
-    begin: concat$v(/\./, either$a(...builtIns)),
+    begin: concat$3(/\./, either$2(...builtIns)),
     relevance: 0
   };
   const BUILT_IN = {
     className: 'built_in',
-    begin: concat$v(/\b/, either$a(...builtIns), /(?=\()/)
+    begin: concat$3(/\b/, either$2(...builtIns), /(?=\()/)
   };
   const BUILT_INS = [
     BUILT_IN_GUARD,
@@ -42660,26 +42660,26 @@ function swift(hljs) {
     className: 'subst',
     variants: [
       {
-        begin: concat$v(/\\/, rawDelimiter, /[0\\tnr"']/)
+        begin: concat$3(/\\/, rawDelimiter, /[0\\tnr"']/)
       },
       {
-        begin: concat$v(/\\/, rawDelimiter, /u\{[0-9a-fA-F]{1,8}\}/)
+        begin: concat$3(/\\/, rawDelimiter, /u\{[0-9a-fA-F]{1,8}\}/)
       }
     ]
   });
   const ESCAPED_NEWLINE = (rawDelimiter = "") => ({
     className: 'subst',
-    begin: concat$v(/\\/, rawDelimiter, /[\t ]*(?:[\r\n]|\r\n)/)
+    begin: concat$3(/\\/, rawDelimiter, /[\t ]*(?:[\r\n]|\r\n)/)
   });
   const INTERPOLATION = (rawDelimiter = "") => ({
     className: 'subst',
     label: "interpol",
-    begin: concat$v(/\\/, rawDelimiter, /\(/),
+    begin: concat$3(/\\/, rawDelimiter, /\(/),
     end: /\)/
   });
   const MULTILINE_STRING = (rawDelimiter = "") => ({
-    begin: concat$v(rawDelimiter, /"""/),
-    end: concat$v(/"""/, rawDelimiter),
+    begin: concat$3(rawDelimiter, /"""/),
+    end: concat$3(/"""/, rawDelimiter),
     contains: [
       ESCAPED_CHARACTER(rawDelimiter),
       ESCAPED_NEWLINE(rawDelimiter),
@@ -42687,8 +42687,8 @@ function swift(hljs) {
     ]
   });
   const SINGLE_LINE_STRING = (rawDelimiter = "") => ({
-    begin: concat$v(rawDelimiter, /"/),
-    end: concat$v(/"/, rawDelimiter),
+    begin: concat$3(rawDelimiter, /"/),
+    end: concat$3(/"/, rawDelimiter),
     contains: [
       ESCAPED_CHARACTER(rawDelimiter),
       INTERPOLATION(rawDelimiter)
@@ -42710,7 +42710,7 @@ function swift(hljs) {
 
   // https://docs.swift.org/swift-book/ReferenceManual/LexicalStructure.html#ID412
   const QUOTED_IDENTIFIER = {
-    begin: concat$v(/`/, identifier, /`/)
+    begin: concat$3(/`/, identifier, /`/)
   };
   const IMPLICIT_PARAMETER = {
     className: 'variable',
@@ -42747,11 +42747,11 @@ function swift(hljs) {
   };
   const KEYWORD_ATTRIBUTE = {
     className: 'keyword',
-    begin: concat$v(/@/, either$a(...keywordAttributes))
+    begin: concat$3(/@/, either$2(...keywordAttributes))
   };
   const USER_DEFINED_ATTRIBUTE = {
     className: 'meta',
-    begin: concat$v(/@/, identifier)
+    begin: concat$3(/@/, identifier)
   };
   const ATTRIBUTES = [
     AVAILABLE_ATTRIBUTE,
@@ -42761,12 +42761,12 @@ function swift(hljs) {
 
   // https://docs.swift.org/swift-book/ReferenceManual/Types.html
   const TYPE = {
-    begin: lookahead$6(/\b[A-Z]/),
+    begin: lookahead$1(/\b[A-Z]/),
     relevance: 0,
     contains: [
       { // Common Apple frameworks, for relevance boost
         className: 'type',
-        begin: concat$v(/(AV|CA|CF|CG|CI|CL|CM|CN|CT|MK|MP|MTK|MTL|NS|SCN|SK|UI|WK|XC)/, identifierCharacter, '+')
+        begin: concat$3(/(AV|CA|CF|CG|CI|CL|CM|CN|CT|MK|MP|MTK|MTL|NS|SCN|SK|UI|WK|XC)/, identifierCharacter, '+')
       },
       { // Type identifier
         className: 'type',
@@ -42782,7 +42782,7 @@ function swift(hljs) {
         relevance: 0
       },
       { // Protocol composition
-        begin: concat$v(/\s+&\s+/, lookahead$6(typeIdentifier)),
+        begin: concat$3(/\s+&\s+/, lookahead$1(typeIdentifier)),
         relevance: 0
       }
     ]
@@ -43485,8 +43485,8 @@ function twig(hljs) {
 
 var twig_1 = twig;
 
-const IDENT_RE$2 = '[A-Za-z$_][0-9A-Za-z$_]*';
-const KEYWORDS$3 = [
+const IDENT_RE = '[A-Za-z$_][0-9A-Za-z$_]*';
+const KEYWORDS = [
   "as", // for exports
   "in",
   "of",
@@ -43529,7 +43529,7 @@ const KEYWORDS$3 = [
   "export",
   "extends"
 ];
-const LITERALS$3 = [
+const LITERALS = [
   "true",
   "false",
   "null",
@@ -43538,7 +43538,7 @@ const LITERALS$3 = [
   "Infinity"
 ];
 
-const TYPES$3 = [
+const TYPES = [
   "Intl",
   "DataView",
   "Number",
@@ -43572,7 +43572,7 @@ const TYPES$3 = [
   "ArrayBuffer"
 ];
 
-const ERROR_TYPES$3 = [
+const ERROR_TYPES = [
   "EvalError",
   "InternalError",
   "RangeError",
@@ -43582,7 +43582,7 @@ const ERROR_TYPES$3 = [
   "URIError"
 ];
 
-const BUILT_IN_GLOBALS$3 = [
+const BUILT_IN_GLOBALS = [
   "setInterval",
   "setTimeout",
   "clearInterval",
@@ -43604,7 +43604,7 @@ const BUILT_IN_GLOBALS$3 = [
   "unescape"
 ];
 
-const BUILT_IN_VARIABLES$3 = [
+const BUILT_IN_VARIABLES = [
   "arguments",
   "this",
   "super",
@@ -43616,11 +43616,11 @@ const BUILT_IN_VARIABLES$3 = [
   "global" // Node.js
 ];
 
-const BUILT_INS$3 = [].concat(
-  BUILT_IN_GLOBALS$3,
-  BUILT_IN_VARIABLES$3,
-  TYPES$3,
-  ERROR_TYPES$3
+const BUILT_INS = [].concat(
+  BUILT_IN_GLOBALS,
+  BUILT_IN_VARIABLES,
+  TYPES,
+  ERROR_TYPES
 );
 
 /**
@@ -43632,7 +43632,7 @@ const BUILT_INS$3 = [].concat(
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$x(re) {
+function source$2(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -43643,16 +43643,16 @@ function source$x(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$7(re) {
-  return concat$w('(?=', re, ')');
+function lookahead(re) {
+  return concat$2('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$w(...args) {
-  const joined = args.map((x) => source$x(x)).join("");
+function concat$2(...args) {
+  const joined = args.map((x) => source$2(x)).join("");
   return joined;
 }
 
@@ -43664,7 +43664,7 @@ Website: https://developer.mozilla.org/en-US/docs/Web/JavaScript
 */
 
 /** @type LanguageFn */
-function javascript$1(hljs) {
+function javascript(hljs) {
   /**
    * Takes a string like "<Booger" and checks to see
    * if we can find a matching "</Booger" later in the
@@ -43678,7 +43678,7 @@ function javascript$1(hljs) {
     return pos !== -1;
   };
 
-  const IDENT_RE$1 = IDENT_RE$2;
+  const IDENT_RE$1 = IDENT_RE;
   const FRAGMENT = {
     begin: '<>',
     end: '</>'
@@ -43712,10 +43712,10 @@ function javascript$1(hljs) {
     }
   };
   const KEYWORDS$1 = {
-    $pattern: IDENT_RE$2,
-    keyword: KEYWORDS$3.join(" "),
-    literal: LITERALS$3.join(" "),
-    built_in: BUILT_INS$3.join(" ")
+    $pattern: IDENT_RE,
+    keyword: KEYWORDS.join(" "),
+    literal: LITERALS.join(" "),
+    built_in: BUILT_INS.join(" ")
   };
 
   // https://tc39.es/ecma262/#sec-literals-numeric-literals
@@ -43897,7 +43897,7 @@ function javascript$1(hljs) {
       COMMENT,
       NUMBER,
       { // object attr container
-        begin: concat$w(/[{,\n]\s*/,
+        begin: concat$2(/[{,\n]\s*/,
           // we need to look ahead to make sure that we actually have an
           // attribute coming up so we don't steal a comma from a potential
           // "value" container
@@ -43908,7 +43908,7 @@ function javascript$1(hljs) {
           // fails to find any actual attrs. But this still does the job because
           // it prevents the value contain rule from grabbing this instead and
           // prevening this rule from firing when we actually DO have keys.
-          lookahead$7(concat$w(
+          lookahead(concat$2(
             // we also need to allow for multiple possible comments inbetween
             // the first key:value pairing
             /(((\/\/.*$)|(\/\*(\*[^/]|[^*])*\*\/))\s*)*/,
@@ -43917,7 +43917,7 @@ function javascript$1(hljs) {
         contains: [
           {
             className: 'attr',
-            begin: IDENT_RE$1 + lookahead$7('\\s*:'),
+            begin: IDENT_RE$1 + lookahead('\\s*:'),
             relevance: 0
           }
         ]
@@ -44096,7 +44096,7 @@ Category: common, scripting
 
 /** @type LanguageFn */
 function typescript(hljs) {
-  const IDENT_RE$1 = IDENT_RE$2;
+  const IDENT_RE$1 = IDENT_RE;
   const NAMESPACE = {
     beginKeywords: 'namespace', end: /\{/, excludeEnd: true
   };
@@ -44133,10 +44133,10 @@ function typescript(hljs) {
     "readonly"
   ];
   const KEYWORDS$1 = {
-    $pattern: IDENT_RE$2,
-    keyword: KEYWORDS$3.concat(TS_SPECIFIC_KEYWORDS).join(" "),
-    literal: LITERALS$3.join(" "),
-    built_in: BUILT_INS$3.concat(TYPES).join(" ")
+    $pattern: IDENT_RE,
+    keyword: KEYWORDS.concat(TS_SPECIFIC_KEYWORDS).join(" "),
+    literal: LITERALS.join(" "),
+    built_in: BUILT_INS.concat(TYPES).join(" ")
   };
   const DECORATOR = {
     className: 'meta',
@@ -44149,7 +44149,7 @@ function typescript(hljs) {
     mode.contains.splice(indx, 1, replacement);
   };
 
-  const tsLanguage = javascript$1(hljs);
+  const tsLanguage = javascript(hljs);
 
   // this should update anywhere keywords is used since
   // it will be the same actual JS object
@@ -44251,7 +44251,7 @@ var vala_1 = vala;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$y(re) {
+function source$1(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -44262,8 +44262,8 @@ function source$y(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$x(...args) {
-  const joined = args.map((x) => source$y(x)).join("");
+function concat$1(...args) {
+  const joined = args.map((x) => source$1(x)).join("");
   return joined;
 }
 
@@ -44274,8 +44274,8 @@ function concat$x(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$b(...args) {
-  const joined = '(' + args.map((x) => source$y(x)).join("|") + ")";
+function either$1(...args) {
+  const joined = '(' + args.map((x) => source$1(x)).join("|") + ")";
   return joined;
 }
 
@@ -44321,23 +44321,23 @@ function vbnet(hljs) {
     variants: [
       {
         // #YYYY-MM-DD# (ISO-Date) or #M/D/YYYY# (US-Date)
-        begin: concat$x(/# */, either$b(YYYY_MM_DD, MM_DD_YYYY), / *#/)
+        begin: concat$1(/# */, either$1(YYYY_MM_DD, MM_DD_YYYY), / *#/)
       },
       {
         // #H:mm[:ss]# (24h Time)
-        begin: concat$x(/# */, TIME_24H, / *#/)
+        begin: concat$1(/# */, TIME_24H, / *#/)
       },
       {
         // #h[:mm[:ss]] A# (12h Time)
-        begin: concat$x(/# */, TIME_12H, / *#/)
+        begin: concat$1(/# */, TIME_12H, / *#/)
       },
       {
         // date plus time
-        begin: concat$x(
+        begin: concat$1(
           /# */,
-          either$b(YYYY_MM_DD, MM_DD_YYYY),
+          either$1(YYYY_MM_DD, MM_DD_YYYY),
           / +/,
-          either$b(TIME_12H, TIME_24H),
+          either$1(TIME_12H, TIME_24H),
           / *#/
         )
       }
@@ -44466,7 +44466,7 @@ var vbnet_1 = vbnet;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$z(re) {
+function source(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -44477,8 +44477,8 @@ function source$z(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$y(...args) {
-  const joined = args.map((x) => source$z(x)).join("");
+function concat(...args) {
+  const joined = args.map((x) => source(x)).join("");
   return joined;
 }
 
@@ -44489,8 +44489,8 @@ function concat$y(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$c(...args) {
-  const joined = '(' + args.map((x) => source$z(x)).join("|") + ")";
+function either(...args) {
+  const joined = '(' + args.map((x) => source(x)).join("|") + ")";
   return joined;
 }
 
@@ -44527,7 +44527,7 @@ function vbscript(hljs) {
   ];
 
   const BUILT_IN_CALL = {
-    begin: concat$y(either$c(...BUILT_IN_FUNCTIONS), "\\s*\\("),
+    begin: concat(either(...BUILT_IN_FUNCTIONS), "\\s*\\("),
     // relevance 0 because this is acting as a beginKeywords really
     relevance:0,
     keywords: {
@@ -45710,7 +45710,7 @@ core.registerLanguage('zephir', zephir_1);
 
 var lib = core;
 
-var __decorate$1 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$A = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45745,8 +45745,8 @@ exports.CodeBlock = class CodeBlock extends LeafElement {
     }
 };
 // TODO language string as property/attribute
-exports.CodeBlock.styles = css ``;
-exports.CodeBlock = __decorate$1([
+exports.CodeBlock.styles = css$1 ``;
+exports.CodeBlock = __decorate$A([
     customElement('markdown-code')
 ], exports.CodeBlock);
 
@@ -45797,7 +45797,7 @@ class InlineElement extends MarkdownLitElement {
     }
 }
 
-var __decorate$2 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$z = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45811,11 +45811,11 @@ exports.CodeSpan = class CodeSpan extends InlineElement {
         return '`' + super.getMarkdown() + '`';
     }
 };
-exports.CodeSpan = __decorate$2([
+exports.CodeSpan = __decorate$z([
     customElement('markdown-code-span')
 ], exports.CodeSpan);
 
-var __decorate$3 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$y = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45834,13 +45834,13 @@ exports.HTML = class HTML extends LeafElement {
         return this.innerHTML.trimLeft().trimRight() + '\n\n';
     }
 };
-exports.HTML.styles = css `
+exports.HTML.styles = css$1 `
   `;
-exports.HTML = __decorate$3([
+exports.HTML = __decorate$y([
     customElement('markdown-html')
 ], exports.HTML);
 
-var __decorate$4 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$x = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45863,19 +45863,19 @@ exports.MarkdownImage = class MarkdownImage extends InlineElement {
         return `![${this.innerText}](${this.destination} "${this.title}")`;
     }
 };
-exports.MarkdownImage.styles = css `
+exports.MarkdownImage.styles = css$1 `
   `;
-__decorate$4([
+__decorate$x([
     property()
 ], exports.MarkdownImage.prototype, "destination", void 0);
-__decorate$4([
+__decorate$x([
     property()
 ], exports.MarkdownImage.prototype, "title", void 0);
-exports.MarkdownImage = __decorate$4([
+exports.MarkdownImage = __decorate$x([
     customElement('markdown-image')
 ], exports.MarkdownImage);
 
-var __decorate$5 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45898,15 +45898,15 @@ exports.MarkdownLink = class MarkdownLink extends InlineElement {
         return `[${this.innerText}](${this.destination} "${this.title}")`;
     }
 };
-exports.MarkdownLink.styles = css `
+exports.MarkdownLink.styles = css$1 `
   `;
-__decorate$5([
+__decorate$w([
     property()
 ], exports.MarkdownLink.prototype, "destination", void 0);
-__decorate$5([
+__decorate$w([
     property()
 ], exports.MarkdownLink.prototype, "title", void 0);
-exports.MarkdownLink = __decorate$5([
+exports.MarkdownLink = __decorate$w([
     customElement('markdown-link')
 ], exports.MarkdownLink);
 
@@ -45938,7 +45938,7 @@ class ContainerElement extends MarkdownLitElement {
     }
 }
 
-var __decorate$6 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$v = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45955,7 +45955,7 @@ exports.List = class List extends ContainerElement {
         return super.getMarkdown() + '\n';
     }
 };
-exports.List.styles = css `
+exports.List.styles = css$1 `
     :host {
       counter-reset: section;
     }
@@ -45975,16 +45975,16 @@ exports.List.styles = css `
       list-style-type: decimal;
     }
   `;
-__decorate$6([
+__decorate$v([
     property({ type: Boolean })
 ], exports.List.prototype, "ordered", void 0);
-__decorate$6([
+__decorate$v([
     property({ type: Number })
 ], exports.List.prototype, "start", void 0);
-__decorate$6([
+__decorate$v([
     property({ type: Boolean })
 ], exports.List.prototype, "spread", void 0);
-exports.List = __decorate$6([
+exports.List = __decorate$v([
     customElement('markdown-list')
 ], exports.List);
 
@@ -46044,7 +46044,7 @@ const replacements = {
 };
 const escapeTestNoEncode = /[<>"']|&(?!#?\w+;)/;
 const escapeReplaceNoEncode = /[<>"']|&(?!#?\w+;)/g;
-function escape$2(html, encode) {
+function escape(html, encode) {
     if (encode) {
         if (escapeTest.test(html)) {
             return html.replace(escapeReplace, (ch) => replacements[ch]);
@@ -46120,7 +46120,7 @@ class MarkedOptions {
          * The function that will be using to escape HTML entities.
          * By default using inner helper.
          */
-        this.escape = escape$2;
+        this.escape = escape;
         /**
          * The function that will be using to unescape HTML entities.
          * By default using inner helper.
@@ -47334,7 +47334,7 @@ function parse(markdown, renderer) {
     return Marked.parse(markdown, options);
 }
 
-const globalVariables = css `
+const globalVariables = css$1 `
   :host {
     --header1-font-size: 2em;
     --header2-font-size: 1.5em;
@@ -47345,7 +47345,7 @@ const globalVariables = css `
   }
 `;
 
-var __decorate$7 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$u = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -47466,17 +47466,18 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
     }
     selectionchange() {
+        const selection = this.getSelection();
         if (this._mouseSelection) {
             this.onMouseSelection();
         } /* else {
           this.onEndMouseSelection();
         }*/
-        let selection = this.getSelection();
         if (selection === null || selection === void 0 ? void 0 : selection.anchorNode) {
             if (this.contains(selection === null || selection === void 0 ? void 0 : selection.anchorNode)) {
-                var element = selection.anchorNode;
-                while (element && !(element instanceof MarkdownLitElement))
+                let element = selection.anchorNode;
+                while (element && !(element instanceof MarkdownLitElement)) {
                     element = element.parentNode;
+                }
                 if (element instanceof MarkdownLitElement && element.isEditable()) {
                     this.enableEditable();
                 }
@@ -47485,6 +47486,12 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 }
                 this.currentSelection = selection;
                 //console.log(this.currentSelection);
+                this.stashedSelection = {
+                    anchorNode: selection.anchorNode,
+                    anchorOffset: selection.anchorOffset,
+                    focusNode: selection.focusNode,
+                    focusOffset: selection.focusOffset,
+                };
                 this.debugSelection();
                 this.affectToolbar();
             }
@@ -47948,7 +47955,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             const selectionLength = focusOffset - anchorOffset;
             const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
             const secondPart = text.splitText(anchorOffset);
-            const thirdPart = secondPart.splitText(selectionLength);
+            secondPart.splitText(selectionLength);
             const replacement = document.createElement('markdown-emphasis');
             replacement.appendChild(document.createTextNode(secondPart.data));
             secondPart.replaceWith(replacement);
@@ -47968,7 +47975,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             const selectionLength = focusOffset - anchorOffset;
             const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
             const secondPart = text.splitText(anchorOffset);
-            const thirdPart = secondPart.splitText(selectionLength);
+            secondPart.splitText(selectionLength);
             const replacement = document.createElement('u');
             replacement.appendChild(document.createTextNode(secondPart.data));
             secondPart.replaceWith(replacement);
@@ -47988,7 +47995,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             const selectionLength = focusOffset - anchorOffset;
             const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
             const secondPart = text.splitText(anchorOffset);
-            const thirdPart = secondPart.splitText(selectionLength);
+            secondPart.splitText(selectionLength);
             const replacement = document.createElement('markdown-strike');
             replacement.appendChild(document.createTextNode(secondPart.data));
             secondPart.replaceWith(replacement);
@@ -48008,7 +48015,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             const selectionLength = focusOffset - anchorOffset;
             const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
             const secondPart = text.splitText(anchorOffset);
-            const thirdPart = secondPart.splitText(selectionLength);
+            secondPart.splitText(selectionLength);
             const replacement = document.createElement('markdown-code-span');
             replacement.appendChild(document.createTextNode(secondPart.data));
             secondPart.replaceWith(replacement);
@@ -48063,14 +48070,23 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             const parent = (_e = (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.anchorNode) === null || _e === void 0 ? void 0 : _e.parentElement;
             if (parent && anchorOffset && focusOffset) {
                 const text = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode;
-                const secondPart = text.splitText(anchorOffset);
+                text.splitText(anchorOffset);
                 text.after(image);
                 this.onChange();
             }
         }
     }
+    restoreStashedSelection() {
+        var _a, _b, _c, _d, _e, _f;
+        const range = document.createRange();
+        range.setStart((_a = this.stashedSelection) === null || _a === void 0 ? void 0 : _a.anchorNode, (_b = this.stashedSelection) === null || _b === void 0 ? void 0 : _b.anchorOffset);
+        range.setEnd((_c = this.stashedSelection) === null || _c === void 0 ? void 0 : _c.focusNode, (_d = this.stashedSelection) === null || _d === void 0 ? void 0 : _d.focusOffset);
+        (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.removeAllRanges();
+        (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.addRange(range);
+    }
     insertLink(url, text) {
         var _a, _b, _c, _d, _e, _f;
+        this.restoreStashedSelection();
         if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) {
             const link = document.createElement('markdown-link');
             link.destination = url;
@@ -48080,7 +48096,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             const parent = (_e = (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.anchorNode) === null || _e === void 0 ? void 0 : _e.parentElement;
             if (parent && anchorOffset && focusOffset) {
                 const text = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode;
-                const secondPart = text.splitText(anchorOffset);
+                text.splitText(anchorOffset);
                 text.after(link);
                 this.onChange();
             }
@@ -48181,7 +48197,7 @@ exports.MarkdownDocument.styles = [
       markdown document view.
     */
     globalVariables,
-    css `
+    css$1 `
       :host {
         display: block;
         border: solid 1px gray;
@@ -48203,23 +48219,23 @@ exports.MarkdownDocument.styles = [
       }
     `,
 ];
-__decorate$7([
+__decorate$u([
     property()
 ], exports.MarkdownDocument.prototype, "parser", void 0);
-__decorate$7([
+__decorate$u([
     property()
 ], exports.MarkdownDocument.prototype, "markdown", null);
-__decorate$7([
+__decorate$u([
     property({ attribute: false })
 ], exports.MarkdownDocument.prototype, "toolbar", void 0);
-__decorate$7([
+__decorate$u([
     property()
 ], exports.MarkdownDocument.prototype, "selectionRoot", void 0);
-exports.MarkdownDocument = MarkdownDocument_1 = __decorate$7([
+exports.MarkdownDocument = MarkdownDocument_1 = __decorate$u([
     customElement('markdown-document')
 ], exports.MarkdownDocument);
 
-var __decorate$8 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$t = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48348,20 +48364,20 @@ exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
         return (this.textContent && ((_a = this.textContent) === null || _a === void 0 ? void 0 : _a.length) > 0) || this.children.length > 0;
     }
 };
-exports.ListItem.styles = css `
+exports.ListItem.styles = css$1 `
     :host {
       position: relative;
       left: 20px;
     }
   `;
-__decorate$8([
+__decorate$t([
     property({ type: Boolean })
 ], exports.ListItem.prototype, "spread", void 0);
-exports.ListItem = ListItem_1 = __decorate$8([
+exports.ListItem = ListItem_1 = __decorate$t([
     customElement('markdown-list-item')
 ], exports.ListItem);
 
-var __decorate$9 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$s = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48392,7 +48408,7 @@ exports.MarkdownParagraph = class MarkdownParagraph extends LeafElement {
         }).join('') + '\n\n';
     }
 };
-exports.MarkdownParagraph.styles = css `
+exports.MarkdownParagraph.styles = css$1 `
     :host {
       position: relative;
     }
@@ -48401,11 +48417,11 @@ exports.MarkdownParagraph.styles = css `
       /*white-space: pre-wrap;*/
     }
   `;
-exports.MarkdownParagraph = __decorate$9([
+exports.MarkdownParagraph = __decorate$s([
     customElement('markdown-paragraph')
 ], exports.MarkdownParagraph);
 
-var __decorate$a = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$r = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48431,11 +48447,11 @@ exports.BlockQuote = class BlockQuote extends ContainerElement {
         }).join('');
     }
 };
-exports.BlockQuote = __decorate$a([
+exports.BlockQuote = __decorate$r([
     customElement('markdown-quote')
 ], exports.BlockQuote);
 
-var __decorate$b = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$q = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48449,16 +48465,16 @@ let MarkdownStrong = class MarkdownStrong extends InlineElement {
         return '**' + super.getMarkdown().trim() + '**';
     }
 };
-MarkdownStrong.styles = css `
+MarkdownStrong.styles = css$1 `
     :host {
       font-weight: bold;
     }
   `;
-MarkdownStrong = __decorate$b([
+MarkdownStrong = __decorate$q([
     customElement('markdown-strong')
 ], MarkdownStrong);
 
-var __decorate$c = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$p = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48472,11 +48488,11 @@ let MarkdownEmphasis = class MarkdownEmphasis extends InlineElement {
         return '*' + super.getMarkdown().trim() + '*';
     }
 };
-MarkdownEmphasis = __decorate$c([
+MarkdownEmphasis = __decorate$p([
     customElement('markdown-emphasis')
 ], MarkdownEmphasis);
 
-var __decorate$d = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$o = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48490,11 +48506,11 @@ let MarkdownStrike = class MarkdownStrike extends InlineElement {
         return '~~' + super.getMarkdown().trim() + '~~';
     }
 };
-MarkdownStrike = __decorate$d([
+MarkdownStrike = __decorate$o([
     customElement('markdown-strike')
 ], MarkdownStrike);
 
-var __decorate$e = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$n = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48518,17 +48534,17 @@ let TableRow = class TableRow extends ContainerElement {
         }).join(' | ') + ' |';
     }
 };
-TableRow.styles = css `
+TableRow.styles = css$1 `
     :host {
       display: table-row;
       border: lightgrey 1px solid;
     }
   `;
-TableRow = __decorate$e([
+TableRow = __decorate$n([
     customElement('markdown-table-row')
 ], TableRow);
 
-var __decorate$f = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$m = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48551,18 +48567,18 @@ exports.Table = class Table extends ContainerElement {
         }).join('\n') + '\n';
     }
 };
-exports.Table.styles = css `
+exports.Table.styles = css$1 `
     :host {
       display: table;
       border-collapse: collapse;
       /*border: lightgrey 1px solid;*/
     }
   `;
-exports.Table = __decorate$f([
+exports.Table = __decorate$m([
     customElement('markdown-table')
 ], exports.Table);
 
-var __decorate$g = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$l = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48591,17 +48607,17 @@ exports.TableCell = class TableCell extends ContainerElement {
         }).join('');
     }
 };
-exports.TableCell.styles = css `
+exports.TableCell.styles = css$1 `
     :host {
       display: table-cell;
       border: lightgrey 1px solid;
     }
   `;
-exports.TableCell = __decorate$g([
+exports.TableCell = __decorate$l([
     customElement('markdown-table-cell')
 ], exports.TableCell);
 
-var __decorate$h = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$k = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48620,21 +48636,21 @@ var alignType;
 })(alignType || (alignType = {}));
 exports.TableHeaderCell = class TableHeaderCell extends exports.TableCell {
 };
-exports.TableHeaderCell.styles = css `
+exports.TableHeaderCell.styles = css$1 `
     :host {
       display: table-cell;
       border: lightgrey 1px solid;
       background-color: lightgray;
     }
   `;
-__decorate$h([
+__decorate$k([
     property()
 ], exports.TableHeaderCell.prototype, "align", void 0);
-exports.TableHeaderCell = __decorate$h([
+exports.TableHeaderCell = __decorate$k([
     customElement('markdown-table-header-cell')
 ], exports.TableHeaderCell);
 
-var __decorate$i = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$j = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48648,17 +48664,17 @@ exports.TableHeaderRow = class TableHeaderRow extends TableRow {
             '| ' + '--- |'.repeat(this.children.length);
     }
 };
-exports.TableHeaderRow.styles = css `
+exports.TableHeaderRow.styles = css$1 `
     :host {
       display: table-row;
       border: lightgrey 1px solid;
     }
   `;
-exports.TableHeaderRow = __decorate$i([
+exports.TableHeaderRow = __decorate$j([
     customElement('markdown-table-header-row')
 ], exports.TableHeaderRow);
 
-var __decorate$j = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$i = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48688,7 +48704,7 @@ exports.TaskListItem = class TaskListItem extends exports.ListItem {
     getTaskMarkdown() { return '[' + (this.checked ? 'x' : ' ') + '] '; }
 };
 // TODO reuse inherit from list item
-exports.TaskListItem.styles = css `
+exports.TaskListItem.styles = css$1 `
     :host {
       position: relative;
       left: 20px;
@@ -48705,7 +48721,7 @@ exports.TaskListItem.styles = css `
       display: inline;
     }
   `;
-__decorate$j([
+__decorate$i([
     property({
         type: Boolean,
         converter: {
@@ -48714,7 +48730,7 @@ __decorate$j([
         }
     })
 ], exports.TaskListItem.prototype, "checked", void 0);
-exports.TaskListItem = __decorate$j([
+exports.TaskListItem = __decorate$i([
     customElement('markdown-task-list-item')
 ], exports.TaskListItem);
 
@@ -48738,7 +48754,7 @@ class Heading extends LeafElement {
     }
 }
 
-var __decorate$k = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$h = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48753,7 +48769,7 @@ exports.Header1 = class Header1 extends Heading {
         return html `<h1><slot></slot></h1>`;
     }
 };
-exports.Header1.styles = css `
+exports.Header1.styles = css$1 `
     :host {
       position: relative;
       min-height: 1em;
@@ -48762,11 +48778,11 @@ exports.Header1.styles = css `
       font-size: (--header1-font-size);
     }
   `;
-exports.Header1 = __decorate$k([
+exports.Header1 = __decorate$h([
     customElement('markdown-header-1')
 ], exports.Header1);
 
-var __decorate$l = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$g = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48781,7 +48797,7 @@ exports.Header2 = class Header2 extends Heading {
         return html `<h2><slot></slot></h2>`;
     }
 };
-exports.Header2.styles = css `
+exports.Header2.styles = css$1 `
     :host {
       position: relative;
       min-height: 1em;
@@ -48790,11 +48806,11 @@ exports.Header2.styles = css `
       font-size: (--header2-font-size);
     }
   `;
-exports.Header2 = __decorate$l([
+exports.Header2 = __decorate$g([
     customElement('markdown-header-2')
 ], exports.Header2);
 
-var __decorate$m = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$f = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48809,7 +48825,7 @@ exports.Header3 = class Header3 extends Heading {
         return html `<h3><slot></slot></h3>`;
     }
 };
-exports.Header3.styles = css `
+exports.Header3.styles = css$1 `
     :host {
       position: relative;
       min-height: 1em;
@@ -48818,11 +48834,11 @@ exports.Header3.styles = css `
       font-size: (--header3-font-size);
     }
   `;
-exports.Header3 = __decorate$m([
+exports.Header3 = __decorate$f([
     customElement('markdown-header-3')
 ], exports.Header3);
 
-var __decorate$n = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$e = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48837,7 +48853,7 @@ exports.Header4 = class Header4 extends Heading {
         return html `<h4><slot></slot></h4>`;
     }
 };
-exports.Header4.styles = css `
+exports.Header4.styles = css$1 `
     :host {
       position: relative;
       min-height: 1em;
@@ -48846,11 +48862,11 @@ exports.Header4.styles = css `
       font-size: (--header4-font-size);
     }
   `;
-exports.Header4 = __decorate$n([
+exports.Header4 = __decorate$e([
     customElement('markdown-header-4')
 ], exports.Header4);
 
-var __decorate$o = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$d = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48865,7 +48881,7 @@ exports.Header5 = class Header5 extends Heading {
         return html `<h5><slot></slot></h5>`;
     }
 };
-exports.Header5.styles = css `
+exports.Header5.styles = css$1 `
     :host {
       position: relative;
       min-height: 1em;
@@ -48874,11 +48890,11 @@ exports.Header5.styles = css `
       font-size: (--header5-font-size);
     }
   `;
-exports.Header5 = __decorate$o([
+exports.Header5 = __decorate$d([
     customElement('markdown-header-5')
 ], exports.Header5);
 
-var __decorate$p = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$c = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48893,7 +48909,7 @@ exports.Header6 = class Header6 extends Heading {
         return html `<h6><slot></slot></h6>`;
     }
 };
-exports.Header6.styles = css `
+exports.Header6.styles = css$1 `
     :host {
       position: relative;
       min-height: 1em;
@@ -48902,11 +48918,11 @@ exports.Header6.styles = css `
       font-size: (--header6-font-size);
     }
   `;
-exports.Header6 = __decorate$p([
+exports.Header6 = __decorate$c([
     customElement('markdown-header-6')
 ], exports.Header6);
 
-var __decorate$q = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$b = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48967,7 +48983,7 @@ exports.TableOfContent = class TableOfContent extends LitElement {
         return '${toc}';
     }
 };
-exports.TableOfContent.styles = css `
+exports.TableOfContent.styles = css$1 `
     :host {
       display: block;
     }
@@ -48994,14 +49010,14 @@ exports.TableOfContent.styles = css `
       font-size: 0.9em;
     }
   `;
-__decorate$q([
+__decorate$b([
     property({ attribute: false })
 ], exports.TableOfContent.prototype, "markdownDocument", void 0);
-exports.TableOfContent = __decorate$q([
+exports.TableOfContent = __decorate$b([
     customElement('markdown-toc')
 ], exports.TableOfContent);
 
-var __decorate$r = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$a = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49018,24 +49034,24 @@ exports.NumericList = class NumericList extends ContainerElement {
         return super.getMarkdown() + '\n';
     }
 };
-exports.NumericList.styles = css `
+exports.NumericList.styles = css$1 `
     :host {
       list-style-type: decimal;
   `;
-__decorate$r([
+__decorate$a([
     property({ type: Boolean })
 ], exports.NumericList.prototype, "ordered", void 0);
-__decorate$r([
+__decorate$a([
     property({ type: Number })
 ], exports.NumericList.prototype, "start", void 0);
-__decorate$r([
+__decorate$a([
     property({ type: Boolean })
 ], exports.NumericList.prototype, "spread", void 0);
-exports.NumericList = __decorate$r([
+exports.NumericList = __decorate$a([
     customElement('markdown-numeric-list')
 ], exports.NumericList);
 
-var __decorate$s = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$9 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49164,17 +49180,17 @@ exports.NumericListItem = NumericListItem_1 = class NumericListItem extends Cont
         return (this.textContent && ((_a = this.textContent) === null || _a === void 0 ? void 0 : _a.length) > 0) || this.children.length > 0;
     }
 };
-exports.NumericListItem.styles = css `
+exports.NumericListItem.styles = css$1 `
     :host {
       position: relative;
       left: 20px;
       display: list-item;
     }
   `;
-__decorate$s([
+__decorate$9([
     property({ type: Boolean })
 ], exports.NumericListItem.prototype, "spread", void 0);
-exports.NumericListItem = NumericListItem_1 = __decorate$s([
+exports.NumericListItem = NumericListItem_1 = __decorate$9([
     customElement('markdown-numeric-list-item')
 ], exports.NumericListItem);
 
@@ -49278,7 +49294,7 @@ const classMap = directive((classInfo) => (part) => {
     }
 });
 
-var __decorate$t = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$8 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49297,7 +49313,7 @@ exports.ToolbarButton = class ToolbarButton extends LitElement {
     `;
     }
 };
-exports.ToolbarButton.styles = css `
+exports.ToolbarButton.styles = css$1 `
     button {
       padding: 0;
       margin: 0;
@@ -49313,14 +49329,14 @@ exports.ToolbarButton.styles = css `
       background-color: gray;
     }
   `;
-__decorate$t([
+__decorate$8([
     property({ type: Boolean })
 ], exports.ToolbarButton.prototype, "highlighted", void 0);
-exports.ToolbarButton = __decorate$t([
+exports.ToolbarButton = __decorate$8([
     customElement('toolbar-button')
 ], exports.ToolbarButton);
 
-var __decorate$u = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$7 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49335,7 +49351,7 @@ exports.MaterialIcon = MaterialIcon_1 = class MaterialIcon extends LitElement {
     `;
     }
 };
-exports.MaterialIcon.styles = css `
+exports.MaterialIcon.styles = css$1 `
     .material-icons {
       font-family: 'Material Icons';
       font-weight: normal;
@@ -49353,11 +49369,11 @@ exports.MaterialIcon.styles = css `
       -moz-osx-font-smoothing: grayscale;
     }
   `;
-exports.MaterialIcon = MaterialIcon_1 = __decorate$u([
+exports.MaterialIcon = MaterialIcon_1 = __decorate$7([
     customElement('material-icon')
 ], exports.MaterialIcon);
 
-var __decorate$v = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$6 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49372,7 +49388,7 @@ exports.ToolbarSeparator = class ToolbarSeparator extends LitElement {
     firstUpdated() {
     }
 };
-exports.ToolbarSeparator.styles = css `
+exports.ToolbarSeparator.styles = css$1 `
     .separator {
       width: 1px;
       background-color: gray;
@@ -49380,11 +49396,11 @@ exports.ToolbarSeparator.styles = css `
       margin: 0 4px 0 4px;
     }
   `;
-exports.ToolbarSeparator = __decorate$v([
+exports.ToolbarSeparator = __decorate$6([
     customElement('toolbar-separator')
 ], exports.ToolbarSeparator);
 
-var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$5 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49416,7 +49432,7 @@ exports.ToolbarDropdown = class ToolbarDropdown extends LitElement {
         }, false);
     }
 };
-exports.ToolbarDropdown.styles = css `
+exports.ToolbarDropdown.styles = css$1 `
     :host {
       position: relative;
       z-index: 10;
@@ -49426,11 +49442,11 @@ exports.ToolbarDropdown.styles = css `
       position: fixed;
     }
   `;
-exports.ToolbarDropdown = __decorate$w([
+exports.ToolbarDropdown = __decorate$5([
     customElement('toolbar-dropdown')
 ], exports.ToolbarDropdown);
 
-var __decorate$x = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$4 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49716,7 +49732,7 @@ exports.Toolbar = class Toolbar extends LitElement {
         }
     }
 };
-exports.Toolbar.styles = css `
+exports.Toolbar.styles = css$1 `
     @font-face {
       font-family: 'Material Icons';
       font-style: normal;
@@ -49776,11 +49792,11 @@ exports.Toolbar.styles = css `
       font-weight: bold;
     }
   `;
-exports.Toolbar = __decorate$x([
+exports.Toolbar = __decorate$4([
     customElement('markdown-toolbar')
 ], exports.Toolbar);
 
-var __decorate$y = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$3 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49804,14 +49820,14 @@ exports.MarkdownEditor = class MarkdownEditor extends exports.MarkdownDocument {
     }
 };
 exports.MarkdownEditor.styles = [
-    css `
+    css$1 `
     `
 ];
-exports.MarkdownEditor = __decorate$y([
+exports.MarkdownEditor = __decorate$3([
     customElement('markdown-editor')
 ], exports.MarkdownEditor);
 
-var __decorate$z = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$2 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49828,17 +49844,17 @@ exports.DropdownElement = class DropdownElement extends LitElement {
     firstUpdated() {
     }
 };
-exports.DropdownElement.styles = css `
+exports.DropdownElement.styles = css$1 `
     .clickable:hover {
       background-color: lightblue;
       cursor: pointer;
     }
   `;
-exports.DropdownElement = __decorate$z([
+exports.DropdownElement = __decorate$2([
     customElement('dropdown-element')
 ], exports.DropdownElement);
 
-var __decorate$A = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$1 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49853,7 +49869,7 @@ exports.DropdownElements = class DropdownElements extends LitElement {
     firstUpdated() {
     }
 };
-exports.DropdownElements.styles = css `
+exports.DropdownElements.styles = css$1 `
     :host {
       display: flex;
       flex-direction: column;
@@ -49863,11 +49879,11 @@ exports.DropdownElements.styles = css `
       padding: 10px;
     }
   `;
-exports.DropdownElements = __decorate$A([
+exports.DropdownElements = __decorate$1([
     customElement('dropdown-elements')
 ], exports.DropdownElements);
 
-var __decorate$B = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49886,12 +49902,12 @@ exports.BoldToolbarButton = class BoldToolbarButton extends LitElement {
     `;
     }
 };
-exports.BoldToolbarButton.styles = css `
+exports.BoldToolbarButton.styles = css$1 `
   `;
-__decorate$B([
+__decorate([
     property({ type: Boolean })
 ], exports.BoldToolbarButton.prototype, "highlighted", void 0);
-exports.BoldToolbarButton = __decorate$B([
+exports.BoldToolbarButton = __decorate([
     customElement('bold-toolbar-button')
 ], exports.BoldToolbarButton);
 

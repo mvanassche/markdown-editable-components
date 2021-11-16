@@ -47422,7 +47422,8 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             this.onChange();
         });
         this.addEventListener('blur', () => {
-            this.disableEditable();
+            if (this.getAttribute("contenteditable") == "true")
+                this.disableEditable();
         });
     }
     disconnectedCallback() {
@@ -47447,31 +47448,32 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
     }
     onEndMouseSelection() {
-        if (this.isChrome) {
+        if (this.isChrome && this.getAttribute("contenteditable") == "false") {
             this.setAttribute("contenteditable", "true");
             this.focus();
         }
     }
-    mousedown() {
-        // e.buttons % 2 == 1 ???
-        this._mouseSelection = true;
+    mousedown(e) {
+        if (e.buttons % 2 == 1) {
+            this._mouseSelection = true;
+        }
     }
     mouseup() {
         this._mouseSelection = false;
         this.onEndMouseSelection();
     }
     selectstart() {
-        if (this._mouseSelection) {
-            this.onMouseSelection();
-        }
+        /*const selection = this.getSelection();
+        if (selection?.anchorNode) {
+          if (this.contains(selection?.anchorNode)) {
+            if(this._mouseSelection) {
+              this.onMouseSelection();
+            }
+          }
+        }*/
     }
     selectionchange() {
         const selection = this.getSelection();
-        if (this._mouseSelection) {
-            this.onMouseSelection();
-        } /* else {
-          this.onEndMouseSelection();
-        }*/
         if (selection === null || selection === void 0 ? void 0 : selection.anchorNode) {
             if (this.contains(selection === null || selection === void 0 ? void 0 : selection.anchorNode)) {
                 let element = selection.anchorNode;
@@ -47479,6 +47481,11 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                     element = element.parentNode;
                 }
                 if (element instanceof MarkdownLitElement && element.isEditable()) {
+                    if (this._mouseSelection) {
+                        this.onMouseSelection();
+                    } /* else {
+                      this.onEndMouseSelection();
+                    }*/
                     this.enableEditable();
                 }
                 else {
@@ -47496,7 +47503,6 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 this.affectToolbar();
             }
             else {
-                //
                 this.disableEditable();
             }
         }
@@ -49754,6 +49760,9 @@ exports.Toolbar.styles = css$1 `
       font-feature-settings: 'liga';
       -moz-font-feature-settings: 'liga';
       -moz-osx-font-smoothing: grayscale;
+    }
+    :host(.focus-disabled:hover) {
+      opacity: 1.0;
     }
     :host {
       display: block;

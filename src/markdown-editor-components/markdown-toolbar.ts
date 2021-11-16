@@ -32,6 +32,9 @@ export class Toolbar extends LitElement {
       -moz-font-feature-settings: 'liga';
       -moz-osx-font-smoothing: grayscale;
     }
+    :host(.focus-disabled:hover) {
+      opacity: 1.0;
+    }
     :host {
       display: block;
       border: solid 1px gray;

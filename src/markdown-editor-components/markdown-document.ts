@@ -145,6 +145,7 @@ export class MarkdownDocument extends LitElement {
 
 
     this.addEventListener('blur', () => {
+      if(this.getAttribute("contenteditable") == "true")
       this.disableEditable();
     });
 
@@ -169,45 +170,53 @@ export class MarkdownDocument extends LitElement {
   onMouseSelection() {
   // see https://bugs.chromium.org/p/chromium/issues/detail?id=1162730
   if(this.isChrome) {
-      this.setAttribute("contenteditable", "false");
+    this.setAttribute("contenteditable", "false");
     }
   }
   onEndMouseSelection() {
-    if(this.isChrome) {
+    if(this.isChrome && this.getAttribute("contenteditable") == "false") {
       this.setAttribute("contenteditable", "true");
       this.focus();
     }
   }
 
-  mousedown() {
-    // e.buttons % 2 == 1 ???
-    this._mouseSelection = true;
+  mousedown(e: MouseEvent) {
+    if(e.buttons % 2 == 1) {
+      this._mouseSelection = true;
+    }
   }
   mouseup() {
     this._mouseSelection = false;
     this.onEndMouseSelection();
   }
   selectstart() {
-    if(this._mouseSelection) {
-      this.onMouseSelection();
-    }
+    /*const selection = this.getSelection();
+    if (selection?.anchorNode) {
+      if (this.contains(selection?.anchorNode)) {
+        if(this._mouseSelection) {
+          this.onMouseSelection();
+        }
+      }
+    }*/
   }
 
   selectionchange() {
     const selection = this.getSelection();
-    if(this._mouseSelection) {
-      this.onMouseSelection();
-    }/* else {
-      this.onEndMouseSelection();
-    }*/
 
     if (selection?.anchorNode) {
       if (this.contains(selection?.anchorNode)) {
+
+
         let element: Node | null = selection.anchorNode;
         while (element && !(element instanceof MarkdownLitElement)) {
           element = element.parentNode;
         }
         if (element instanceof MarkdownLitElement && element.isEditable()) {
+          if(this._mouseSelection) {
+            this.onMouseSelection();
+          }/* else {
+            this.onEndMouseSelection();
+          }*/    
           this.enableEditable();
         } else {
           this.disableEditable();
@@ -224,7 +233,6 @@ export class MarkdownDocument extends LitElement {
         this.debugSelection();
         this.affectToolbar();
       } else {
-        //
         this.disableEditable();
       }
     } else {

@@ -47697,6 +47697,17 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 });
                 child.remove();
             }
+            else if (child instanceof Text) {
+                let p = document.createElement('markdown-paragraph');
+                p.textContent = child.textContent;
+                child.replaceWith(p);
+                p.normalizeContent();
+            }
+        }
+        if (this.lastElementChild == null || this.lastElementChild.tagName.toLowerCase() != 'markdown-paragraph') {
+            let p = document.createElement('markdown-paragraph');
+            p.textContent = '\u200b';
+            this.append(p);
         }
     }
     contentLength() {
@@ -47744,6 +47755,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         // TODO: do not remove the toolbar!? Or maybe there should be
         // a markdown-editor component above document?
         this.innerHTML = this.parser(markdown);
+        this.normalizeContent();
     }
     getMarkdown() {
         return Array.from(this.children).map((child) => {

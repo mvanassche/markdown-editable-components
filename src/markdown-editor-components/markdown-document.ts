@@ -421,7 +421,17 @@ export class MarkdownDocument extends LitElement {
           this.append(divChild);
         })
         child.remove();
+      } else if (child instanceof Text) {
+        let p = document.createElement('markdown-paragraph');
+        p.textContent = child.textContent;
+        child.replaceWith(p);
+        p.normalizeContent();
       }
+    }
+    if(this.lastElementChild == null || this.lastElementChild.tagName.toLowerCase() != 'markdown-paragraph') {
+      let p = document.createElement('markdown-paragraph');
+      p.textContent = '\u200b';
+      this.append(p);
     }
   }
 
@@ -479,6 +489,7 @@ export class MarkdownDocument extends LitElement {
     // a markdown-editor component above document?
 
     this.innerHTML = this.parser(markdown);
+    this.normalizeContent();
   }
 
   public getMarkdown(): string {

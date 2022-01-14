@@ -10,11 +10,6 @@ export class MarkdownLink extends InlineElement {
   title: string = ''; // TODO make it optional
 
   static styles = css`
-  `;
-
-  render() {
-    return html`
-      <style>
         :host {
           position: relative;
         }
@@ -46,13 +41,10 @@ export class MarkdownLink extends InlineElement {
           left: 15px;
           box-shadow: 0px 0px 5px 2px rgb(0 0 0 / 50%);
         }
-      </style>
-      <a href="${this.destination}" title="${this.title}">
-        <slot></slot>
-      </a>
-      <span class='show-link' @click=${this.destinationShow}>✎</span>
-      <input placeholder='http://' class='destination-input' value="${this.destination}" @input='${this.destinationInput}' @blur='${this.destinationHide}' @keydown='${this.destinationKey}'/>
-    `;
+  `;
+
+  render() {
+    return html`<a href="${this.destination}" title="${this.title}"><slot></slot></a><span class='show-link' @click=${this.destinationShow}>✎</span><input placeholder='http://' class='destination-input' value="${this.destination}" @input='${this.destinationInput}' @blur='${this.destinationHide}' @keydown='${this.destinationKey}'/>`;
   }
 
   connectedCallback() {

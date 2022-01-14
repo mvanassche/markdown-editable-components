@@ -421,7 +421,7 @@ export class MarkdownDocument extends LitElement {
           this.append(divChild);
         })
         child.remove();
-      } else if (child instanceof Text) {
+      } else if (child instanceof Text && child.textContent!.trim().length > 0) {
         let p = document.createElement('markdown-paragraph');
         p.textContent = child.textContent;
         child.replaceWith(p);

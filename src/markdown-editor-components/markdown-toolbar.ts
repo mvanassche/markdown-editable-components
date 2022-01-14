@@ -149,15 +149,15 @@ export class Toolbar extends LitElement {
           <toolbar-button @click=${this.codeButtonClick}>
             <material-icon>format_quote</material-icon>
           </toolbar-button>
-          <toolbar-button>
+          <!--toolbar-button>
             <material-icon>border_all</material-icon>
-          </toolbar-button>
+          </toolbar-button-->
           <toolbar-button @click=${this.breakButtonClick}>
             <material-icon>horizontal_rule</material-icon>
           </toolbar-button>
-          <toolbar-button>
+          <!--toolbar-button>
             <material-icon>format_size</material-icon>
-          </toolbar-button>
+          </toolbar-button-->
 
           <toolbar-dropdown>
             <material-icon>insert_photo</material-icon>
@@ -168,14 +168,14 @@ export class Toolbar extends LitElement {
             </dropdown-elements>
           </toolbar-dropdown>
 
-          <toolbar-dropdown>
+          <toolbar-button @click=${this.insertLinkButtonClick}>
             <material-icon>insert_link</material-icon>
-            <dropdown-elements slot='dropdown-elements' id='insert-link'>
+            <!--dropdown-elements slot='dropdown-elements' id='insert-link'>
               URL: <input type="text" class="insert-link-url">
               Text: <input type="text" class="insert-link-text">
               <button @click=${this.insertLinkButtonClick}>Insert</button>
-            </dropdown-elements>
-          </toolbar-dropdown>
+            </dropdown-elements-->
+          </toolbar-button>
 
           <toolbar-button @click=${this.codeBlockButtonClick}>
             <material-icon>code</material-icon>
@@ -227,10 +227,10 @@ export class Toolbar extends LitElement {
   }
 
   insertLinkButtonClick() {
-    const linkURLInput = this.shadowRoot?.querySelector('input.insert-link-url') as HTMLInputElement;
-    const linkTextInput = this.shadowRoot?.querySelector('input.insert-link-text') as HTMLInputElement;
+    //const linkURLInput = this.shadowRoot?.querySelector('input.insert-link-url') as HTMLInputElement;
+    //const linkTextInput = this.shadowRoot?.querySelector('input.insert-link-text') as HTMLInputElement;
 
-    this.markdownDocument?.insertLink(linkURLInput.value, linkTextInput.value);
+    this.markdownDocument?.insertLink(); //linkURLInput.value, linkTextInput.value);
   }
 
   firstUpdated() {

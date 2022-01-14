@@ -449,7 +449,9 @@ export class MarkdownDocument extends LitElement {
 
 
   onChange() {
-    this.dispatchEvent(new CustomEvent("change")); // TODO, what should be the event details? also add other changes than inputs
+    setTimeout(() => {
+      this.dispatchEvent(new CustomEvent("change")); // TODO, what should be the event details? also add other changes than inputs
+    }, 0);
   }
 
   public setToolbar(toolbar: Toolbar) {
@@ -743,19 +745,19 @@ export class MarkdownDocument extends LitElement {
     }
   }
 
-  makeItalic() {
+  wrapCurrentSelectionInNewElement(elementName: string): HTMLElement | null {
     const anchorOffset = this.currentSelection?.anchorOffset;
     const focusOffset = this.currentSelection?.focusOffset;
     const parent = this.currentSelection?.anchorNode?.parentElement;
 
-    if (parent && anchorOffset && focusOffset) {
-      const selectionLength = focusOffset - anchorOffset;
+    if (parent != null && anchorOffset != null && focusOffset != null) {
+      const selectionLength = Math.abs(focusOffset - anchorOffset);
 
       const text = this.currentSelection?.anchorNode as Text;
-      const secondPart = text.splitText(anchorOffset);
+      const secondPart = text.splitText(Math.min(anchorOffset, focusOffset));
       const thirdPart = secondPart.splitText(selectionLength);
       thirdPart;
-      const replacement = document.createElement('markdown-emphasis');
+      const replacement = document.createElement(elementName);
       replacement.appendChild(document.createTextNode(secondPart.data))
       secondPart.replaceWith(replacement);
 
@@ -764,79 +766,26 @@ export class MarkdownDocument extends LitElement {
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
       this.onChange();
+      return replacement;
+    } else {
+      return null;
     }
+  }
+
+  makeItalic() {
+    this.wrapCurrentSelectionInNewElement('markdown-emphasis');
   }
 
   makeUnderline() {
-    const anchorOffset = this.currentSelection?.anchorOffset;
-    const focusOffset = this.currentSelection?.focusOffset;
-    const parent = this.currentSelection?.anchorNode?.parentElement;
-
-    if (parent && anchorOffset && focusOffset) {
-      const selectionLength = focusOffset - anchorOffset;
-
-      const text = this.currentSelection?.anchorNode as Text;
-      const secondPart = text.splitText(anchorOffset);
-      const thirdPart = secondPart.splitText(selectionLength);
-      thirdPart;
-      const replacement = document.createElement('u');
-      replacement.appendChild(document.createTextNode(secondPart.data))
-      secondPart.replaceWith(replacement);
-
-      const range = document.createRange();
-      range.selectNodeContents(replacement);
-      this.currentSelection?.removeAllRanges();
-      this.currentSelection?.addRange(range);
-      this.onChange();
-    }
+    this.wrapCurrentSelectionInNewElement('u');
   }
 
   makeStrike() {
-    const anchorOffset = this.currentSelection?.anchorOffset;
-    const focusOffset = this.currentSelection?.focusOffset;
-    const parent = this.currentSelection?.anchorNode?.parentElement;
-
-    if (parent && anchorOffset && focusOffset) {
-      const selectionLength = focusOffset - anchorOffset;
-
-      const text = this.currentSelection?.anchorNode as Text;
-      const secondPart = text.splitText(anchorOffset);
-      const thirdPart = secondPart.splitText(selectionLength);
-      thirdPart;
-      const replacement = document.createElement('markdown-strike');
-      replacement.appendChild(document.createTextNode(secondPart.data))
-      secondPart.replaceWith(replacement);
-
-      const range = document.createRange();
-      range.selectNodeContents(replacement);
-      this.currentSelection?.removeAllRanges();
-      this.currentSelection?.addRange(range);
-      this.onChange();
-    }
+    this.wrapCurrentSelectionInNewElement('markdown-strike');
   }
 
   makeCodeInline() {
-    const anchorOffset = this.currentSelection?.anchorOffset;
-    const focusOffset = this.currentSelection?.focusOffset;
-    const parent = this.currentSelection?.anchorNode?.parentElement;
-
-    if (parent && anchorOffset && focusOffset) {
-      const selectionLength = focusOffset - anchorOffset;
-
-      const text = this.currentSelection?.anchorNode as Text;
-      const secondPart = text.splitText(anchorOffset);
-      const thirdPart = secondPart.splitText(selectionLength);
-      thirdPart;
-      const replacement = document.createElement('markdown-code-span');
-      replacement.appendChild(document.createTextNode(secondPart.data))
-      secondPart.replaceWith(replacement);
-
-      const range = document.createRange();
-      range.selectNodeContents(replacement);
-      this.currentSelection?.removeAllRanges();
-      this.currentSelection?.addRange(range);
-      this.onChange();
-    }
+    this.wrapCurrentSelectionInNewElement('markdown-code-span');
   }
 
   listBulletedClick() {
@@ -906,10 +855,23 @@ export class MarkdownDocument extends LitElement {
     this.currentSelection?.addRange(range);
   }
 
-  insertLink(url: string, text: string) {
-    this.restoreStashedSelection();
+  insertLink() { //url: string, text: string) {
+    let link = this.wrapCurrentSelectionInNewElement('markdown-link') as MarkdownLink;
+    if(link.textContent != null) {
+      if(link.textContent == '') {
+        link.textContent = 'http://'; 
+      }
+      link.destination = link.textContent;
+    }
+    link?.classList.add('fresh');
 
-    if (this.currentSelection?.anchorNode) {
+    //this.restoreStashedSelection();
+
+    //let link = this.wrapCurrentSelectionInNewElement('markdown-link') as MarkdownLink;
+    //link.destination = url;
+    //link.innerHTML = text;
+
+    /*if (this.currentSelection?.anchorNode) {
       const link = document.createElement('markdown-link') as MarkdownLink;
       link.destination = url;
       link.innerHTML = text;
@@ -926,7 +888,7 @@ export class MarkdownDocument extends LitElement {
         text.after(link);
         this.onChange();
       }
-    }
+    }*/
   }
 
   header1Element() {

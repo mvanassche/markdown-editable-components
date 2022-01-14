@@ -2737,16 +2737,30 @@ class MarkdownLitElement extends LitElement {
                 rightElement = this.newEmptyElementAfterBreak();
             }
             else if (elementsToMove.length == 1 && elementsToMove[0] instanceof Text && elementsToMove[0].textContent == '\u200b') {
-                rightElement = document.createElement(this.newEmptyElementNameAfterBreak());
+                let name = this.newEmptyElementNameAfterBreak();
+                if (name != null) {
+                    rightElement = document.createElement(name);
+                }
+                else {
+                    rightElement = null;
+                }
             }
             else {
                 rightElement = document.createElement(this.tagName);
             }
-            elementsToMove.forEach((elementToMove) => {
-                //this.removeChild(elementToMove);
-                rightElement.append(elementToMove);
-            });
-            this.parentNode.insertBefore(rightElement, this.nextSibling);
+            if (rightElement != null) {
+                elementsToMove.forEach((elementToMove) => {
+                    //this.removeChild(elementToMove);
+                    rightElement === null || rightElement === void 0 ? void 0 : rightElement.append(elementToMove);
+                });
+                this.parentNode.insertBefore(rightElement, this.nextSibling);
+            }
+            else {
+                elementsToMove.forEach((elementToMove) => {
+                    var _a;
+                    (_a = this.parentNode) === null || _a === void 0 ? void 0 : _a.insertBefore(elementToMove, this.nextSibling);
+                });
+            }
         }
     }
     newEmptyElement(tagName) {
@@ -2761,7 +2775,13 @@ class MarkdownLitElement extends LitElement {
         this.appendChild(textNode);
     }
     newEmptyElementAfterBreak() {
-        return this.newEmptyElement(this.newEmptyElementNameAfterBreak());
+        let name = this.newEmptyElementNameAfterBreak();
+        if (name != null) {
+            return this.newEmptyElement(name);
+        }
+        else {
+            return null;
+        }
     }
     newEmptyElementNameAfterBreak() {
         return this.tagName;
@@ -45889,13 +45909,95 @@ exports.MarkdownLink = class MarkdownLink extends InlineElement {
     }
     render() {
         return html `
+      <style>
+        :host {
+          position: relative;
+        }
+        .show-link {
+          user-select: none;
+          position: absolute;
+          background: white;
+          padding: 3px;
+          top: -8px;
+          right: -20px;
+          cursor: default;
+          opacity: 0.0;
+          transition: opacity 1s ease-in-out;
+        }
+        :host(:hover) .show-link, :host(.fresh) .show-link {
+          opacity: 1.0;
+        }
+        /*:host(.fresh) .destination-input {
+          display: block;
+        }*/
+        .destination-input.visible {
+          display: block;
+        }
+        .destination-input {
+          display: none;
+          position: absolute;
+          z-index: 10;
+          top: -15px;
+          left: 15px;
+          box-shadow: 0px 0px 5px 2px rgb(0 0 0 / 50%);
+        }
+      </style>
       <a href="${this.destination}" title="${this.title}">
         <slot></slot>
       </a>
+      <span class='show-link' @click=${this.destinationShow}>✎</span>
+      <input placeholder='http://' class='destination-input' value="${this.destination}" @input='${this.destinationInput}' @blur='${this.destinationHide}' @keydown='${this.destinationKey}'/>
     `;
     }
+    connectedCallback() {
+        super.connectedCallback();
+        setTimeout(() => this.classList.remove('fresh'), 5000);
+    }
+    firstUpdated() {
+        this.updateLinkTarget();
+    }
+    updateLinkTarget() {
+        // if the link is local, then we can do it in the same window, if external, then need to go in blank tab.
+        let a = this.shadowRoot.querySelector('a');
+        if (this.destination.startsWith('#')) {
+            a.target = '_self';
+        }
+        else {
+            a.target = '_blank';
+        }
+    }
+    destinationInput() {
+        let input = this.shadowRoot.querySelector('input');
+        this.destination = input.value;
+        this.updateLinkTarget();
+    }
+    destinationHide() {
+        let input = this.shadowRoot.querySelector('input');
+        this.classList.remove('fresh');
+        input.classList.remove('visible');
+    }
+    destinationShow() {
+        let input = this.shadowRoot.querySelector('input');
+        input.classList.add('visible');
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+    }
+    destinationKey(e) {
+        if (e.key === 'Enter') {
+            e.target.blur();
+        }
+    }
+    newEmptyElementNameAfterBreak() {
+        // after a link, we typically want a paragraph!
+        return null;
+    }
     getMarkdown() {
-        return `[${this.innerText}](${this.destination} "${this.title}")`;
+        if (this.title) {
+            return `[${this.innerText}](${this.destination} "${this.title}")`;
+        }
+        else {
+            return `[${this.innerText}](${this.destination})`;
+        }
     }
 };
 exports.MarkdownLink.styles = css$1 `
@@ -47722,7 +47824,9 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         return result;
     }
     onChange() {
-        this.dispatchEvent(new CustomEvent("change")); // TODO, what should be the event details? also add other changes than inputs
+        setTimeout(() => {
+            this.dispatchEvent(new CustomEvent("change")); // TODO, what should be the event details? also add other changes than inputs
+        }, 0);
     }
     setToolbar(toolbar) {
         this.toolbar = toolbar;
@@ -47964,17 +48068,17 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             }
         }
     }
-    makeItalic() {
+    wrapCurrentSelectionInNewElement(elementName) {
         var _a, _b, _c, _d, _e, _f, _g;
         const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
         const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
         const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
-        if (parent && anchorOffset && focusOffset) {
-            const selectionLength = focusOffset - anchorOffset;
+        if (parent != null && anchorOffset != null && focusOffset != null) {
+            const selectionLength = Math.abs(focusOffset - anchorOffset);
             const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
-            const secondPart = text.splitText(anchorOffset);
+            const secondPart = text.splitText(Math.min(anchorOffset, focusOffset));
             secondPart.splitText(selectionLength);
-            const replacement = document.createElement('markdown-emphasis');
+            const replacement = document.createElement(elementName);
             replacement.appendChild(document.createTextNode(secondPart.data));
             secondPart.replaceWith(replacement);
             const range = document.createRange();
@@ -47982,67 +48086,23 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
             (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
             this.onChange();
+            return replacement;
         }
+        else {
+            return null;
+        }
+    }
+    makeItalic() {
+        this.wrapCurrentSelectionInNewElement('markdown-emphasis');
     }
     makeUnderline() {
-        var _a, _b, _c, _d, _e, _f, _g;
-        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
-        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
-        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
-        if (parent && anchorOffset && focusOffset) {
-            const selectionLength = focusOffset - anchorOffset;
-            const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
-            const secondPart = text.splitText(anchorOffset);
-            secondPart.splitText(selectionLength);
-            const replacement = document.createElement('u');
-            replacement.appendChild(document.createTextNode(secondPart.data));
-            secondPart.replaceWith(replacement);
-            const range = document.createRange();
-            range.selectNodeContents(replacement);
-            (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
-            (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
-            this.onChange();
-        }
+        this.wrapCurrentSelectionInNewElement('u');
     }
     makeStrike() {
-        var _a, _b, _c, _d, _e, _f, _g;
-        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
-        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
-        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
-        if (parent && anchorOffset && focusOffset) {
-            const selectionLength = focusOffset - anchorOffset;
-            const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
-            const secondPart = text.splitText(anchorOffset);
-            secondPart.splitText(selectionLength);
-            const replacement = document.createElement('markdown-strike');
-            replacement.appendChild(document.createTextNode(secondPart.data));
-            secondPart.replaceWith(replacement);
-            const range = document.createRange();
-            range.selectNodeContents(replacement);
-            (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
-            (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
-            this.onChange();
-        }
+        this.wrapCurrentSelectionInNewElement('markdown-strike');
     }
     makeCodeInline() {
-        var _a, _b, _c, _d, _e, _f, _g;
-        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
-        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
-        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
-        if (parent && anchorOffset && focusOffset) {
-            const selectionLength = focusOffset - anchorOffset;
-            const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
-            const secondPart = text.splitText(anchorOffset);
-            secondPart.splitText(selectionLength);
-            const replacement = document.createElement('markdown-code-span');
-            replacement.appendChild(document.createTextNode(secondPart.data));
-            secondPart.replaceWith(replacement);
-            const range = document.createRange();
-            range.selectNodeContents(replacement);
-            (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
-            (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
-            this.onChange();
-        }
+        this.wrapCurrentSelectionInNewElement('markdown-code-span');
     }
     listBulletedClick() {
         var _a, _b, _c, _d;
@@ -48102,23 +48162,37 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.removeAllRanges();
         (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.addRange(range);
     }
-    insertLink(url, text) {
-        var _a, _b, _c, _d, _e, _f;
-        this.restoreStashedSelection();
-        if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) {
-            const link = document.createElement('markdown-link');
-            link.destination = url;
-            link.innerHTML = text;
-            const anchorOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorOffset;
-            const focusOffset = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.focusOffset;
-            const parent = (_e = (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.anchorNode) === null || _e === void 0 ? void 0 : _e.parentElement;
-            if (parent && anchorOffset && focusOffset) {
-                const text = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode;
-                text.splitText(anchorOffset);
-                text.after(link);
-                this.onChange();
+    insertLink() {
+        let link = this.wrapCurrentSelectionInNewElement('markdown-link');
+        if (link.textContent != null) {
+            if (link.textContent == '') {
+                link.textContent = 'http://';
             }
+            link.destination = link.textContent;
         }
+        link === null || link === void 0 ? void 0 : link.classList.add('fresh');
+        //this.restoreStashedSelection();
+        //let link = this.wrapCurrentSelectionInNewElement('markdown-link') as MarkdownLink;
+        //link.destination = url;
+        //link.innerHTML = text;
+        /*if (this.currentSelection?.anchorNode) {
+          const link = document.createElement('markdown-link') as MarkdownLink;
+          link.destination = url;
+          link.innerHTML = text;
+    
+          const anchorOffset = this.currentSelection?.anchorOffset;
+          const focusOffset = this.currentSelection?.focusOffset;
+          const parent = this.currentSelection?.anchorNode?.parentElement;
+      
+          if (parent && anchorOffset && focusOffset) {
+            const text = this.currentSelection?.anchorNode as Text;
+            const secondPart = text.splitText(anchorOffset);
+            secondPart;
+    
+            text.after(link);
+            this.onChange();
+          }
+        }*/
     }
     header1Element() {
         const element = document.createElement('markdown-header-1');
@@ -49553,15 +49627,15 @@ exports.Toolbar = class Toolbar extends LitElement {
           <toolbar-button @click=${this.codeButtonClick}>
             <material-icon>format_quote</material-icon>
           </toolbar-button>
-          <toolbar-button>
+          <!--toolbar-button>
             <material-icon>border_all</material-icon>
-          </toolbar-button>
+          </toolbar-button-->
           <toolbar-button @click=${this.breakButtonClick}>
             <material-icon>horizontal_rule</material-icon>
           </toolbar-button>
-          <toolbar-button>
+          <!--toolbar-button>
             <material-icon>format_size</material-icon>
-          </toolbar-button>
+          </toolbar-button-->
 
           <toolbar-dropdown>
             <material-icon>insert_photo</material-icon>
@@ -49572,14 +49646,14 @@ exports.Toolbar = class Toolbar extends LitElement {
             </dropdown-elements>
           </toolbar-dropdown>
 
-          <toolbar-dropdown>
+          <toolbar-button @click=${this.insertLinkButtonClick}>
             <material-icon>insert_link</material-icon>
-            <dropdown-elements slot='dropdown-elements' id='insert-link'>
+            <!--dropdown-elements slot='dropdown-elements' id='insert-link'>
               URL: <input type="text" class="insert-link-url">
               Text: <input type="text" class="insert-link-text">
               <button @click=${this.insertLinkButtonClick}>Insert</button>
-            </dropdown-elements>
-          </toolbar-dropdown>
+            </dropdown-elements-->
+          </toolbar-button>
 
           <toolbar-button @click=${this.codeBlockButtonClick}>
             <material-icon>code</material-icon>
@@ -49627,10 +49701,10 @@ exports.Toolbar = class Toolbar extends LitElement {
         (_c = this.markdownDocument) === null || _c === void 0 ? void 0 : _c.insertPhoto(photoURLInput.value, photoTextInput.value);
     }
     insertLinkButtonClick() {
-        var _a, _b, _c;
-        const linkURLInput = (_a = this.shadowRoot) === null || _a === void 0 ? void 0 : _a.querySelector('input.insert-link-url');
-        const linkTextInput = (_b = this.shadowRoot) === null || _b === void 0 ? void 0 : _b.querySelector('input.insert-link-text');
-        (_c = this.markdownDocument) === null || _c === void 0 ? void 0 : _c.insertLink(linkURLInput.value, linkTextInput.value);
+        //const linkURLInput = this.shadowRoot?.querySelector('input.insert-link-url') as HTMLInputElement;
+        //const linkTextInput = this.shadowRoot?.querySelector('input.insert-link-text') as HTMLInputElement;
+        var _a;
+        (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.insertLink(); //linkURLInput.value, linkTextInput.value);
     }
     firstUpdated() {
         var _a, _b, _c, _d, _e, _f;

@@ -30,20 +30,31 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
       for (let j = indexOfBreak + 1; j < this.childNodes.length; j++) {
         elementsToMove.push(this.childNodes[j]);
       }
-      let rightElement: HTMLElement
+      let rightElement: HTMLElement | null
       if(elementsToMove.length == 0) {
         rightElement = this.newEmptyElementAfterBreak();
       } else if(elementsToMove.length == 1 && elementsToMove[0] instanceof Text && elementsToMove[0].textContent == '\u200b') {
-        rightElement = document.createElement(this.newEmptyElementNameAfterBreak());
+        let name = this.newEmptyElementNameAfterBreak();
+        if(name != null) {
+          rightElement = document.createElement(name);
+        } else {
+          rightElement = null;
+        }
       } else {
         rightElement = document.createElement(this.tagName);
       }
 
-      elementsToMove.forEach((elementToMove) => {
-        //this.removeChild(elementToMove);
-        rightElement.append(elementToMove);
-      });
-      this.parentNode.insertBefore(rightElement, this.nextSibling);
+      if(rightElement != null) {
+        elementsToMove.forEach((elementToMove) => {
+          //this.removeChild(elementToMove);
+          rightElement?.append(elementToMove);
+        });
+        this.parentNode.insertBefore(rightElement, this.nextSibling);
+      } else {
+        elementsToMove.forEach((elementToMove) => {
+          this.parentNode?.insertBefore(elementToMove, this.nextSibling);
+        });
+      }
     }
   }
 
@@ -61,11 +72,16 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
   }
 
 
-  newEmptyElementAfterBreak(): HTMLElement {
-    return this.newEmptyElement(this.newEmptyElementNameAfterBreak());
+  newEmptyElementAfterBreak(): HTMLElement | null {
+    let name = this.newEmptyElementNameAfterBreak();
+    if(name != null) {
+      return this.newEmptyElement(name);
+    } else {
+      return null;
+    }
   }
 
-  newEmptyElementNameAfterBreak(): string {
+  newEmptyElementNameAfterBreak(): string | null {
     return this.tagName;
   }
 

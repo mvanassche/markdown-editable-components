@@ -1,12 +1,14 @@
 import { LitElement, html, customElement, css } from 'lit-element';
 import { MarkdownDocument } from './markdown-document';
-import { BoldToolbarButton } from './toolbar-buttons/bold-toolbar-button';
+import { ToggleToolbarButton } from './toolbar-buttons/toggle-toolbar-button';
 
 @customElement('markdown-toolbar')
 export class Toolbar extends LitElement {
 
   markdownDocument: MarkdownDocument | null = null;
-  boldButton: BoldToolbarButton | null = null;
+  boldButton: ToggleToolbarButton | null = null;
+  italicButton: ToggleToolbarButton | null = null;
+  strikeButton: ToggleToolbarButton | null = null;
   dropdownTitle: Element | null = null;
 
   static styles = css`
@@ -106,16 +108,12 @@ export class Toolbar extends LitElement {
 
           <toolbar-separator></toolbar-separator>
 
-          <bold-toolbar-button @click=${this.boldButtonClick}></bold-toolbar-button>
-          <toolbar-button @click=${this.italicButtonClick}>
-            <material-icon>format_italic</material-icon>
-          </toolbar-button>
-          <toolbar-button @click=${this.underlineButtonClick}>
+          <toggle-toolbar-button class='bold' @click=${this.boldButtonClick}>format_bold</toggle-toolbar-button>
+          <toggle-toolbar-button class='italic' @click=${this.italicButtonClick}>format_italic</toggle-toolbar-button>
+          <toggle-toolbar-button class='strike' @click=${this.strikeButtonClick}>format_strikethrough</toggle-toolbar-button>
+          <!--toolbar-button @click=${this.underlineButtonClick}>
             <material-icon>format_underlined</material-icon>
-          </toolbar-button>
-          <toolbar-button @click=${this.strikeButtonClick}>
-            <material-icon>format_strikethrough</material-icon>
-          </toolbar-button>
+          </toolbar-button-->
 
           <toolbar-separator></toolbar-separator>
 
@@ -244,10 +242,9 @@ export class Toolbar extends LitElement {
       // e.preventDefault();
     }, false);
 
-    const boldButton = this.shadowRoot?.querySelector('bold-toolbar-button');
-    if (boldButton) {
-      this.boldButton = boldButton as BoldToolbarButton;
-    }
+    this.boldButton = this.shadowRoot?.querySelector('.bold') as ToggleToolbarButton;
+    this.italicButton = this.shadowRoot?.querySelector('.italic') as ToggleToolbarButton;
+    this.strikeButton = this.shadowRoot?.querySelector('.strike') as ToggleToolbarButton;
 
     // TODO: make controller for the toolbar-dropdown
     const dropdownTitle = this.shadowRoot?.querySelector('.dropdown-title');
@@ -303,11 +300,14 @@ export class Toolbar extends LitElement {
     }
   }
 
-  italicButtonClick(e: MouseEvent) {
-    // e.preventDefault();
-    e;
-    // console.log(this.markdownEditor?.currentSelection);
-    this.markdownDocument?.makeItalic();
+  italicButtonClick() {
+    if(this.italicButton) {
+      if(this.italicButton.highlighted) {
+        this.markdownDocument?.removeItalic();
+      } else {
+        this.markdownDocument?.makeItalic();
+      }
+    }
   }
 
   underlineButtonClick(e: MouseEvent) {
@@ -317,11 +317,14 @@ export class Toolbar extends LitElement {
     this.markdownDocument?.makeUnderline();
   }
 
-  strikeButtonClick(e: MouseEvent) {
-    // e.preventDefault();
-    e;
-    // console.log(this.markdownEditor?.currentSelection);
-    this.markdownDocument?.makeStrike();
+  strikeButtonClick() {
+    if(this.strikeButton) {
+      if(this.strikeButton.highlighted) {
+        this.markdownDocument?.removeStrike();
+      } else {
+        this.markdownDocument?.makeStrike();
+      }
+    }
   }
 
   codeButtonClick(e: MouseEvent) {
@@ -363,6 +366,31 @@ export class Toolbar extends LitElement {
       this.boldButton.highlighted = false;
     }
   }
+
+  highlightItalicButton() {
+    if (this.italicButton) {
+      this.italicButton.highlighted = true;
+    }
+  }
+
+  removeItalicButtonHighlighting() {
+    if (this.italicButton) {
+      this.italicButton.highlighted = false;
+    }
+  }
+
+  highlightStrikeButton() {
+    if (this.strikeButton) {
+      this.strikeButton.highlighted = true;
+    }
+  }
+
+  removeBoldStrikeHighlighting() {
+    if (this.strikeButton) {
+      this.strikeButton.highlighted = false;
+    }
+  }
+
 
   setDropdownTitle(newTitle: string) {
     if (this.dropdownTitle) {

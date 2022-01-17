@@ -260,7 +260,7 @@ export class MarkdownDocument extends LitElement {
 
 
   debugSelection() {
-    console.log("selection " + this.selectionToContentRange())
+    //console.log("selection " + this.selectionToContentRange())
     /*let ancohor = this.getSelection()?.anchorNode;
     if(ancohor instanceof Text) {
       console.log("     selection " + ancohor.textContent + " " + this.getSelection()?.anchorOffset)
@@ -418,8 +418,14 @@ export class MarkdownDocument extends LitElement {
 
 
   normalizeContent() {
+    this.domModificationOperation(() => {
+      this.normalizeDOM();
+    });
+  }
+
+  domModificationOperation(operation: () => void) {
     const selectionContentRangeBefore = this.selectionToContentRange();
-    this.normalizeDOM();
+    operation();
     const selectionContentRangeAfter = this.selectionToContentRange();
     //console.log(selectionContentRangeBefore + " -> " + selectionContentRangeAfter);
     const equals = (a: ([number, number] | null), b: ([number, number] | null)) => {
@@ -435,6 +441,7 @@ export class MarkdownDocument extends LitElement {
         this.setSelectionToContentRange(selectionContentRangeBefore);
       }
     }
+    this.affectToolbar();
     this.debugSelection();
   }
   
@@ -642,6 +649,16 @@ export class MarkdownDocument extends LitElement {
     } else {
       this.toolbar?.removeBoldButtonHighlighting();
     }
+    if(allRangeUnderInline("markdown-emphasis", this.currentSelection?.getRangeAt(0)!)) {
+      this.toolbar?.highlightItalicButton();
+    } else {
+      this.toolbar?.removeItalicButtonHighlighting();
+    }
+    if(allRangeUnderInline("markdown-strike", this.currentSelection?.getRangeAt(0)!)) {
+      this.toolbar?.highlightStrikeButton();
+    } else {
+      this.toolbar?.removeBoldStrikeHighlighting();
+    }
 
     if (this.currentSelection?.anchorNode?.parentElement?.tagName === "MARKDOWN-PARAGRAPH") {
       this.toolbar?.setDropdownTitle('Paragraph');
@@ -672,162 +689,20 @@ export class MarkdownDocument extends LitElement {
     }
   }
 
-  // makeBold is the general pattern how to implement #text changing to an inline element
-  // TODO (borodanov): understand what is more to left: anchornode or focusNode
   makeBold() {
-
-    const selectionContentRangeBefore = this.selectionToContentRange();
-
-    surroundRangeIfNotYet('markdown-strong', this.currentSelection?.getRangeAt(0)!);
-    this.normalizeDOM();
-
-    const selectionContentRangeAfter = this.selectionToContentRange();
-    //console.log(selectionContentRangeBefore + " -> " + selectionContentRangeAfter);
-    const equals = (a: ([number, number] | null), b: ([number, number] | null)) => {
-      if(a == null && b == null) return true;
-      if(a != null && b != null) {
-        return a[0] == b[0] && a[1] == b[1];
-      } else {
-        return false;
-      }
-    };
-    if(!equals(selectionContentRangeBefore, selectionContentRangeAfter)) {
-      if(selectionContentRangeBefore) {
-        this.setSelectionToContentRange(selectionContentRangeBefore);
-        console.log("setSelectionToContentRange")
-      }
-    }
-
-    this.affectToolbar();
-
+    this.domModificationOperation(() => {
+      surroundRangeIfNotYet('markdown-strong', this.currentSelection?.getRangeAt(0)!);
+      this.normalizeDOM();
+    });
     this.onChange();
-
-
-    //document.execCommand('bold', false);
-
-/*
-    // check an existing of the anchorNode and the focusNode of the current selection
-    if (!this.currentSelection?.anchorNode || !this.currentSelection?.focusNode) return;
-
-    // check that the anchorNode is the Text, so below
-    // we can do (this.currentSelection.anchorNode as Text)
-    if (this.currentSelection.anchorNode.nodeType !== Node.TEXT_NODE) return;
-
-    // TODO (borodanov): make the undependency of more to left element
-    // for now we admit that anchorNode is more to left than focusNode
-    // we do checking that the anchorNode is not equal focusNode,
-    // do clearing of inner selection elements and the normalizing of the text.
-    // so if we have:
-    // "tex|>t <b>text</b> t<|ext"
-    // where |> is the origin of the selection and <| is the end
-    // after the applying we will have:
-    // "tex|>t text t<|ext"
-    // and more complex case. if we have:
-    // "tex|>t <b>t</b>ex<b>t</b> t<|ext"
-    // after the applying we will have the same:
-    // "tex|>t text t<|ext"
-    //
-    // TODO (borodanov): handle an inline of inner inline element, like this:
-    // "tex|>t <b>t<i>e</i></b>x<b>t</b> t<|ext"
-    while (this.currentSelection.anchorNode !== this.currentSelection.focusNode) {
-      if (!this.currentSelection.anchorNode.nextSibling?.firstChild) break;
-
-      this.currentSelection.anchorNode.nextSibling
-        .replaceWith(this.currentSelection.anchorNode.nextSibling.firstChild);
-
-      this.currentSelection.anchorNode.parentNode?.normalize();
-    }
-
-    const secondPart = (this.currentSelection.anchorNode as Text)
-      .splitText(this.currentSelection?.anchorOffset);
-    secondPart.splitText(this.currentSelection?.focusOffset);
-
-    const replacement = document.createElement('markdown-strong');
-    replacement.appendChild(document.createTextNode(secondPart.data));
-
-    secondPart.replaceWith(replacement);
-
-    if (replacement.firstChild) {
-      const range = document.createRange();
-      range.selectNodeContents(replacement.firstChild);
-      this.currentSelection?.removeAllRanges();
-      this.currentSelection?.addRange(range);
-    }
-*/
   }
 
   removeBold() {
-
-    const selectionContentRangeBefore = this.selectionToContentRange();
-
-    unsurroundRange('markdown-strong', this.currentSelection?.getRangeAt(0)!);
-    this.normalizeDOM();
-
-    const selectionContentRangeAfter = this.selectionToContentRange();
-    //console.log(selectionContentRangeBefore + " -> " + selectionContentRangeAfter);
-    const equals = (a: ([number, number] | null), b: ([number, number] | null)) => {
-      if(a == null && b == null) return true;
-      if(a != null && b != null) {
-        return a[0] == b[0] && a[1] == b[1];
-      } else {
-        return false;
-      }
-    };
-    if(!equals(selectionContentRangeBefore, selectionContentRangeAfter)) {
-      if(selectionContentRangeBefore) {
-        this.setSelectionToContentRange(selectionContentRangeBefore);
-        console.log("setSelectionToContentRange")
-      }
-    }
-
-    this.affectToolbar();
-
+    this.domModificationOperation(() => {
+      unsurroundRange('markdown-strong', this.currentSelection?.getRangeAt(0)!);
+      this.normalizeDOM();
+    });
     this.onChange();
-
-    //document.execCommand('bold', false);
-
-/*    const anchorOffset = this.currentSelection?.anchorOffset;
-    const focusOffset = this.currentSelection?.focusOffset;
-    const parent = this.currentSelection?.anchorNode?.parentElement;
-    const parentOfParent = parent?.parentElement;
-    let replacement2;
-
-    if (parent && typeof anchorOffset !== "undefined" && typeof focusOffset !== "undefined") {
-      const selectionLength = focusOffset - anchorOffset;
-
-      const text = this.currentSelection?.anchorNode as Text;
-
-      const partAfterselectstart = text.splitText(anchorOffset);
-      const partAfterSelectionEnd = partAfterselectstart.splitText(selectionLength);
-
-      if (text.data.length > 0) {
-        const replacement1 = document.createElement('markdown-strong');
-        replacement1.appendChild(document.createTextNode(text.data));
-        parentOfParent?.insertBefore(replacement1, parent);
-      }
-
-      if (partAfterselectstart.data.length > 0) {
-        replacement2 = document.createTextNode(partAfterselectstart.data);
-        parentOfParent?.insertBefore(replacement2, parent);
-      }
-
-      if (partAfterSelectionEnd.data.length > 0) {
-        const replacement3 = document.createElement('markdown-strong');
-        replacement3.appendChild(document.createTextNode(partAfterSelectionEnd.data));
-        parentOfParent?.insertBefore(replacement3, parent);
-      }
-
-      parent.remove();
-
-      parentOfParent?.normalize();
-
-      if (replacement2?.firstChild) {
-        const range = document.createRange();
-        range.selectNodeContents(replacement2.firstChild);
-        this.currentSelection?.removeAllRanges();
-        this.currentSelection?.addRange(range);
-      }
-    }*/
   }
 
   wrapCurrentSelectionInNewElement(elementName: string): HTMLElement | null {
@@ -858,21 +733,42 @@ export class MarkdownDocument extends LitElement {
   }
 
   makeItalic() {
-    document.execCommand('italic', false);
-
-    //this.wrapCurrentSelectionInNewElement('markdown-emphasis');
+    this.domModificationOperation(() => {
+      surroundRangeIfNotYet('markdown-emphasis', this.currentSelection?.getRangeAt(0)!);
+      this.normalizeDOM();
+    });
+    this.onChange();
+  }
+  removeItalic() {
+    this.domModificationOperation(() => {
+      unsurroundRange('markdown-emphasis', this.currentSelection?.getRangeAt(0)!);
+      this.normalizeDOM();
+    });
+    this.onChange();
   }
 
   makeUnderline() {
-    this.wrapCurrentSelectionInNewElement('u');
+    //this.wrapCurrentSelectionInNewElement('u');
   }
 
   makeStrike() {
-    this.wrapCurrentSelectionInNewElement('markdown-strike');
+    this.domModificationOperation(() => {
+      surroundRangeIfNotYet('markdown-strike', this.currentSelection?.getRangeAt(0)!);
+      this.normalizeDOM();
+    });
+    this.onChange();
+  }
+  removeStrike() {
+    this.domModificationOperation(() => {
+      unsurroundRange('markdown-strike', this.currentSelection?.getRangeAt(0)!);
+      this.normalizeDOM();
+    });
+    this.onChange();
   }
 
   makeCodeInline() {
     this.wrapCurrentSelectionInNewElement('markdown-code-span');
+    this.onChange();
   }
 
   listBulletedClick() {

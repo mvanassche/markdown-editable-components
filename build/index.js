@@ -2856,6 +2856,37 @@ class MarkdownLitElement extends LitElement {
             return 0;
         }
     }
+    getNodeAndOffsetFromContentOffsetAnchor(contentOffset) {
+        if (this.childNodes.length > 0) {
+            var resultNode = this.childNodes[0];
+            //var previousNodeWasEol = false;
+            // keep the first that will fit the offset
+            for (let i = 0; i < this.childNodes.length; i++) {
+                let child = this.childNodes[i];
+                var lengthUntilChild = this.contentLengthUntil(child);
+                if (contentOffset == lengthUntilChild) {
+                    //if(previousNodeWasEol) {
+                    resultNode = child;
+                    //}
+                    break;
+                }
+                if (contentOffset < lengthUntilChild) {
+                    break;
+                }
+                resultNode = child;
+                //previousNodeWasEol = (child instanceof MarkdownLitElement && child.elementEndWithEndOfLineEquivalent());
+            }
+            if (resultNode instanceof MarkdownLitElement) {
+                return resultNode.getNodeAndOffsetFromContentOffsetAnchor(contentOffset - this.contentLengthUntil(resultNode));
+            }
+            else {
+                return [resultNode, Math.round(contentOffset) - this.contentLengthUntil(resultNode)];
+            }
+        }
+        else {
+            return [this, Math.round(contentOffset)]; // FIXME
+        }
+    }
     getNodeAndOffsetFromContentOffset(contentOffset) {
         if (this.childNodes.length > 0) {
             var resultNode = this.childNodes[0];
@@ -2989,7 +3020,7 @@ class LeafElement extends BlockElement {
     }
 }
 
-var __decorate$B = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$C = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -3004,8 +3035,11 @@ exports.ThematicBreak = class ThematicBreak extends LeafElement {
     getMarkdown() {
         return "-----------------------\n";
     }
+    containsMarkdownTextContent() {
+        return false;
+    }
 };
-exports.ThematicBreak = __decorate$B([
+exports.ThematicBreak = __decorate$C([
     customElement('markdown-break')
 ], exports.ThematicBreak);
 
@@ -45730,7 +45764,7 @@ core.registerLanguage('zephir', zephir_1);
 
 var lib = core;
 
-var __decorate$A = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$B = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45763,10 +45797,13 @@ exports.CodeBlock = class CodeBlock extends LeafElement {
             this.innerHTML = lib.highlight(lang, this.textContent).value;
         }
     }
+    containsMarkdownTextContent() {
+        return true;
+    }
 };
 // TODO language string as property/attribute
 exports.CodeBlock.styles = css$1 ``;
-exports.CodeBlock = __decorate$A([
+exports.CodeBlock = __decorate$B([
     customElement('markdown-code')
 ], exports.CodeBlock);
 
@@ -45787,6 +45824,13 @@ class InlineElement extends MarkdownLitElement {
       It is up to the parent to deal with the <br> at this point.
     */
     normalizeContent() {
+        var _a;
+        if (this.mergeSameSiblings() && this.nextSibling instanceof InlineElement && this.tagName == this.nextSibling.tagName) {
+            Array.from(this.nextSibling.childNodes).forEach((e) => this.appendChild(e));
+            (_a = this.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(this.nextSibling);
+            this.normalizeContent();
+            return true;
+        }
         for (let i = 0; i < this.childNodes.length; i++) {
             const content = this.childNodes[i];
             if (content instanceof HTMLBRElement) {
@@ -45800,6 +45844,9 @@ class InlineElement extends MarkdownLitElement {
                 }
             }
         }
+        return false;
+    }
+    mergeSameSiblings() {
         return false;
     }
     getMarkdown() {
@@ -45816,26 +45863,31 @@ class InlineElement extends MarkdownLitElement {
         }
     }
 }
+class TerminalInlineElement extends MarkdownLitElement {
+}
 
-var __decorate$z = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$A = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-exports.CodeSpan = class CodeSpan extends InlineElement {
+exports.CodeSpan = class CodeSpan extends TerminalInlineElement {
     render() {
         return html `<code><slot></slot></code>`;
     }
     getMarkdown() {
         return '`' + super.getMarkdown() + '`';
     }
+    containsMarkdownTextContent() {
+        return true;
+    }
 };
-exports.CodeSpan = __decorate$z([
+exports.CodeSpan = __decorate$A([
     customElement('markdown-code-span')
 ], exports.CodeSpan);
 
-var __decorate$y = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$z = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45853,20 +45905,23 @@ exports.HTML = class HTML extends LeafElement {
     getMarkdown() {
         return this.innerHTML.trimLeft().trimRight() + '\n\n';
     }
+    containsMarkdownTextContent() {
+        return true;
+    }
 };
 exports.HTML.styles = css$1 `
   `;
-exports.HTML = __decorate$y([
+exports.HTML = __decorate$z([
     customElement('markdown-html')
 ], exports.HTML);
 
-var __decorate$x = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$y = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-exports.MarkdownImage = class MarkdownImage extends InlineElement {
+exports.MarkdownImage = class MarkdownImage extends TerminalInlineElement {
     constructor() {
         super(...arguments);
         this.destination = '';
@@ -45882,72 +45937,36 @@ exports.MarkdownImage = class MarkdownImage extends InlineElement {
     getMarkdown() {
         return `![${this.innerText}](${this.destination} "${this.title}")`;
     }
+    containsMarkdownTextContent() {
+        return false;
+    }
 };
 exports.MarkdownImage.styles = css$1 `
   `;
-__decorate$x([
+__decorate$y([
     property()
 ], exports.MarkdownImage.prototype, "destination", void 0);
-__decorate$x([
+__decorate$y([
     property()
 ], exports.MarkdownImage.prototype, "title", void 0);
-exports.MarkdownImage = __decorate$x([
+exports.MarkdownImage = __decorate$y([
     customElement('markdown-image')
 ], exports.MarkdownImage);
 
-var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$x = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-exports.MarkdownLink = class MarkdownLink extends InlineElement {
+exports.MarkdownLink = class MarkdownLink extends TerminalInlineElement {
     constructor() {
         super(...arguments);
         this.destination = '';
         this.title = ''; // TODO make it optional
     }
     render() {
-        return html `
-      <style>
-        :host {
-          position: relative;
-        }
-        .show-link {
-          user-select: none;
-          position: absolute;
-          background: white;
-          padding: 3px;
-          top: -8px;
-          right: -20px;
-          cursor: default;
-          opacity: 0.0;
-          transition: opacity 1s ease-in-out;
-        }
-        :host(:hover) .show-link, :host(.fresh) .show-link {
-          opacity: 1.0;
-        }
-        /*:host(.fresh) .destination-input {
-          display: block;
-        }*/
-        .destination-input.visible {
-          display: block;
-        }
-        .destination-input {
-          display: none;
-          position: absolute;
-          z-index: 10;
-          top: -15px;
-          left: 15px;
-          box-shadow: 0px 0px 5px 2px rgb(0 0 0 / 50%);
-        }
-      </style>
-      <a href="${this.destination}" title="${this.title}">
-        <slot></slot>
-      </a>
-      <span class='show-link' @click=${this.destinationShow}>✎</span>
-      <input placeholder='http://' class='destination-input' value="${this.destination}" @input='${this.destinationInput}' @blur='${this.destinationHide}' @keydown='${this.destinationKey}'/>
-    `;
+        return html `<a href="${this.destination}" title="${this.title}"><slot></slot></a><span class='show-link' @click=${this.destinationShow}>✎</span><input placeholder='http://' class='destination-input' value="${this.destination}" @input='${this.destinationInput}' @blur='${this.destinationHide}' @keydown='${this.destinationKey}'/>`;
     }
     connectedCallback() {
         super.connectedCallback();
@@ -45999,16 +46018,50 @@ exports.MarkdownLink = class MarkdownLink extends InlineElement {
             return `[${this.innerText}](${this.destination})`;
         }
     }
+    containsMarkdownTextContent() {
+        return true;
+    }
 };
 exports.MarkdownLink.styles = css$1 `
+        :host {
+          position: relative;
+        }
+        .show-link {
+          user-select: none;
+          position: absolute;
+          background: white;
+          padding: 3px;
+          top: -8px;
+          right: -20px;
+          cursor: default;
+          opacity: 0.0;
+          transition: opacity 1s ease-in-out;
+        }
+        :host(:hover) .show-link, :host(.fresh) .show-link {
+          opacity: 1.0;
+        }
+        /*:host(.fresh) .destination-input {
+          display: block;
+        }*/
+        .destination-input.visible {
+          display: block;
+        }
+        .destination-input {
+          display: none;
+          position: absolute;
+          z-index: 10;
+          top: -15px;
+          left: 15px;
+          box-shadow: 0px 0px 5px 2px rgb(0 0 0 / 50%);
+        }
   `;
-__decorate$w([
+__decorate$x([
     property()
 ], exports.MarkdownLink.prototype, "destination", void 0);
-__decorate$w([
+__decorate$x([
     property()
 ], exports.MarkdownLink.prototype, "title", void 0);
-exports.MarkdownLink = __decorate$w([
+exports.MarkdownLink = __decorate$x([
     customElement('markdown-link')
 ], exports.MarkdownLink);
 
@@ -46040,7 +46093,7 @@ class ContainerElement extends MarkdownLitElement {
     }
 }
 
-var __decorate$v = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -46055,6 +46108,9 @@ exports.List = class List extends ContainerElement {
     }
     getMarkdown() {
         return super.getMarkdown() + '\n';
+    }
+    containsMarkdownTextContent() {
+        return true;
     }
 };
 exports.List.styles = css$1 `
@@ -46077,16 +46133,16 @@ exports.List.styles = css$1 `
       list-style-type: decimal;
     }
   `;
-__decorate$v([
+__decorate$w([
     property({ type: Boolean })
 ], exports.List.prototype, "ordered", void 0);
-__decorate$v([
+__decorate$w([
     property({ type: Number })
 ], exports.List.prototype, "start", void 0);
-__decorate$v([
+__decorate$w([
     property({ type: Boolean })
 ], exports.List.prototype, "spread", void 0);
-exports.List = __decorate$v([
+exports.List = __decorate$w([
     customElement('markdown-list')
 ], exports.List);
 
@@ -47447,7 +47503,7 @@ const globalVariables = css$1 `
   }
 `;
 
-var __decorate$u = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$v = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -47721,13 +47777,44 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
     setSelectionToContentRange(contentRange) {
         var _a, _b;
         //console.log("Reset selection to " + contentRange);
-        let [anchorNode, anchorOffset] = this.getNodeAndOffsetFromContentOffset(contentRange[0]);
+        let [anchorNode, anchorOffset] = this.getNodeAndOffsetFromContentOffsetAnchor(contentRange[0]);
         let [focusNode, focusOffset] = this.getNodeAndOffsetFromContentOffset(contentRange[1]);
         const range = document.createRange();
         range.setStart(anchorNode, anchorOffset);
         range.setEnd(focusNode, focusOffset);
         (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.removeAllRanges();
         (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.addRange(range);
+    }
+    getNodeAndOffsetFromContentOffsetAnchor(contentOffset) {
+        if (this.children.length > 0) {
+            var resultNode = this.children[0];
+            //var previousNodeWasEol = false;
+            // keep the first that will fit the offset
+            for (let i = 0; i < this.children.length; i++) {
+                let child = this.children[i];
+                var lengthUntilChild = this.contentLengthUntil(child);
+                if (contentOffset == lengthUntilChild) {
+                    //if(previousNodeWasEol) {
+                    resultNode = child;
+                    //}
+                    break;
+                }
+                if (contentOffset == 0 || contentOffset < lengthUntilChild) {
+                    break;
+                }
+                resultNode = child;
+                //previousNodeWasEol = (child instanceof MarkdownLitElement && child.elementEndWithEndOfLineEquivalent());
+            }
+            if (resultNode instanceof MarkdownLitElement) {
+                return resultNode.getNodeAndOffsetFromContentOffsetAnchor(contentOffset - this.contentLengthUntil(resultNode));
+            }
+            else {
+                return [resultNode, Math.round(contentOffset) - this.contentLengthUntil(resultNode)];
+            }
+        }
+        else {
+            return [this, Math.round(contentOffset)]; // FIXME
+        }
     }
     getNodeAndOffsetFromContentOffset(contentOffset) {
         if (this.children.length > 0) {
@@ -47761,8 +47848,13 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
     }
     normalizeContent() {
+        this.domModificationOperation(() => {
+            this.normalizeDOM();
+        });
+    }
+    domModificationOperation(operation) {
         const selectionContentRangeBefore = this.selectionToContentRange();
-        this.normalizeDOM();
+        operation();
         const selectionContentRangeAfter = this.selectionToContentRange();
         //console.log(selectionContentRangeBefore + " -> " + selectionContentRangeAfter);
         const equals = (a, b) => {
@@ -47780,6 +47872,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 this.setSelectionToContentRange(selectionContentRangeBefore);
             }
         }
+        this.affectToolbar();
         this.debugSelection();
     }
     normalizeDOM() {
@@ -47799,7 +47892,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 });
                 child.remove();
             }
-            else if (child instanceof Text) {
+            else if (child instanceof Text && child.textContent.trim().length > 0) {
                 let p = document.createElement('markdown-paragraph');
                 p.textContent = child.textContent;
                 child.replaceWith(p);
@@ -47953,120 +48046,62 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
     }
     affectToolbar() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15;
-        if (((_b = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) === null || _b === void 0 ? void 0 : _b.nodeName) === "MARKDOWN-STRONG" ||
-            ((_e = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement) === null || _e === void 0 ? void 0 : _e.nodeName) === "MARKDOWN-STRONG") {
-            (_f = this.toolbar) === null || _f === void 0 ? void 0 : _f.highlightBoldButton();
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12;
+        if (allRangeUnderInline("markdown-strong", (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0))) {
+            (_b = this.toolbar) === null || _b === void 0 ? void 0 : _b.highlightBoldButton();
         }
-        if (((_h = (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.anchorNode) === null || _h === void 0 ? void 0 : _h.nodeName) !== "MARKDOWN-STRONG" &&
-            ((_l = (_k = (_j = this.currentSelection) === null || _j === void 0 ? void 0 : _j.anchorNode) === null || _k === void 0 ? void 0 : _k.parentElement) === null || _l === void 0 ? void 0 : _l.nodeName) !== "MARKDOWN-STRONG") {
-            (_m = this.toolbar) === null || _m === void 0 ? void 0 : _m.removeBoldButtonHighlighting();
+        else {
+            (_c = this.toolbar) === null || _c === void 0 ? void 0 : _c.removeBoldButtonHighlighting();
         }
-        if (((_q = (_p = (_o = this.currentSelection) === null || _o === void 0 ? void 0 : _o.anchorNode) === null || _p === void 0 ? void 0 : _p.parentElement) === null || _q === void 0 ? void 0 : _q.tagName) === "MARKDOWN-PARAGRAPH") {
-            (_r = this.toolbar) === null || _r === void 0 ? void 0 : _r.setDropdownTitle('Paragraph');
+        if (allRangeUnderInline("markdown-emphasis", (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.getRangeAt(0))) {
+            (_e = this.toolbar) === null || _e === void 0 ? void 0 : _e.highlightItalicButton();
         }
-        if (((_u = (_t = (_s = this.currentSelection) === null || _s === void 0 ? void 0 : _s.anchorNode) === null || _t === void 0 ? void 0 : _t.parentElement) === null || _u === void 0 ? void 0 : _u.tagName) === "MARKDOWN-HEADER-1") {
-            (_v = this.toolbar) === null || _v === void 0 ? void 0 : _v.setDropdownTitle('Heading 1');
+        else {
+            (_f = this.toolbar) === null || _f === void 0 ? void 0 : _f.removeItalicButtonHighlighting();
         }
-        if (((_y = (_x = (_w = this.currentSelection) === null || _w === void 0 ? void 0 : _w.anchorNode) === null || _x === void 0 ? void 0 : _x.parentElement) === null || _y === void 0 ? void 0 : _y.tagName) === "MARKDOWN-HEADER-2") {
-            (_z = this.toolbar) === null || _z === void 0 ? void 0 : _z.setDropdownTitle('Heading 2');
+        if (allRangeUnderInline("markdown-strike", (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.getRangeAt(0))) {
+            (_h = this.toolbar) === null || _h === void 0 ? void 0 : _h.highlightStrikeButton();
         }
-        if (((_2 = (_1 = (_0 = this.currentSelection) === null || _0 === void 0 ? void 0 : _0.anchorNode) === null || _1 === void 0 ? void 0 : _1.parentElement) === null || _2 === void 0 ? void 0 : _2.tagName) === "MARKDOWN-HEADER-3") {
-            (_3 = this.toolbar) === null || _3 === void 0 ? void 0 : _3.setDropdownTitle('Heading 3');
+        else {
+            (_j = this.toolbar) === null || _j === void 0 ? void 0 : _j.removeBoldStrikeHighlighting();
         }
-        if (((_6 = (_5 = (_4 = this.currentSelection) === null || _4 === void 0 ? void 0 : _4.anchorNode) === null || _5 === void 0 ? void 0 : _5.parentElement) === null || _6 === void 0 ? void 0 : _6.tagName) === "MARKDOWN-HEADER-4") {
-            (_7 = this.toolbar) === null || _7 === void 0 ? void 0 : _7.setDropdownTitle('Heading 4');
+        if (((_m = (_l = (_k = this.currentSelection) === null || _k === void 0 ? void 0 : _k.anchorNode) === null || _l === void 0 ? void 0 : _l.parentElement) === null || _m === void 0 ? void 0 : _m.tagName) === "MARKDOWN-PARAGRAPH") {
+            (_o = this.toolbar) === null || _o === void 0 ? void 0 : _o.setDropdownTitle('Paragraph');
         }
-        if (((_10 = (_9 = (_8 = this.currentSelection) === null || _8 === void 0 ? void 0 : _8.anchorNode) === null || _9 === void 0 ? void 0 : _9.parentElement) === null || _10 === void 0 ? void 0 : _10.tagName) === "MARKDOWN-HEADER-5") {
-            (_11 = this.toolbar) === null || _11 === void 0 ? void 0 : _11.setDropdownTitle('Heading 5');
+        if (((_r = (_q = (_p = this.currentSelection) === null || _p === void 0 ? void 0 : _p.anchorNode) === null || _q === void 0 ? void 0 : _q.parentElement) === null || _r === void 0 ? void 0 : _r.tagName) === "MARKDOWN-HEADER-1") {
+            (_s = this.toolbar) === null || _s === void 0 ? void 0 : _s.setDropdownTitle('Heading 1');
         }
-        if (((_14 = (_13 = (_12 = this.currentSelection) === null || _12 === void 0 ? void 0 : _12.anchorNode) === null || _13 === void 0 ? void 0 : _13.parentElement) === null || _14 === void 0 ? void 0 : _14.tagName) === "MARKDOWN-HEADER-6") {
-            (_15 = this.toolbar) === null || _15 === void 0 ? void 0 : _15.setDropdownTitle('Heading 6');
+        if (((_v = (_u = (_t = this.currentSelection) === null || _t === void 0 ? void 0 : _t.anchorNode) === null || _u === void 0 ? void 0 : _u.parentElement) === null || _v === void 0 ? void 0 : _v.tagName) === "MARKDOWN-HEADER-2") {
+            (_w = this.toolbar) === null || _w === void 0 ? void 0 : _w.setDropdownTitle('Heading 2');
+        }
+        if (((_z = (_y = (_x = this.currentSelection) === null || _x === void 0 ? void 0 : _x.anchorNode) === null || _y === void 0 ? void 0 : _y.parentElement) === null || _z === void 0 ? void 0 : _z.tagName) === "MARKDOWN-HEADER-3") {
+            (_0 = this.toolbar) === null || _0 === void 0 ? void 0 : _0.setDropdownTitle('Heading 3');
+        }
+        if (((_3 = (_2 = (_1 = this.currentSelection) === null || _1 === void 0 ? void 0 : _1.anchorNode) === null || _2 === void 0 ? void 0 : _2.parentElement) === null || _3 === void 0 ? void 0 : _3.tagName) === "MARKDOWN-HEADER-4") {
+            (_4 = this.toolbar) === null || _4 === void 0 ? void 0 : _4.setDropdownTitle('Heading 4');
+        }
+        if (((_7 = (_6 = (_5 = this.currentSelection) === null || _5 === void 0 ? void 0 : _5.anchorNode) === null || _6 === void 0 ? void 0 : _6.parentElement) === null || _7 === void 0 ? void 0 : _7.tagName) === "MARKDOWN-HEADER-5") {
+            (_8 = this.toolbar) === null || _8 === void 0 ? void 0 : _8.setDropdownTitle('Heading 5');
+        }
+        if (((_11 = (_10 = (_9 = this.currentSelection) === null || _9 === void 0 ? void 0 : _9.anchorNode) === null || _10 === void 0 ? void 0 : _10.parentElement) === null || _11 === void 0 ? void 0 : _11.tagName) === "MARKDOWN-HEADER-6") {
+            (_12 = this.toolbar) === null || _12 === void 0 ? void 0 : _12.setDropdownTitle('Heading 6');
         }
     }
-    // makeBold is the general pattern how to implement #text changing to an inline element
-    // TODO (borodanov): understand what is more to left: anchornode or focusNode
     makeBold() {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
-        // check an existing of the anchorNode and the focusNode of the current selection
-        if (!((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) || !((_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusNode))
-            return;
-        // check that the anchorNode is the Text, so below
-        // we can do (this.currentSelection.anchorNode as Text)
-        if (this.currentSelection.anchorNode.nodeType !== Node.TEXT_NODE)
-            return;
-        // TODO (borodanov): make the undependency of more to left element
-        // for now we admit that anchorNode is more to left than focusNode
-        // we do checking that the anchorNode is not equal focusNode,
-        // do clearing of inner selection elements and the normalizing of the text.
-        // so if we have:
-        // "tex|>t <b>text</b> t<|ext"
-        // where |> is the origin of the selection and <| is the end
-        // after the applying we will have:
-        // "tex|>t text t<|ext"
-        // and more complex case. if we have:
-        // "tex|>t <b>t</b>ex<b>t</b> t<|ext"
-        // after the applying we will have the same:
-        // "tex|>t text t<|ext"
-        //
-        // TODO (borodanov): handle an inline of inner inline element, like this:
-        // "tex|>t <b>t<i>e</i></b>x<b>t</b> t<|ext"
-        while (this.currentSelection.anchorNode !== this.currentSelection.focusNode) {
-            if (!((_c = this.currentSelection.anchorNode.nextSibling) === null || _c === void 0 ? void 0 : _c.firstChild))
-                break;
-            this.currentSelection.anchorNode.nextSibling
-                .replaceWith(this.currentSelection.anchorNode.nextSibling.firstChild);
-            (_d = this.currentSelection.anchorNode.parentNode) === null || _d === void 0 ? void 0 : _d.normalize();
-        }
-        const secondPart = this.currentSelection.anchorNode
-            .splitText((_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorOffset);
-        secondPart.splitText((_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.focusOffset);
-        const replacement = document.createElement('markdown-strong');
-        replacement.appendChild(document.createTextNode(secondPart.data));
-        secondPart.replaceWith(replacement);
-        if (replacement.firstChild) {
-            const range = document.createRange();
-            range.selectNodeContents(replacement.firstChild);
-            (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.removeAllRanges();
-            (_h = this.currentSelection) === null || _h === void 0 ? void 0 : _h.addRange(range);
-        }
+        this.domModificationOperation(() => {
+            var _a;
+            surroundRangeIfNotYet('markdown-strong', (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
+            this.normalizeDOM();
+        });
         this.onChange();
     }
     removeBold() {
-        var _a, _b, _c, _d, _e, _f, _g;
-        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
-        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
-        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
-        const parentOfParent = parent === null || parent === void 0 ? void 0 : parent.parentElement;
-        let replacement2;
-        if (parent && typeof anchorOffset !== "undefined" && typeof focusOffset !== "undefined") {
-            const selectionLength = focusOffset - anchorOffset;
-            const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
-            const partAfterselectstart = text.splitText(anchorOffset);
-            const partAfterSelectionEnd = partAfterselectstart.splitText(selectionLength);
-            if (text.data.length > 0) {
-                const replacement1 = document.createElement('markdown-strong');
-                replacement1.appendChild(document.createTextNode(text.data));
-                parentOfParent === null || parentOfParent === void 0 ? void 0 : parentOfParent.insertBefore(replacement1, parent);
-            }
-            if (partAfterselectstart.data.length > 0) {
-                replacement2 = document.createTextNode(partAfterselectstart.data);
-                parentOfParent === null || parentOfParent === void 0 ? void 0 : parentOfParent.insertBefore(replacement2, parent);
-            }
-            if (partAfterSelectionEnd.data.length > 0) {
-                const replacement3 = document.createElement('markdown-strong');
-                replacement3.appendChild(document.createTextNode(partAfterSelectionEnd.data));
-                parentOfParent === null || parentOfParent === void 0 ? void 0 : parentOfParent.insertBefore(replacement3, parent);
-            }
-            parent.remove();
-            parentOfParent === null || parentOfParent === void 0 ? void 0 : parentOfParent.normalize();
-            if (replacement2 === null || replacement2 === void 0 ? void 0 : replacement2.firstChild) {
-                const range = document.createRange();
-                range.selectNodeContents(replacement2.firstChild);
-                (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
-                (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
-            }
-        }
+        this.domModificationOperation(() => {
+            var _a;
+            unsurroundRange('markdown-strong', (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
+            this.normalizeDOM();
+        });
+        this.onChange();
     }
     wrapCurrentSelectionInNewElement(elementName) {
         var _a, _b, _c, _d, _e, _f, _g;
@@ -48093,16 +48128,43 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
     }
     makeItalic() {
-        this.wrapCurrentSelectionInNewElement('markdown-emphasis');
+        this.domModificationOperation(() => {
+            var _a;
+            surroundRangeIfNotYet('markdown-emphasis', (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
+            this.normalizeDOM();
+        });
+        this.onChange();
+    }
+    removeItalic() {
+        this.domModificationOperation(() => {
+            var _a;
+            unsurroundRange('markdown-emphasis', (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
+            this.normalizeDOM();
+        });
+        this.onChange();
     }
     makeUnderline() {
-        this.wrapCurrentSelectionInNewElement('u');
+        //this.wrapCurrentSelectionInNewElement('u');
     }
     makeStrike() {
-        this.wrapCurrentSelectionInNewElement('markdown-strike');
+        this.domModificationOperation(() => {
+            var _a;
+            surroundRangeIfNotYet('markdown-strike', (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
+            this.normalizeDOM();
+        });
+        this.onChange();
+    }
+    removeStrike() {
+        this.domModificationOperation(() => {
+            var _a;
+            unsurroundRange('markdown-strike', (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
+            this.normalizeDOM();
+        });
+        this.onChange();
     }
     makeCodeInline() {
         this.wrapCurrentSelectionInNewElement('markdown-code-span');
+        this.onChange();
     }
     listBulletedClick() {
         var _a, _b, _c, _d;
@@ -48311,23 +48373,187 @@ exports.MarkdownDocument.styles = [
       }
     `,
 ];
-__decorate$u([
+__decorate$v([
     property()
 ], exports.MarkdownDocument.prototype, "parser", void 0);
-__decorate$u([
+__decorate$v([
     property()
 ], exports.MarkdownDocument.prototype, "markdown", null);
-__decorate$u([
+__decorate$v([
     property({ attribute: false })
 ], exports.MarkdownDocument.prototype, "toolbar", void 0);
-__decorate$u([
+__decorate$v([
     property()
 ], exports.MarkdownDocument.prototype, "selectionRoot", void 0);
-exports.MarkdownDocument = MarkdownDocument_1 = __decorate$u([
+exports.MarkdownDocument = MarkdownDocument_1 = __decorate$v([
     customElement('markdown-document')
 ], exports.MarkdownDocument);
+function getWord(range) {
+    if (range.collapsed && range.commonAncestorContainer instanceof Text) {
+        let leftIndex = Math.max(0, range.commonAncestorContainer.textContent.substring(0, range.startOffset).lastIndexOf(' ')); // TODO this should include other whitespaces.
+        var rightIndex = range.commonAncestorContainer.textContent.substring(range.startOffset).indexOf(' ') + range.startOffset;
+        if (rightIndex <= range.startOffset)
+            rightIndex = range.commonAncestorContainer.textContent.length;
+        let result = new Range();
+        result.setStart(range.startContainer, leftIndex);
+        result.setEnd(range.startContainer, rightIndex);
+        return result;
+    }
+    return null;
+}
+function allRangeUnderInline(tagName, range) {
+    var _a, _b;
+    if (range.commonAncestorContainer instanceof Text) {
+        return ((_a = range.commonAncestorContainer.parentElement) === null || _a === void 0 ? void 0 : _a.closest(tagName)) != null;
+    }
+    else {
+        if (range.commonAncestorContainer instanceof Element && range.commonAncestorContainer.closest(tagName) != null) {
+            return true;
+        }
+    }
+    let walk = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, null);
+    var n;
+    var result = false;
+    while (n = walk.nextNode()) {
+        if (n instanceof Text && range.intersectsNode(n) && isMarkdownContentTextNode(n)) { // avoid dom spaces at the document level. only user content
+            if (((_b = n.parentElement) === null || _b === void 0 ? void 0 : _b.closest(tagName)) == null) {
+                return false;
+            }
+            else {
+                result = true;
+            }
+        }
+    }
+    return result;
+}
+function getAllTextNodesForRange(range) {
+    var _a;
+    let startNode = range.startContainer;
+    let endNode = range.endContainer;
+    let startOffset = range.startOffset;
+    var endOffset = range.endOffset;
+    // split up text nodes if necessary
+    if (startNode instanceof Text) {
+        if (startOffset > 0 && startOffset < startNode.textContent.length) {
+            // split the text node to have whole text nodes corresponding to range
+            let text = startNode.textContent;
+            (_a = startNode.parentElement) === null || _a === void 0 ? void 0 : _a.insertBefore(document.createTextNode(text.substring(0, startOffset)), startNode);
+            startNode.textContent = text.substring(startOffset);
+            range.setStart(startNode, 0);
+            if (startNode == endNode) {
+                endOffset = endOffset - startOffset;
+            }
+        }
+    }
+    if (endNode instanceof Text) {
+        if (endOffset < endNode.textContent.length) {
+            // split the text node to have whole text nodes corresponding to range
+            let text = endNode.textContent;
+            let after = document.createTextNode(text.substring(endOffset));
+            endNode.textContent = text.substring(0, endOffset);
+            endNode.after(after);
+        }
+    }
+    // get al the text nodes using commonAncestorContainer all text nodes that range intersectsNode
+    if (range.commonAncestorContainer instanceof Text) {
+        return [range.commonAncestorContainer];
+    }
+    else {
+        let result = [];
+        let walk = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, null);
+        var n;
+        while (n = walk.nextNode()) {
+            if (n instanceof Text && range.intersectsNode(n) && isMarkdownContentTextNode(n)) {
+                result.push(n);
+            }
+        }
+        return result;
+    }
+}
+function isMarkdownContentTextNode(node) {
+    return isMarkdownElement(node.parentNode) && node.parentNode instanceof MarkdownLitElement && node.parentNode.containsMarkdownTextContent();
+}
+function surroundRangeIfNotYet(tagName, range) {
+    if (range.collapsed) {
+        let wordRange = getWord(range);
+        if (wordRange != null) {
+            surroundRangeIfNotYet(tagName, wordRange);
+        }
+        else {
+            // split the text node and add 
+            /*let text = (range.commonAncestorContainer as Text).textContent;
+            (range.commonAncestorContainer as Text).textContent =
+            text?.substring(0, range.startOffset);*/
+            document.execCommand('insertHTML', false, '<' + tagName + '>&ZeroWidthSpace;</' + tagName + '>'); // TODO better do it oursleves besed on range (this is selection based
+        }
+        return;
+    }
+    let allTexts = getAllTextNodesForRange(range);
+    allTexts.forEach((t) => {
+        var _a;
+        if (((_a = t.parentElement) === null || _a === void 0 ? void 0 : _a.closest(tagName)) == null) {
+            var replaceLevel = t;
+            while (replaceLevel.parentElement instanceof TerminalInlineElement) { // terminal inline is the lowest level you cannot surround the text inside, but it can be surrounded
+                replaceLevel = t.parentElement;
+            }
+            let enclosing = document.createElement(tagName);
+            replaceLevel.replaceWith(enclosing);
+            enclosing.append(replaceLevel);
+        }
+    });
+}
+function dispatchToChildren(element) {
+    let sibling = element.nextSibling;
+    let parent = element.parentElement;
+    element.remove();
+    Array.from(element.childNodes).forEach((ec) => {
+        let ne = element.cloneNode(false);
+        ne.appendChild(ec);
+        parent === null || parent === void 0 ? void 0 : parent.insertBefore(ne, sibling);
+    });
+}
+function unsurroundRange(tagName, range) {
+    if (range.collapsed) {
+        let wordRange = getWord(range);
+        if (wordRange != null) {
+            unsurroundRange(tagName, wordRange);
+        }
+        return;
+    }
+    let allTexts = getAllTextNodesForRange(range);
+    var surrounded = false;
+    do {
+        surrounded = false;
+        allTexts.forEach((t) => {
+            var _a, _b, _c, _d;
+            var enclosing = (_a = t.parentElement) === null || _a === void 0 ? void 0 : _a.closest(tagName);
+            if (enclosing != null) {
+                // if ancestor is there, dispatch it down one level
+                // we just push down the ancestor and fo on with the fixpoint
+                surrounded = true;
+                // bring down 
+                dispatchToChildren(enclosing);
+                // now if we are left with parent directly as the one to remove, remove that layer
+                if (((_c = (_b = t.parentElement) === null || _b === void 0 ? void 0 : _b.tagName) === null || _c === void 0 ? void 0 : _c.toLowerCase()) == tagName) {
+                    t.parentElement.replaceWith(t);
+                }
+                else {
+                    enclosing = (_d = t.parentElement) === null || _d === void 0 ? void 0 : _d.closest(tagName);
+                    // invert enclosing and its child
+                    let ec = enclosing.childNodes[0]; // we know there is only one from dispatchToChildren
+                    enclosing.replaceWith(ec);
+                    Array.from(ec.childNodes).forEach((ecc) => {
+                        ec.removeChild(ecc);
+                        enclosing === null || enclosing === void 0 ? void 0 : enclosing.append(ecc);
+                    });
+                    ec.appendChild(enclosing);
+                }
+            }
+        });
+    } while (surrounded);
+}
 
-var __decorate$t = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$u = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48455,6 +48681,9 @@ exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
         var _a;
         return (this.textContent && ((_a = this.textContent) === null || _a === void 0 ? void 0 : _a.length) > 0) || this.children.length > 0;
     }
+    containsMarkdownTextContent() {
+        return true;
+    }
 };
 exports.ListItem.styles = css$1 `
     :host {
@@ -48462,14 +48691,14 @@ exports.ListItem.styles = css$1 `
       left: 20px;
     }
   `;
-__decorate$t([
+__decorate$u([
     property({ type: Boolean })
 ], exports.ListItem.prototype, "spread", void 0);
-exports.ListItem = ListItem_1 = __decorate$t([
+exports.ListItem = ListItem_1 = __decorate$u([
     customElement('markdown-list-item')
 ], exports.ListItem);
 
-var __decorate$s = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$t = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48499,6 +48728,9 @@ exports.MarkdownParagraph = class MarkdownParagraph extends LeafElement {
             }
         }).join('') + '\n\n';
     }
+    containsMarkdownTextContent() {
+        return true;
+    }
 };
 exports.MarkdownParagraph.styles = css$1 `
     :host {
@@ -48509,11 +48741,11 @@ exports.MarkdownParagraph.styles = css$1 `
       /*white-space: pre-wrap;*/
     }
   `;
-exports.MarkdownParagraph = __decorate$s([
+exports.MarkdownParagraph = __decorate$t([
     customElement('markdown-paragraph')
 ], exports.MarkdownParagraph);
 
-var __decorate$r = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$s = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48538,12 +48770,15 @@ exports.BlockQuote = class BlockQuote extends ContainerElement {
             }
         }).join('');
     }
+    containsMarkdownTextContent() {
+        return true;
+    }
 };
-exports.BlockQuote = __decorate$r([
+exports.BlockQuote = __decorate$s([
     customElement('markdown-quote')
 ], exports.BlockQuote);
 
-var __decorate$q = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$r = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48556,17 +48791,23 @@ let MarkdownStrong = class MarkdownStrong extends InlineElement {
     getMarkdown() {
         return '**' + super.getMarkdown().trim() + '**';
     }
+    mergeSameSiblings() {
+        return true;
+    }
+    containsMarkdownTextContent() {
+        return true;
+    }
 };
 MarkdownStrong.styles = css$1 `
     :host {
       font-weight: bold;
     }
   `;
-MarkdownStrong = __decorate$q([
+MarkdownStrong = __decorate$r([
     customElement('markdown-strong')
 ], MarkdownStrong);
 
-var __decorate$p = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$q = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48579,12 +48820,15 @@ let MarkdownEmphasis = class MarkdownEmphasis extends InlineElement {
     getMarkdown() {
         return '*' + super.getMarkdown().trim() + '*';
     }
+    containsMarkdownTextContent() {
+        return true;
+    }
 };
-MarkdownEmphasis = __decorate$p([
+MarkdownEmphasis = __decorate$q([
     customElement('markdown-emphasis')
 ], MarkdownEmphasis);
 
-var __decorate$o = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$p = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48597,12 +48841,15 @@ let MarkdownStrike = class MarkdownStrike extends InlineElement {
     getMarkdown() {
         return '~~' + super.getMarkdown().trim() + '~~';
     }
+    containsMarkdownTextContent() {
+        return true;
+    }
 };
-MarkdownStrike = __decorate$o([
+MarkdownStrike = __decorate$p([
     customElement('markdown-strike')
 ], MarkdownStrike);
 
-var __decorate$n = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$o = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48625,6 +48872,9 @@ let TableRow = class TableRow extends ContainerElement {
             }
         }).join(' | ') + ' |';
     }
+    containsMarkdownTextContent() {
+        return false;
+    }
 };
 TableRow.styles = css$1 `
     :host {
@@ -48632,11 +48882,11 @@ TableRow.styles = css$1 `
       border: lightgrey 1px solid;
     }
   `;
-TableRow = __decorate$n([
+TableRow = __decorate$o([
     customElement('markdown-table-row')
 ], TableRow);
 
-var __decorate$m = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$n = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48658,6 +48908,9 @@ exports.Table = class Table extends ContainerElement {
             }
         }).join('\n') + '\n';
     }
+    containsMarkdownTextContent() {
+        return false;
+    }
 };
 exports.Table.styles = css$1 `
     :host {
@@ -48666,11 +48919,11 @@ exports.Table.styles = css$1 `
       /*border: lightgrey 1px solid;*/
     }
   `;
-exports.Table = __decorate$m([
+exports.Table = __decorate$n([
     customElement('markdown-table')
 ], exports.Table);
 
-var __decorate$l = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$m = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48698,6 +48951,9 @@ exports.TableCell = class TableCell extends ContainerElement {
             }
         }).join('');
     }
+    containsMarkdownTextContent() {
+        return true;
+    }
 };
 exports.TableCell.styles = css$1 `
     :host {
@@ -48705,11 +48961,11 @@ exports.TableCell.styles = css$1 `
       border: lightgrey 1px solid;
     }
   `;
-exports.TableCell = __decorate$l([
+exports.TableCell = __decorate$m([
     customElement('markdown-table-cell')
 ], exports.TableCell);
 
-var __decorate$k = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$l = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48735,14 +48991,14 @@ exports.TableHeaderCell.styles = css$1 `
       background-color: lightgray;
     }
   `;
-__decorate$k([
+__decorate$l([
     property()
 ], exports.TableHeaderCell.prototype, "align", void 0);
-exports.TableHeaderCell = __decorate$k([
+exports.TableHeaderCell = __decorate$l([
     customElement('markdown-table-header-cell')
 ], exports.TableHeaderCell);
 
-var __decorate$j = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$k = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48762,11 +49018,11 @@ exports.TableHeaderRow.styles = css$1 `
       border: lightgrey 1px solid;
     }
   `;
-exports.TableHeaderRow = __decorate$j([
+exports.TableHeaderRow = __decorate$k([
     customElement('markdown-table-header-row')
 ], exports.TableHeaderRow);
 
-var __decorate$i = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$j = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48813,7 +49069,7 @@ exports.TaskListItem.styles = css$1 `
       display: inline;
     }
   `;
-__decorate$i([
+__decorate$j([
     property({
         type: Boolean,
         converter: {
@@ -48822,7 +49078,7 @@ __decorate$i([
         }
     })
 ], exports.TaskListItem.prototype, "checked", void 0);
-exports.TaskListItem = __decorate$i([
+exports.TaskListItem = __decorate$j([
     customElement('markdown-task-list-item')
 ], exports.TaskListItem);
 
@@ -48844,9 +49100,12 @@ class Heading extends LeafElement {
         // after a title, we typically want a paragraph!
         return 'markdown-paragraph';
     }
+    containsMarkdownTextContent() {
+        return true;
+    }
 }
 
-var __decorate$h = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$i = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48870,11 +49129,11 @@ exports.Header1.styles = css$1 `
       font-size: (--header1-font-size);
     }
   `;
-exports.Header1 = __decorate$h([
+exports.Header1 = __decorate$i([
     customElement('markdown-header-1')
 ], exports.Header1);
 
-var __decorate$g = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$h = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48898,11 +49157,11 @@ exports.Header2.styles = css$1 `
       font-size: (--header2-font-size);
     }
   `;
-exports.Header2 = __decorate$g([
+exports.Header2 = __decorate$h([
     customElement('markdown-header-2')
 ], exports.Header2);
 
-var __decorate$f = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$g = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48926,11 +49185,11 @@ exports.Header3.styles = css$1 `
       font-size: (--header3-font-size);
     }
   `;
-exports.Header3 = __decorate$f([
+exports.Header3 = __decorate$g([
     customElement('markdown-header-3')
 ], exports.Header3);
 
-var __decorate$e = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$f = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48954,11 +49213,11 @@ exports.Header4.styles = css$1 `
       font-size: (--header4-font-size);
     }
   `;
-exports.Header4 = __decorate$e([
+exports.Header4 = __decorate$f([
     customElement('markdown-header-4')
 ], exports.Header4);
 
-var __decorate$d = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$e = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48982,11 +49241,11 @@ exports.Header5.styles = css$1 `
       font-size: (--header5-font-size);
     }
   `;
-exports.Header5 = __decorate$d([
+exports.Header5 = __decorate$e([
     customElement('markdown-header-5')
 ], exports.Header5);
 
-var __decorate$c = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$d = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49010,11 +49269,11 @@ exports.Header6.styles = css$1 `
       font-size: (--header6-font-size);
     }
   `;
-exports.Header6 = __decorate$c([
+exports.Header6 = __decorate$d([
     customElement('markdown-header-6')
 ], exports.Header6);
 
-var __decorate$b = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$c = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49074,6 +49333,9 @@ exports.TableOfContent = class TableOfContent extends LitElement {
     getMarkdown() {
         return '${toc}';
     }
+    containsMarkdownTextContent() {
+        return false;
+    }
 };
 exports.TableOfContent.styles = css$1 `
     :host {
@@ -49102,14 +49364,14 @@ exports.TableOfContent.styles = css$1 `
       font-size: 0.9em;
     }
   `;
-__decorate$b([
+__decorate$c([
     property({ attribute: false })
 ], exports.TableOfContent.prototype, "markdownDocument", void 0);
-exports.TableOfContent = __decorate$b([
+exports.TableOfContent = __decorate$c([
     customElement('markdown-toc')
 ], exports.TableOfContent);
 
-var __decorate$a = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$b = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49125,25 +49387,28 @@ exports.NumericList = class NumericList extends ContainerElement {
     getMarkdown() {
         return super.getMarkdown() + '\n';
     }
+    containsMarkdownTextContent() {
+        return false;
+    }
 };
 exports.NumericList.styles = css$1 `
     :host {
       list-style-type: decimal;
   `;
-__decorate$a([
+__decorate$b([
     property({ type: Boolean })
 ], exports.NumericList.prototype, "ordered", void 0);
-__decorate$a([
+__decorate$b([
     property({ type: Number })
 ], exports.NumericList.prototype, "start", void 0);
-__decorate$a([
+__decorate$b([
     property({ type: Boolean })
 ], exports.NumericList.prototype, "spread", void 0);
-exports.NumericList = __decorate$a([
+exports.NumericList = __decorate$b([
     customElement('markdown-numeric-list')
 ], exports.NumericList);
 
-var __decorate$9 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$a = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49271,6 +49536,9 @@ exports.NumericListItem = NumericListItem_1 = class NumericListItem extends Cont
         var _a;
         return (this.textContent && ((_a = this.textContent) === null || _a === void 0 ? void 0 : _a.length) > 0) || this.children.length > 0;
     }
+    containsMarkdownTextContent() {
+        return true;
+    }
 };
 exports.NumericListItem.styles = css$1 `
     :host {
@@ -49279,10 +49547,10 @@ exports.NumericListItem.styles = css$1 `
       display: list-item;
     }
   `;
-__decorate$9([
+__decorate$a([
     property({ type: Boolean })
 ], exports.NumericListItem.prototype, "spread", void 0);
-exports.NumericListItem = NumericListItem_1 = __decorate$9([
+exports.NumericListItem = NumericListItem_1 = __decorate$a([
     customElement('markdown-numeric-list-item')
 ], exports.NumericListItem);
 
@@ -49386,7 +49654,7 @@ const classMap = directive((classInfo) => (part) => {
     }
 });
 
-var __decorate$8 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$9 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49421,14 +49689,14 @@ exports.ToolbarButton.styles = css$1 `
       background-color: gray;
     }
   `;
-__decorate$8([
+__decorate$9([
     property({ type: Boolean })
 ], exports.ToolbarButton.prototype, "highlighted", void 0);
-exports.ToolbarButton = __decorate$8([
+exports.ToolbarButton = __decorate$9([
     customElement('toolbar-button')
 ], exports.ToolbarButton);
 
-var __decorate$7 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$8 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49461,11 +49729,11 @@ exports.MaterialIcon.styles = css$1 `
       -moz-osx-font-smoothing: grayscale;
     }
   `;
-exports.MaterialIcon = MaterialIcon_1 = __decorate$7([
+exports.MaterialIcon = MaterialIcon_1 = __decorate$8([
     customElement('material-icon')
 ], exports.MaterialIcon);
 
-var __decorate$6 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$7 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49488,11 +49756,11 @@ exports.ToolbarSeparator.styles = css$1 `
       margin: 0 4px 0 4px;
     }
   `;
-exports.ToolbarSeparator = __decorate$6([
+exports.ToolbarSeparator = __decorate$7([
     customElement('toolbar-separator')
 ], exports.ToolbarSeparator);
 
-var __decorate$5 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$6 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49534,11 +49802,11 @@ exports.ToolbarDropdown.styles = css$1 `
       position: fixed;
     }
   `;
-exports.ToolbarDropdown = __decorate$5([
+exports.ToolbarDropdown = __decorate$6([
     customElement('toolbar-dropdown')
 ], exports.ToolbarDropdown);
 
-var __decorate$4 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$5 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49549,6 +49817,8 @@ exports.Toolbar = class Toolbar extends LitElement {
         super(...arguments);
         this.markdownDocument = null;
         this.boldButton = null;
+        this.italicButton = null;
+        this.strikeButton = null;
         this.dropdownTitle = null;
     }
     render() {
@@ -49584,16 +49854,12 @@ exports.Toolbar = class Toolbar extends LitElement {
 
           <toolbar-separator></toolbar-separator>
 
-          <bold-toolbar-button @click=${this.boldButtonClick}></bold-toolbar-button>
-          <toolbar-button @click=${this.italicButtonClick}>
-            <material-icon>format_italic</material-icon>
-          </toolbar-button>
-          <toolbar-button @click=${this.underlineButtonClick}>
+          <toggle-toolbar-button class='bold' @click=${this.boldButtonClick}>format_bold</toggle-toolbar-button>
+          <toggle-toolbar-button class='italic' @click=${this.italicButtonClick}>format_italic</toggle-toolbar-button>
+          <toggle-toolbar-button class='strike' @click=${this.strikeButtonClick}>format_strikethrough</toggle-toolbar-button>
+          <!--toolbar-button @click=${this.underlineButtonClick}>
             <material-icon>format_underlined</material-icon>
-          </toolbar-button>
-          <toolbar-button @click=${this.strikeButtonClick}>
-            <material-icon>format_strikethrough</material-icon>
-          </toolbar-button>
+          </toolbar-button-->
 
           <toolbar-separator></toolbar-separator>
 
@@ -49707,7 +49973,7 @@ exports.Toolbar = class Toolbar extends LitElement {
         (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.insertLink(); //linkURLInput.value, linkTextInput.value);
     }
     firstUpdated() {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         (_b = (_a = this.shadowRoot) === null || _a === void 0 ? void 0 : _a.querySelector('dropdown-elements#insert-link')) === null || _b === void 0 ? void 0 : _b.addEventListener('mousedown', (e) => {
             e.stopPropagation();
             // e.preventDefault();
@@ -49716,12 +49982,11 @@ exports.Toolbar = class Toolbar extends LitElement {
             e.stopPropagation();
             // e.preventDefault();
         }, false);
-        const boldButton = (_e = this.shadowRoot) === null || _e === void 0 ? void 0 : _e.querySelector('bold-toolbar-button');
-        if (boldButton) {
-            this.boldButton = boldButton;
-        }
+        this.boldButton = (_e = this.shadowRoot) === null || _e === void 0 ? void 0 : _e.querySelector('.bold');
+        this.italicButton = (_f = this.shadowRoot) === null || _f === void 0 ? void 0 : _f.querySelector('.italic');
+        this.strikeButton = (_g = this.shadowRoot) === null || _g === void 0 ? void 0 : _g.querySelector('.strike');
         // TODO: make controller for the toolbar-dropdown
-        const dropdownTitle = (_f = this.shadowRoot) === null || _f === void 0 ? void 0 : _f.querySelector('.dropdown-title');
+        const dropdownTitle = (_h = this.shadowRoot) === null || _h === void 0 ? void 0 : _h.querySelector('.dropdown-title');
         if (dropdownTitle) {
             this.dropdownTitle = dropdownTitle;
         }
@@ -49762,31 +50027,43 @@ exports.Toolbar = class Toolbar extends LitElement {
         var _a;
         (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.makeCodeBlock();
     }
-    boldButtonClick(e) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
-        if (((_c = (_b = (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorNode) === null || _c === void 0 ? void 0 : _c.nodeName) !== "MARKDOWN-STRONG" &&
-            ((_g = (_f = (_e = (_d = this.markdownDocument) === null || _d === void 0 ? void 0 : _d.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode) === null || _f === void 0 ? void 0 : _f.parentElement) === null || _g === void 0 ? void 0 : _g.nodeName) !== "MARKDOWN-STRONG") {
-            (_h = this.markdownDocument) === null || _h === void 0 ? void 0 : _h.makeBold();
-        }
-        else if (((_l = (_k = (_j = this.markdownDocument) === null || _j === void 0 ? void 0 : _j.currentSelection) === null || _k === void 0 ? void 0 : _k.anchorNode) === null || _l === void 0 ? void 0 : _l.nodeName) === "MARKDOWN-STRONG" ||
-            ((_q = (_p = (_o = (_m = this.markdownDocument) === null || _m === void 0 ? void 0 : _m.currentSelection) === null || _o === void 0 ? void 0 : _o.anchorNode) === null || _p === void 0 ? void 0 : _p.parentElement) === null || _q === void 0 ? void 0 : _q.nodeName) === "MARKDOWN-STRONG") {
-            (_r = this.markdownDocument) === null || _r === void 0 ? void 0 : _r.removeBold();
+    boldButtonClick() {
+        var _a, _b;
+        if (this.boldButton) {
+            if (this.boldButton.highlighted) {
+                (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.removeBold();
+            }
+            else {
+                (_b = this.markdownDocument) === null || _b === void 0 ? void 0 : _b.makeBold();
+            }
         }
     }
-    italicButtonClick(e) {
-        var _a;
-        // console.log(this.markdownEditor?.currentSelection);
-        (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.makeItalic();
+    italicButtonClick() {
+        var _a, _b;
+        if (this.italicButton) {
+            if (this.italicButton.highlighted) {
+                (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.removeItalic();
+            }
+            else {
+                (_b = this.markdownDocument) === null || _b === void 0 ? void 0 : _b.makeItalic();
+            }
+        }
     }
     underlineButtonClick(e) {
         var _a;
         // console.log(this.markdownEditor?.currentSelection);
         (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.makeUnderline();
     }
-    strikeButtonClick(e) {
-        var _a;
-        // console.log(this.markdownEditor?.currentSelection);
-        (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.makeStrike();
+    strikeButtonClick() {
+        var _a, _b;
+        if (this.strikeButton) {
+            if (this.strikeButton.highlighted) {
+                (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.removeStrike();
+            }
+            else {
+                (_b = this.markdownDocument) === null || _b === void 0 ? void 0 : _b.makeStrike();
+            }
+        }
     }
     codeButtonClick(e) {
         var _a;
@@ -49816,6 +50093,26 @@ exports.Toolbar = class Toolbar extends LitElement {
     removeBoldButtonHighlighting() {
         if (this.boldButton) {
             this.boldButton.highlighted = false;
+        }
+    }
+    highlightItalicButton() {
+        if (this.italicButton) {
+            this.italicButton.highlighted = true;
+        }
+    }
+    removeItalicButtonHighlighting() {
+        if (this.italicButton) {
+            this.italicButton.highlighted = false;
+        }
+    }
+    highlightStrikeButton() {
+        if (this.strikeButton) {
+            this.strikeButton.highlighted = true;
+        }
+    }
+    removeBoldStrikeHighlighting() {
+        if (this.strikeButton) {
+            this.strikeButton.highlighted = false;
         }
     }
     setDropdownTitle(newTitle) {
@@ -49887,11 +50184,11 @@ exports.Toolbar.styles = css$1 `
       font-weight: bold;
     }
   `;
-exports.Toolbar = __decorate$4([
+exports.Toolbar = __decorate$5([
     customElement('markdown-toolbar')
 ], exports.Toolbar);
 
-var __decorate$3 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$4 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49918,11 +50215,11 @@ exports.MarkdownEditor.styles = [
     css$1 `
     `
 ];
-exports.MarkdownEditor = __decorate$3([
+exports.MarkdownEditor = __decorate$4([
     customElement('markdown-editor')
 ], exports.MarkdownEditor);
 
-var __decorate$2 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$3 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49945,11 +50242,11 @@ exports.DropdownElement.styles = css$1 `
       cursor: pointer;
     }
   `;
-exports.DropdownElement = __decorate$2([
+exports.DropdownElement = __decorate$3([
     customElement('dropdown-element')
 ], exports.DropdownElement);
 
-var __decorate$1 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$2 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49974,11 +50271,11 @@ exports.DropdownElements.styles = css$1 `
       padding: 10px;
     }
   `;
-exports.DropdownElements = __decorate$1([
+exports.DropdownElements = __decorate$2([
     customElement('dropdown-elements')
 ], exports.DropdownElements);
 
-var __decorate = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$1 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49999,12 +50296,42 @@ exports.BoldToolbarButton = class BoldToolbarButton extends LitElement {
 };
 exports.BoldToolbarButton.styles = css$1 `
   `;
-__decorate([
+__decorate$1([
     property({ type: Boolean })
 ], exports.BoldToolbarButton.prototype, "highlighted", void 0);
-exports.BoldToolbarButton = __decorate([
+exports.BoldToolbarButton = __decorate$1([
     customElement('bold-toolbar-button')
 ], exports.BoldToolbarButton);
 
+var __decorate = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+exports.ToggleToolbarButton = class ToggleToolbarButton extends LitElement {
+    constructor() {
+        super(...arguments);
+        this.highlighted = false;
+    }
+    render() {
+        return html `
+      <toolbar-button ?highlighted=${this.highlighted}>
+        <material-icon><slot></slot></material-icon>
+      </toolbar-button>
+    `;
+    }
+};
+exports.ToggleToolbarButton.styles = css$1 `
+  `;
+__decorate([
+    property({ type: Boolean })
+], exports.ToggleToolbarButton.prototype, "highlighted", void 0);
+exports.ToggleToolbarButton = __decorate([
+    customElement('toggle-toolbar-button')
+], exports.ToggleToolbarButton);
+
 exports.MarkdownEditableComponentsRenderer = MarkdownEditableComponentsRenderer;
 exports.parse = parse;
+exports.surroundRangeIfNotYet = surroundRangeIfNotYet;
+exports.unsurroundRange = unsurroundRange;

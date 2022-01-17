@@ -8,6 +8,7 @@ import './markdown-editor-components/markdown-editor';
 import './markdown-editor-components/dropdown-element';
 import './markdown-editor-components/dropdown-elements';
 import './markdown-editor-components/toolbar-buttons/bold-toolbar-button';
+import './markdown-editor-components/toolbar-buttons/toggle-toolbar-button';
 
 
 export * from './markdown-editor-components/toolbar-button';
@@ -20,3 +21,4 @@ export * from './markdown-editor-components/markdown-editor';
 export * from './markdown-editor-components/dropdown-element';
 export * from './markdown-editor-components/dropdown-elements';
 export * from './markdown-editor-components/toolbar-buttons/bold-toolbar-button';
+export * from './markdown-editor-components/toolbar-buttons/toggle-toolbar-button';

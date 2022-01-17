@@ -19,4 +19,8 @@ export class HTML extends LeafElement {
   getMarkdown(): string {
     return this.innerHTML.trimLeft().trimRight() + '\n\n';
   }
+  containsMarkdownTextContent(): Boolean {
+    return true;
+  }
+
 }

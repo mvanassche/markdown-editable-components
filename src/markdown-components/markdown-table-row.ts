@@ -28,4 +28,7 @@ export class TableRow extends ContainerElement {
       }
     }).join(' | ') + ' |';
   }
+  containsMarkdownTextContent(): Boolean {
+    return false;
+  }
 }

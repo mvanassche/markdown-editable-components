@@ -1,8 +1,8 @@
 import { html, customElement, property, css } from 'lit-element';
-import { InlineElement } from './abstract/inline-element';
+import { TerminalInlineElement } from './abstract/inline-element';
 
 @customElement('markdown-image')
-export class MarkdownImage extends InlineElement {
+export class MarkdownImage extends TerminalInlineElement {
   @property()
   destination: string = '';
 
@@ -22,5 +22,8 @@ export class MarkdownImage extends InlineElement {
 
   getMarkdown(): string {
     return `![${this.innerText}](${this.destination} "${this.title}")`;
+  }
+  containsMarkdownTextContent(): Boolean {
+    return false;
   }
 }

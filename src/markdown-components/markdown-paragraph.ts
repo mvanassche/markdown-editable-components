@@ -35,4 +35,7 @@ export class MarkdownParagraph extends LeafElement {
       }
     }).join('') + '\n\n';
   }
+  containsMarkdownTextContent(): Boolean {
+    return true;
+  }
 }

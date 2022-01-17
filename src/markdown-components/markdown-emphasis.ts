@@ -11,4 +11,9 @@ export class MarkdownEmphasis extends InlineElement {
   getMarkdown(): string {
     return '*' + super.getMarkdown().trim() + '*';
   }
+
+  containsMarkdownTextContent(): Boolean {
+    return true;
+  }
+
 }

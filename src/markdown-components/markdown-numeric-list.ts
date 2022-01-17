@@ -27,4 +27,7 @@ export class NumericList extends ContainerElement {
   getMarkdown(): string {
     return super.getMarkdown() + '\n';
   }
+  containsMarkdownTextContent(): Boolean {
+    return false;
+  }
 }

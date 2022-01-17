@@ -4,6 +4,8 @@ import { MarkdownElement } from '../interfaces/markdown-element';
 
 export abstract class MarkdownLitElement extends LitElement implements MarkdownElement {
 
+  abstract containsMarkdownTextContent(): Boolean; // if true the element may contain text nodes as children that represent user content
+
   isEditable(): boolean {
     return true;
   }
@@ -158,6 +160,36 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
       return 1;
     } else {
       return 0;
+    }
+  }
+
+  getNodeAndOffsetFromContentOffsetAnchor(contentOffset: number): [Node, number] {
+    if(this.childNodes.length > 0) {
+      var resultNode = this.childNodes[0];
+      //var previousNodeWasEol = false;
+        // keep the first that will fit the offset
+      for (let i = 0; i < this.childNodes.length; i++) {
+        let child = this.childNodes[i];
+        var lengthUntilChild = this.contentLengthUntil(child);
+        if(contentOffset == lengthUntilChild) {
+          //if(previousNodeWasEol) {
+            resultNode = child;
+          //}
+          break;
+        }
+        if(contentOffset < lengthUntilChild) {
+          break;
+        }
+        resultNode = child;
+        //previousNodeWasEol = (child instanceof MarkdownLitElement && child.elementEndWithEndOfLineEquivalent());
+      }
+      if(resultNode instanceof MarkdownLitElement) {
+        return resultNode.getNodeAndOffsetFromContentOffsetAnchor(contentOffset - this.contentLengthUntil(resultNode));
+      } else {
+        return [resultNode, Math.round(contentOffset) - this.contentLengthUntil(resultNode)];
+      }
+    } else {
+      return [this, Math.round(contentOffset)]; // FIXME
     }
   }
 

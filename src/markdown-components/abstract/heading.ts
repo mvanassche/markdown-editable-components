@@ -24,4 +24,8 @@ export abstract class Heading extends LeafElement {
     return 'markdown-paragraph';
   }
 
+  containsMarkdownTextContent(): Boolean {
+    return true;
+  }
+
 }

@@ -11,4 +11,7 @@ export class MarkdownStrike extends InlineElement {
   getMarkdown(): string {
     return '~~' + super.getMarkdown().trim() + '~~';
   }
+  containsMarkdownTextContent(): Boolean {
+    return true;
+  }
 }

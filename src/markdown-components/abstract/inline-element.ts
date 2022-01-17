@@ -20,6 +20,12 @@ export abstract class InlineElement extends MarkdownLitElement {
     It is up to the parent to deal with the <br> at this point.
   */
   normalizeContent(): boolean {
+    if(this.mergeSameSiblings() && this.nextSibling instanceof InlineElement && this.tagName == this.nextSibling.tagName) {
+      Array.from(this.nextSibling.childNodes).forEach((e) => this.appendChild(e));
+      this.parentNode?.removeChild(this.nextSibling);
+      this.normalizeContent();
+      return true;
+    }
     for (let i = 0; i < this.childNodes.length; i++) {
       const content = this.childNodes[i];
       if (content instanceof HTMLBRElement) {
@@ -32,6 +38,10 @@ export abstract class InlineElement extends MarkdownLitElement {
         }
       }
     }
+    return false;
+  }
+
+  mergeSameSiblings() {
     return false;
   }
 
@@ -51,4 +61,8 @@ export abstract class InlineElement extends MarkdownLitElement {
     }
   }
 
+}
+
+
+export abstract class TerminalInlineElement extends MarkdownLitElement {
 }

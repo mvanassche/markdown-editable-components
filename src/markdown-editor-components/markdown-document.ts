@@ -8,6 +8,7 @@ import { MarkdownImage } from '../markdown-components/markdown-image';
 import { MarkdownLink } from '../markdown-components/markdown-link';
 import { MarkdownLitElement } from '../markdown-components/abstract/markdown-lit-element';
 import { globalVariables } from '../styles/global-variables';
+import { TerminalInlineElement } from '../markdown-components/abstract/inline-element';
 
 @customElement('markdown-document')
 export class MarkdownDocument extends LitElement {
@@ -259,7 +260,7 @@ export class MarkdownDocument extends LitElement {
 
 
   debugSelection() {
-    //console.log("selection " + this.selectionToContentRange())
+    console.log("selection " + this.selectionToContentRange())
     /*let ancohor = this.getSelection()?.anchorNode;
     if(ancohor instanceof Text) {
       console.log("     selection " + ancohor.textContent + " " + this.getSelection()?.anchorOffset)
@@ -345,13 +346,44 @@ export class MarkdownDocument extends LitElement {
 
   setSelectionToContentRange(contentRange: [number, number]) {
     //console.log("Reset selection to " + contentRange);
-    let [anchorNode, anchorOffset] = this.getNodeAndOffsetFromContentOffset(contentRange[0]);
+    let [anchorNode, anchorOffset] = this.getNodeAndOffsetFromContentOffsetAnchor(contentRange[0]);
     let [focusNode, focusOffset] = this.getNodeAndOffsetFromContentOffset(contentRange[1]);
     const range = document.createRange();
     range.setStart(anchorNode, anchorOffset);
     range.setEnd(focusNode, focusOffset);
     this.currentSelection?.removeAllRanges();
     this.currentSelection?.addRange(range);
+  }
+
+  getNodeAndOffsetFromContentOffsetAnchor(contentOffset: number): [Node, number] {
+    if(this.children.length > 0) {
+      var resultNode = this.children[0];
+      //var previousNodeWasEol = false;
+        // keep the first that will fit the offset
+      for (let i = 0; i < this.children.length; i++) {
+        let child = this.children[i];
+        var lengthUntilChild = this.contentLengthUntil(child);
+
+        if(contentOffset == lengthUntilChild) {
+          //if(previousNodeWasEol) {
+            resultNode = child;
+          //}
+          break;
+        }
+        if(contentOffset == 0 || contentOffset < lengthUntilChild) {
+          break;
+        }
+        resultNode = child;
+        //previousNodeWasEol = (child instanceof MarkdownLitElement && child.elementEndWithEndOfLineEquivalent());
+      }
+      if(resultNode instanceof MarkdownLitElement) {
+        return resultNode.getNodeAndOffsetFromContentOffsetAnchor(contentOffset - this.contentLengthUntil(resultNode));
+      } else {
+        return [resultNode, Math.round(contentOffset) - this.contentLengthUntil(resultNode)];
+      }
+    } else {
+      return [this, Math.round(contentOffset)]; // FIXME
+    }
   }
 
   getNodeAndOffsetFromContentOffset(contentOffset: number): [Node, number] {
@@ -603,17 +635,11 @@ export class MarkdownDocument extends LitElement {
   }
 
   affectToolbar() {
-    if (
-      this.currentSelection?.anchorNode?.nodeName === "MARKDOWN-STRONG" ||
-      this.currentSelection?.anchorNode?.parentElement?.nodeName === "MARKDOWN-STRONG"
-    ) {
-      this.toolbar?.highlightBoldButton();
-    }
 
-    if (
-      this.currentSelection?.anchorNode?.nodeName !== "MARKDOWN-STRONG" &&
-      this.currentSelection?.anchorNode?.parentElement?.nodeName !== "MARKDOWN-STRONG"
-    ) {
+
+    if(allRangeUnderInline("markdown-strong", this.currentSelection?.getRangeAt(0)!)) {
+      this.toolbar?.highlightBoldButton();
+    } else {
       this.toolbar?.removeBoldButtonHighlighting();
     }
 
@@ -649,6 +675,37 @@ export class MarkdownDocument extends LitElement {
   // makeBold is the general pattern how to implement #text changing to an inline element
   // TODO (borodanov): understand what is more to left: anchornode or focusNode
   makeBold() {
+
+    const selectionContentRangeBefore = this.selectionToContentRange();
+
+    surroundRangeIfNotYet('markdown-strong', this.currentSelection?.getRangeAt(0)!);
+    this.normalizeDOM();
+
+    const selectionContentRangeAfter = this.selectionToContentRange();
+    //console.log(selectionContentRangeBefore + " -> " + selectionContentRangeAfter);
+    const equals = (a: ([number, number] | null), b: ([number, number] | null)) => {
+      if(a == null && b == null) return true;
+      if(a != null && b != null) {
+        return a[0] == b[0] && a[1] == b[1];
+      } else {
+        return false;
+      }
+    };
+    if(!equals(selectionContentRangeBefore, selectionContentRangeAfter)) {
+      if(selectionContentRangeBefore) {
+        this.setSelectionToContentRange(selectionContentRangeBefore);
+        console.log("setSelectionToContentRange")
+      }
+    }
+
+    this.affectToolbar();
+
+    this.onChange();
+
+
+    //document.execCommand('bold', false);
+
+/*
     // check an existing of the anchorNode and the focusNode of the current selection
     if (!this.currentSelection?.anchorNode || !this.currentSelection?.focusNode) return;
 
@@ -696,12 +753,40 @@ export class MarkdownDocument extends LitElement {
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
     }
-
-    this.onChange();
+*/
   }
 
   removeBold() {
-    const anchorOffset = this.currentSelection?.anchorOffset;
+
+    const selectionContentRangeBefore = this.selectionToContentRange();
+
+    unsurroundRange('markdown-strong', this.currentSelection?.getRangeAt(0)!);
+    this.normalizeDOM();
+
+    const selectionContentRangeAfter = this.selectionToContentRange();
+    //console.log(selectionContentRangeBefore + " -> " + selectionContentRangeAfter);
+    const equals = (a: ([number, number] | null), b: ([number, number] | null)) => {
+      if(a == null && b == null) return true;
+      if(a != null && b != null) {
+        return a[0] == b[0] && a[1] == b[1];
+      } else {
+        return false;
+      }
+    };
+    if(!equals(selectionContentRangeBefore, selectionContentRangeAfter)) {
+      if(selectionContentRangeBefore) {
+        this.setSelectionToContentRange(selectionContentRangeBefore);
+        console.log("setSelectionToContentRange")
+      }
+    }
+
+    this.affectToolbar();
+
+    this.onChange();
+
+    //document.execCommand('bold', false);
+
+/*    const anchorOffset = this.currentSelection?.anchorOffset;
     const focusOffset = this.currentSelection?.focusOffset;
     const parent = this.currentSelection?.anchorNode?.parentElement;
     const parentOfParent = parent?.parentElement;
@@ -742,7 +827,7 @@ export class MarkdownDocument extends LitElement {
         this.currentSelection?.removeAllRanges();
         this.currentSelection?.addRange(range);
       }
-    }
+    }*/
   }
 
   wrapCurrentSelectionInNewElement(elementName: string): HTMLElement | null {
@@ -773,7 +858,9 @@ export class MarkdownDocument extends LitElement {
   }
 
   makeItalic() {
-    this.wrapCurrentSelectionInNewElement('markdown-emphasis');
+    document.execCommand('italic', false);
+
+    //this.wrapCurrentSelectionInNewElement('markdown-emphasis');
   }
 
   makeUnderline() {
@@ -980,3 +1067,176 @@ export class MarkdownDocument extends LitElement {
   }
 
 }
+
+function getWord(range: Range): Range | null {
+  if(range.collapsed && range.commonAncestorContainer instanceof Text) {
+    let leftIndex = Math.max(0, range.commonAncestorContainer.textContent!.substring(0, range.startOffset).lastIndexOf(' ')); // TODO this should include other whitespaces.
+    var rightIndex = range.commonAncestorContainer.textContent!.substring(range.startOffset).indexOf(' ') + range.startOffset;
+    if(rightIndex <= range.startOffset) rightIndex = range.commonAncestorContainer.textContent!.length;
+    let result = new Range();
+    result.setStart(range.startContainer, leftIndex);
+    result.setEnd(range.startContainer, rightIndex);
+    return result;
+  }
+  return null;
+}
+
+
+function allRangeUnderInline(tagName: string, range: Range): Boolean {
+  if(range.commonAncestorContainer instanceof Text) {
+    return range.commonAncestorContainer.parentElement?.closest(tagName) != null;
+  } else {
+    if(range.commonAncestorContainer instanceof Element && range.commonAncestorContainer.closest(tagName) != null) {
+      return true;
+    }
+  }
+  let walk = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, null);
+  var n: Node | null;
+  var result = false;
+  while(n = walk.nextNode()) {
+    if(n instanceof Text && range.intersectsNode(n) && isMarkdownContentTextNode(n)) { // avoid dom spaces at the document level. only user content
+      if(n.parentElement?.closest(tagName) == null) {
+        return false;
+      } else {
+        result = true;
+      }
+    }
+  }
+  return result;
+}
+
+
+
+
+function getAllTextNodesForRange(range: Range): Text[] {
+  let startNode = range.startContainer;
+  let endNode = range.endContainer;
+  let startOffset = range.startOffset;
+  var endOffset = range.endOffset;
+  // split up text nodes if necessary
+  if(startNode instanceof Text) {
+    if(startOffset > 0 && startOffset < startNode.textContent!.length) {
+      // split the text node to have whole text nodes corresponding to range
+      let text = startNode.textContent!;
+      startNode.parentElement?.insertBefore(document.createTextNode(text.substring(0, startOffset)), startNode);
+      startNode.textContent = text.substring(startOffset);
+      range.setStart(startNode, 0);
+      if(startNode == endNode) {
+        endOffset = endOffset - startOffset;
+      }
+    }
+  }
+  if(endNode instanceof Text) {
+    if(endOffset < endNode.textContent!.length) {
+      // split the text node to have whole text nodes corresponding to range
+      let text = endNode.textContent!;
+      let after = document.createTextNode(text.substring(endOffset));
+      endNode.textContent = text.substring(0, endOffset);
+      endNode.after(after);
+
+    }
+  }
+
+  // get al the text nodes using commonAncestorContainer all text nodes that range intersectsNode
+  if(range.commonAncestorContainer instanceof Text) {
+    return [range.commonAncestorContainer];
+  } else {
+    let result: Text[] = [];
+    let walk = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, null);
+    var n: Node | null;
+    while(n = walk.nextNode()) {
+      if(n instanceof Text && range.intersectsNode(n) && isMarkdownContentTextNode(n)) {
+        result.push(n);
+      }
+    }
+    return result;
+  }
+}
+
+
+function isMarkdownContentTextNode(node: Text): Boolean {
+  return isMarkdownElement(node.parentNode) && node.parentNode instanceof MarkdownLitElement && node.parentNode.containsMarkdownTextContent();
+}
+
+export function surroundRangeIfNotYet(tagName: string, range: Range) {
+  if(range.collapsed) {
+    let wordRange = getWord(range);
+    if(wordRange != null) {
+      surroundRangeIfNotYet(tagName, wordRange);
+    } else {
+      // split the text node and add 
+      /*let text = (range.commonAncestorContainer as Text).textContent;
+      (range.commonAncestorContainer as Text).textContent = 
+      text?.substring(0, range.startOffset);*/
+      document.execCommand('insertHTML', false, '<' + tagName + '>&ZeroWidthSpace;</' + tagName + '>'); // TODO better do it oursleves besed on range (this is selection based
+    }
+    return
+  }
+  let allTexts = getAllTextNodesForRange(range);
+  allTexts.forEach((t) => {
+    if(t.parentElement?.closest(tagName) == null) {
+      var replaceLevel: ChildNode = t;
+      while(replaceLevel.parentElement instanceof TerminalInlineElement) { // terminal inline is the lowest level you cannot surround the text inside, but it can be surrounded
+        replaceLevel = t.parentElement!;
+      }
+      let enclosing = document.createElement(tagName);
+      replaceLevel.replaceWith(enclosing);
+      enclosing.append(replaceLevel);
+    }
+  });
+}
+
+function dispatchToChildren(element: Element) {
+  let sibling = element.nextSibling;
+  let parent = element.parentElement;
+  element.remove();
+  Array.from(element.childNodes).forEach((ec) => {
+    let ne = element.cloneNode(false);
+    ne.appendChild(ec);
+    parent?.insertBefore(ne, sibling);
+  });
+
+}
+
+
+export function unsurroundRange(tagName: string, range: Range) {
+  if(range.collapsed) {
+    let wordRange = getWord(range);
+    if(wordRange != null) {
+      unsurroundRange(tagName, wordRange);
+    }
+    return
+  }
+  let allTexts = getAllTextNodesForRange(range);
+  var surrounded = false;
+  do {
+    surrounded = false;
+    allTexts.forEach((t) => {
+
+      var enclosing = t.parentElement?.closest(tagName);
+      if(enclosing != null) {
+        // if ancestor is there, dispatch it down one level
+        // we just push down the ancestor and fo on with the fixpoint
+        surrounded = true;
+        // bring down 
+        dispatchToChildren(enclosing);
+        // now if we are left with parent directly as the one to remove, remove that layer
+        if(t.parentElement?.tagName?.toLowerCase() == tagName) {
+          t.parentElement.replaceWith(t);
+        } else {
+          enclosing = t.parentElement?.closest(tagName)!;
+          // invert enclosing and its child
+          let ec = enclosing.childNodes[0]; // we know there is only one from dispatchToChildren
+          enclosing.replaceWith(ec);
+          Array.from(ec.childNodes).forEach((ecc) => { 
+            ec.removeChild(ecc);
+            enclosing?.append(ecc);
+           });
+           ec.appendChild(enclosing);
+        }
+      }
+    });  
+  } while(surrounded)
+}
+
+

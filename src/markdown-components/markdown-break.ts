@@ -12,4 +12,8 @@ export class ThematicBreak extends LeafElement {
   getMarkdown(): string {
     return "-----------------------\n";
   }
+  
+  containsMarkdownTextContent(): Boolean {
+    return false;
+  }
 }

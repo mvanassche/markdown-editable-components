@@ -1,8 +1,8 @@
 import { html, customElement, property, css } from 'lit-element';
-import { InlineElement } from './abstract/inline-element';
+import { TerminalInlineElement } from './abstract/inline-element';
 
 @customElement('markdown-link')
-export class MarkdownLink extends InlineElement {
+export class MarkdownLink extends TerminalInlineElement {
   @property()
   destination: string = '';
 
@@ -99,6 +99,9 @@ export class MarkdownLink extends InlineElement {
     } else {
       return `[${this.innerText}](${this.destination})`;
     }
+  }
+  containsMarkdownTextContent(): Boolean {
+    return true;
   }
 }
 

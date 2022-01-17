@@ -293,20 +293,13 @@ export class Toolbar extends LitElement {
     this.markdownDocument?.makeCodeBlock();
   }
 
-  boldButtonClick(e: MouseEvent) {
-    // e.preventDefault();
-    e;
-
-    if (
-      this.markdownDocument?.currentSelection?.anchorNode?.nodeName !== "MARKDOWN-STRONG" &&
-      this.markdownDocument?.currentSelection?.anchorNode?.parentElement?.nodeName !== "MARKDOWN-STRONG"
-    ) {
-      this.markdownDocument?.makeBold();
-    } else if (
-      this.markdownDocument?.currentSelection?.anchorNode?.nodeName === "MARKDOWN-STRONG" ||
-      this.markdownDocument?.currentSelection?.anchorNode?.parentElement?.nodeName === "MARKDOWN-STRONG"
-    ) {
-      this.markdownDocument?.removeBold();
+  boldButtonClick() {
+    if(this.boldButton) {
+      if(this.boldButton.highlighted) {
+        this.markdownDocument?.removeBold();
+      } else {
+        this.markdownDocument?.makeBold();
+      }
     }
   }
 

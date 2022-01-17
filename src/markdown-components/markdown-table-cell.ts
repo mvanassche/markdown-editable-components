@@ -31,4 +31,7 @@ export class TableCell extends ContainerElement {
       }
     }).join('');
   }
+  containsMarkdownTextContent(): Boolean {
+    return true;
+  }
 }

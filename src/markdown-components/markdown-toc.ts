@@ -94,4 +94,7 @@ export class TableOfContent extends LitElement implements MarkdownElement {
   getMarkdown(): string {
     return '${toc}';
   }
+  containsMarkdownTextContent(): Boolean {
+    return false;
+  }
 }

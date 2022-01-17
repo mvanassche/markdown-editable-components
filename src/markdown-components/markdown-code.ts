@@ -41,4 +41,7 @@ export class CodeBlock extends LeafElement {
       this.innerHTML = hljs.highlight(lang, this.textContent).value;
     }
   }
+  containsMarkdownTextContent(): Boolean {
+    return true;
+  }
 }

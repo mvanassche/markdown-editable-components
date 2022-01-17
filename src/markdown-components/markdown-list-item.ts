@@ -146,5 +146,8 @@ export class ListItem extends ContainerElement {
     return (this.textContent && this.textContent?.length > 0) || this.children.length > 0;
   }
 
+  containsMarkdownTextContent(): Boolean {
+    return true;
+  }
 
 }

@@ -43,4 +43,7 @@ export class List extends ContainerElement {
   getMarkdown(): string {
     return super.getMarkdown() + '\n';
   }
+  containsMarkdownTextContent(): Boolean {
+    return true;
+  }
 }

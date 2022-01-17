@@ -28,4 +28,7 @@ export class Table extends ContainerElement {
       }
     }).join('\n') + '\n';
   }
+  containsMarkdownTextContent(): Boolean {
+    return false;
+  }
 }

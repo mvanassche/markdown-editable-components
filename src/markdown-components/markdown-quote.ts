@@ -22,4 +22,7 @@ export class BlockQuote extends ContainerElement {
       }
     }).join('');
   }
+  containsMarkdownTextContent(): Boolean {
+    return true;
+  }
 }

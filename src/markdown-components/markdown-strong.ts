@@ -17,4 +17,11 @@ export class MarkdownStrong extends InlineElement {
   getMarkdown(): string {
     return '**' + super.getMarkdown().trim() + '**';
   }
+
+  mergeSameSiblings() {
+    return true;
+  }
+  containsMarkdownTextContent(): Boolean {
+    return true;
+  }
 }

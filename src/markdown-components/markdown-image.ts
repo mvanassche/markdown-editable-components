@@ -26,5 +26,8 @@ export class MarkdownImage extends TerminalInlineElement {
   containsMarkdownTextContent(): Boolean {
     return false;
   }
+  isDeletableAsAWhole(): boolean {
+    return true;
+  }
   
 }

@@ -2712,6 +2712,9 @@ class MarkdownLitElement extends LitElement {
     isEditable() {
         return true;
     }
+    isDeletableAsAWhole() {
+        return false;
+    }
     // returns a boolean that if true, it means that the element changed something that will impact a ancestor, so normalize should be redone
     normalizeContent() {
         for (let i = 0; i < this.childNodes.length; i++) {
@@ -45973,6 +45976,9 @@ exports.MarkdownImage = class MarkdownImage extends TerminalInlineElement {
     containsMarkdownTextContent() {
         return false;
     }
+    isDeletableAsAWhole() {
+        return true;
+    }
 };
 exports.MarkdownImage.styles = css$1 `
   `;
@@ -48114,13 +48120,19 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
     }
     handleBackspaceKeyDown(e) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e, _f;
         const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
         const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
         const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
-        if (parent && anchorOffset == 0 && focusOffset == 0 && parent instanceof MarkdownLitElement) {
+        const sibling = (_f = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode) === null || _f === void 0 ? void 0 : _f.previousSibling;
+        if (parent && anchorOffset == 0 && focusOffset == 0 && parent instanceof MarkdownLitElement && sibling == null) {
             e.preventDefault();
             parent.mergeWithPrevious(this.currentSelection);
+        }
+        else if (sibling && anchorOffset == 0 && focusOffset == 0 &&
+            sibling instanceof MarkdownLitElement && sibling.isDeletableAsAWhole()) {
+            e.preventDefault();
+            sibling.remove();
         }
     }
     handleDeleteKeyDown(e) {
@@ -48129,10 +48141,18 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         const anchorOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorOffset;
         const focusOffset = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.focusOffset;
         const parent = anchor === null || anchor === void 0 ? void 0 : anchor.parentElement;
-        if (parent && anchor instanceof Text && anchorOffset == anchor.length && focusOffset == anchor.length && parent instanceof MarkdownLitElement) {
+        //const sibling = anchor?.nextSibling;
+        if (parent && anchor instanceof Text && anchor.nextSibling == null &&
+            anchorOffset == anchor.length && focusOffset == anchor.length && parent instanceof MarkdownLitElement) {
+            // got to the end of the parent children -> merge next one in
             e.preventDefault();
             parent.mergeNextIn();
-        }
+        } /*else if (sibling && anchor instanceof Text &&
+              anchorOffset == anchor.length && focusOffset == anchor.length && sibling instanceof MarkdownLitElement &&
+              sibling.isDeletableAsAWhole()) {
+          e.preventDefault();
+          sibling.remove();
+        }*/
     }
     handleTabKeyDown() {
         var _a, _b;

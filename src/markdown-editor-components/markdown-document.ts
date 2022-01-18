@@ -680,9 +680,14 @@ export class MarkdownDocument extends LitElement {
     const anchorOffset = this.currentSelection?.anchorOffset;
     const focusOffset = this.currentSelection?.focusOffset;
     const parent = this.currentSelection?.anchorNode?.parentElement;
-    if (parent && anchorOffset == 0 && focusOffset == 0 && parent instanceof MarkdownLitElement) {
+    const sibling = this.currentSelection?.anchorNode?.previousSibling;
+    if (parent && anchorOffset == 0 && focusOffset == 0 && parent instanceof MarkdownLitElement && sibling == null) {
       e.preventDefault();
       parent.mergeWithPrevious(this.currentSelection);
+    } else if (sibling && anchorOffset == 0 && focusOffset == 0 &&
+                  sibling instanceof MarkdownLitElement && sibling.isDeletableAsAWhole()) {
+      e.preventDefault();
+      sibling.remove();
     }
   }
 
@@ -691,10 +696,18 @@ export class MarkdownDocument extends LitElement {
     const anchorOffset = this.currentSelection?.anchorOffset;
     const focusOffset = this.currentSelection?.focusOffset;
     const parent = anchor?.parentElement;
-    if (parent && anchor instanceof Text && anchorOffset == anchor.length && focusOffset == anchor.length && parent instanceof MarkdownLitElement) {
+    //const sibling = anchor?.nextSibling;
+    if (parent && anchor instanceof Text && anchor.nextSibling == null && 
+          anchorOffset == anchor.length && focusOffset == anchor.length && parent instanceof MarkdownLitElement) {
+            // got to the end of the parent children -> merge next one in
       e.preventDefault();
       parent.mergeNextIn();
-    }
+    } /*else if (sibling && anchor instanceof Text &&
+          anchorOffset == anchor.length && focusOffset == anchor.length && sibling instanceof MarkdownLitElement &&
+          sibling.isDeletableAsAWhole()) {
+      e.preventDefault();
+      sibling.remove();
+    }*/
   }
 
   handleTabKeyDown() {

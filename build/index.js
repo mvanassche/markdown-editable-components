@@ -47646,16 +47646,16 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         this.addEventListener('drop', (e) => this.onDrop(e), false);
         this.addEventListener('dragover', (event) => {
             var _a, _b, _c, _d;
-            if (document.caretPositionFromPoint) {
-                var pos = document.caretPositionFromPoint(event.clientX, event.clientY);
+            if (this.selectionRoot.caretPositionFromPoint) {
+                var pos = this.selectionRoot.caretPositionFromPoint(event.clientX, event.clientY);
                 let range = document.createRange();
                 range.setStart(pos.offsetNode, pos.offset);
                 range.collapse();
                 (_a = this.getSelection()) === null || _a === void 0 ? void 0 : _a.removeAllRanges();
                 (_b = this.getSelection()) === null || _b === void 0 ? void 0 : _b.addRange(range);
             }
-            else if (document.caretRangeFromPoint) {
-                let range = document.caretRangeFromPoint(event.clientX, event.clientY);
+            else if (this.selectionRoot.caretRangeFromPoint) {
+                let range = this.selectionRoot.caretRangeFromPoint(event.clientX, event.clientY);
                 if (range) {
                     (_c = this.getSelection()) === null || _c === void 0 ? void 0 : _c.removeAllRanges();
                     (_d = this.getSelection()) === null || _d === void 0 ? void 0 : _d.addRange(range);
@@ -47853,16 +47853,16 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                     var dataURI = (_a = theFile.target) === null || _a === void 0 ? void 0 : _a.result;
                     let img = document.createElement('markdown-image');
                     img.setAttribute('destination', dataURI);
-                    if (document.caretPositionFromPoint) {
-                        var pos = document.caretPositionFromPoint(event.clientX, event.clientY);
+                    if (this.selectionRoot.caretPositionFromPoint) {
+                        var pos = this.selectionRoot.caretPositionFromPoint(event.clientX, event.clientY);
                         let range = document.createRange();
                         range.setStart(pos.offsetNode, pos.offset);
                         range.collapse();
                         range.insertNode(img);
                     }
                     // Next, the WebKit way. This works in Chrome.
-                    else if (document.caretRangeFromPoint) {
-                        let range = document.caretRangeFromPoint(event.clientX, event.clientY);
+                    else if (this.selectionRoot.caretRangeFromPoint) {
+                        let range = this.selectionRoot.caretRangeFromPoint(event.clientX, event.clientY);
                         range === null || range === void 0 ? void 0 : range.insertNode(img);
                     }
                     else if ((_b = this.getSelection()) === null || _b === void 0 ? void 0 : _b.rangeCount) {
@@ -48189,60 +48189,64 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
     }
     affectToolbar() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12;
-        if (allRangeUnderInline("markdown-strong", (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0))) {
-            (_b = this.toolbar) === null || _b === void 0 ? void 0 : _b.highlightBoldButton();
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15;
+        if (((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) && allRangeUnderInline("markdown-strong", (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0))) {
+            (_c = this.toolbar) === null || _c === void 0 ? void 0 : _c.highlightBoldButton();
         }
         else {
-            (_c = this.toolbar) === null || _c === void 0 ? void 0 : _c.removeBoldButtonHighlighting();
+            (_d = this.toolbar) === null || _d === void 0 ? void 0 : _d.removeBoldButtonHighlighting();
         }
-        if (allRangeUnderInline("markdown-emphasis", (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.getRangeAt(0))) {
-            (_e = this.toolbar) === null || _e === void 0 ? void 0 : _e.highlightItalicButton();
-        }
-        else {
-            (_f = this.toolbar) === null || _f === void 0 ? void 0 : _f.removeItalicButtonHighlighting();
-        }
-        if (allRangeUnderInline("markdown-strike", (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.getRangeAt(0))) {
-            (_h = this.toolbar) === null || _h === void 0 ? void 0 : _h.highlightStrikeButton();
+        if (((_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.getRangeAt(0)) && allRangeUnderInline("markdown-emphasis", (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.getRangeAt(0))) {
+            (_g = this.toolbar) === null || _g === void 0 ? void 0 : _g.highlightItalicButton();
         }
         else {
-            (_j = this.toolbar) === null || _j === void 0 ? void 0 : _j.removeBoldStrikeHighlighting();
+            (_h = this.toolbar) === null || _h === void 0 ? void 0 : _h.removeItalicButtonHighlighting();
         }
-        if (((_m = (_l = (_k = this.currentSelection) === null || _k === void 0 ? void 0 : _k.anchorNode) === null || _l === void 0 ? void 0 : _l.parentElement) === null || _m === void 0 ? void 0 : _m.tagName) === "MARKDOWN-PARAGRAPH") {
-            (_o = this.toolbar) === null || _o === void 0 ? void 0 : _o.setDropdownTitle('Paragraph');
+        if (((_j = this.currentSelection) === null || _j === void 0 ? void 0 : _j.getRangeAt(0)) && allRangeUnderInline("markdown-strike", (_k = this.currentSelection) === null || _k === void 0 ? void 0 : _k.getRangeAt(0))) {
+            (_l = this.toolbar) === null || _l === void 0 ? void 0 : _l.highlightStrikeButton();
         }
-        if (((_r = (_q = (_p = this.currentSelection) === null || _p === void 0 ? void 0 : _p.anchorNode) === null || _q === void 0 ? void 0 : _q.parentElement) === null || _r === void 0 ? void 0 : _r.tagName) === "MARKDOWN-HEADER-1") {
-            (_s = this.toolbar) === null || _s === void 0 ? void 0 : _s.setDropdownTitle('Heading 1');
+        else {
+            (_m = this.toolbar) === null || _m === void 0 ? void 0 : _m.removeBoldStrikeHighlighting();
         }
-        if (((_v = (_u = (_t = this.currentSelection) === null || _t === void 0 ? void 0 : _t.anchorNode) === null || _u === void 0 ? void 0 : _u.parentElement) === null || _v === void 0 ? void 0 : _v.tagName) === "MARKDOWN-HEADER-2") {
-            (_w = this.toolbar) === null || _w === void 0 ? void 0 : _w.setDropdownTitle('Heading 2');
+        if (((_q = (_p = (_o = this.currentSelection) === null || _o === void 0 ? void 0 : _o.anchorNode) === null || _p === void 0 ? void 0 : _p.parentElement) === null || _q === void 0 ? void 0 : _q.tagName) === "MARKDOWN-PARAGRAPH") {
+            (_r = this.toolbar) === null || _r === void 0 ? void 0 : _r.setDropdownTitle('Paragraph');
         }
-        if (((_z = (_y = (_x = this.currentSelection) === null || _x === void 0 ? void 0 : _x.anchorNode) === null || _y === void 0 ? void 0 : _y.parentElement) === null || _z === void 0 ? void 0 : _z.tagName) === "MARKDOWN-HEADER-3") {
-            (_0 = this.toolbar) === null || _0 === void 0 ? void 0 : _0.setDropdownTitle('Heading 3');
+        if (((_u = (_t = (_s = this.currentSelection) === null || _s === void 0 ? void 0 : _s.anchorNode) === null || _t === void 0 ? void 0 : _t.parentElement) === null || _u === void 0 ? void 0 : _u.tagName) === "MARKDOWN-HEADER-1") {
+            (_v = this.toolbar) === null || _v === void 0 ? void 0 : _v.setDropdownTitle('Heading 1');
         }
-        if (((_3 = (_2 = (_1 = this.currentSelection) === null || _1 === void 0 ? void 0 : _1.anchorNode) === null || _2 === void 0 ? void 0 : _2.parentElement) === null || _3 === void 0 ? void 0 : _3.tagName) === "MARKDOWN-HEADER-4") {
-            (_4 = this.toolbar) === null || _4 === void 0 ? void 0 : _4.setDropdownTitle('Heading 4');
+        if (((_y = (_x = (_w = this.currentSelection) === null || _w === void 0 ? void 0 : _w.anchorNode) === null || _x === void 0 ? void 0 : _x.parentElement) === null || _y === void 0 ? void 0 : _y.tagName) === "MARKDOWN-HEADER-2") {
+            (_z = this.toolbar) === null || _z === void 0 ? void 0 : _z.setDropdownTitle('Heading 2');
         }
-        if (((_7 = (_6 = (_5 = this.currentSelection) === null || _5 === void 0 ? void 0 : _5.anchorNode) === null || _6 === void 0 ? void 0 : _6.parentElement) === null || _7 === void 0 ? void 0 : _7.tagName) === "MARKDOWN-HEADER-5") {
-            (_8 = this.toolbar) === null || _8 === void 0 ? void 0 : _8.setDropdownTitle('Heading 5');
+        if (((_2 = (_1 = (_0 = this.currentSelection) === null || _0 === void 0 ? void 0 : _0.anchorNode) === null || _1 === void 0 ? void 0 : _1.parentElement) === null || _2 === void 0 ? void 0 : _2.tagName) === "MARKDOWN-HEADER-3") {
+            (_3 = this.toolbar) === null || _3 === void 0 ? void 0 : _3.setDropdownTitle('Heading 3');
         }
-        if (((_11 = (_10 = (_9 = this.currentSelection) === null || _9 === void 0 ? void 0 : _9.anchorNode) === null || _10 === void 0 ? void 0 : _10.parentElement) === null || _11 === void 0 ? void 0 : _11.tagName) === "MARKDOWN-HEADER-6") {
-            (_12 = this.toolbar) === null || _12 === void 0 ? void 0 : _12.setDropdownTitle('Heading 6');
+        if (((_6 = (_5 = (_4 = this.currentSelection) === null || _4 === void 0 ? void 0 : _4.anchorNode) === null || _5 === void 0 ? void 0 : _5.parentElement) === null || _6 === void 0 ? void 0 : _6.tagName) === "MARKDOWN-HEADER-4") {
+            (_7 = this.toolbar) === null || _7 === void 0 ? void 0 : _7.setDropdownTitle('Heading 4');
+        }
+        if (((_10 = (_9 = (_8 = this.currentSelection) === null || _8 === void 0 ? void 0 : _8.anchorNode) === null || _9 === void 0 ? void 0 : _9.parentElement) === null || _10 === void 0 ? void 0 : _10.tagName) === "MARKDOWN-HEADER-5") {
+            (_11 = this.toolbar) === null || _11 === void 0 ? void 0 : _11.setDropdownTitle('Heading 5');
+        }
+        if (((_14 = (_13 = (_12 = this.currentSelection) === null || _12 === void 0 ? void 0 : _12.anchorNode) === null || _13 === void 0 ? void 0 : _13.parentElement) === null || _14 === void 0 ? void 0 : _14.tagName) === "MARKDOWN-HEADER-6") {
+            (_15 = this.toolbar) === null || _15 === void 0 ? void 0 : _15.setDropdownTitle('Heading 6');
         }
     }
     makeBold() {
         this.domModificationOperation(() => {
-            var _a;
-            surroundRangeIfNotYet('markdown-strong', (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
-            this.normalizeDOM();
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                surroundRangeIfNotYet('markdown-strong', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
         });
         this.onChange();
     }
     removeBold() {
         this.domModificationOperation(() => {
-            var _a;
-            unsurroundRange('markdown-strong', (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
-            this.normalizeDOM();
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                unsurroundRange('markdown-strong', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
         });
         this.onChange();
     }
@@ -48272,17 +48276,21 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
     }
     makeItalic() {
         this.domModificationOperation(() => {
-            var _a;
-            surroundRangeIfNotYet('markdown-emphasis', (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
-            this.normalizeDOM();
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                surroundRangeIfNotYet('markdown-emphasis', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
         });
         this.onChange();
     }
     removeItalic() {
         this.domModificationOperation(() => {
-            var _a;
-            unsurroundRange('markdown-emphasis', (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
-            this.normalizeDOM();
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                unsurroundRange('markdown-emphasis', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
         });
         this.onChange();
     }
@@ -48291,17 +48299,21 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
     }
     makeStrike() {
         this.domModificationOperation(() => {
-            var _a;
-            surroundRangeIfNotYet('markdown-strike', (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
-            this.normalizeDOM();
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                surroundRangeIfNotYet('markdown-strike', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
         });
         this.onChange();
     }
     removeStrike() {
         this.domModificationOperation(() => {
-            var _a;
-            unsurroundRange('markdown-strike', (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
-            this.normalizeDOM();
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                unsurroundRange('markdown-strike', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
         });
         this.onChange();
     }
@@ -48353,7 +48365,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             const anchorOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorOffset;
             const focusOffset = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.focusOffset;
             const parent = (_e = (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.anchorNode) === null || _e === void 0 ? void 0 : _e.parentElement;
-            if (parent && anchorOffset && focusOffset) {
+            if (parent && anchorOffset != null && focusOffset != null) {
                 const text = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode;
                 text.splitText(anchorOffset);
                 text.after(image);

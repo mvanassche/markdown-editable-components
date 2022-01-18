@@ -153,15 +153,15 @@ export class MarkdownDocument extends LitElement {
     this.addEventListener('drop', (e) => this.onDrop(e), false);
     this.addEventListener('dragover', (event) => {
 
-      if ((document as any).caretPositionFromPoint) {
-        var pos = (document as any).caretPositionFromPoint(event.clientX, event.clientY);
+      if (this.selectionRoot.caretPositionFromPoint) {
+        var pos = this.selectionRoot.caretPositionFromPoint(event.clientX, event.clientY);
         let range = document.createRange();
         range.setStart(pos.offsetNode, pos.offset);
         range.collapse();
         this.getSelection()?.removeAllRanges();
         this.getSelection()?.addRange(range);    
-      } else if (document.caretRangeFromPoint) {
-          let range = document.caretRangeFromPoint(event.clientX, event.clientY);
+      } else if (this.selectionRoot.caretRangeFromPoint) {
+          let range = this.selectionRoot.caretRangeFromPoint(event.clientX, event.clientY);
           if(range) {
             this.getSelection()?.removeAllRanges();
             this.getSelection()?.addRange(range);    
@@ -363,16 +363,16 @@ export class MarkdownDocument extends LitElement {
           img.setAttribute('destination', dataURI as string);
 
 
-          if ((document as any).caretPositionFromPoint) {
-              var pos = (document as any).caretPositionFromPoint(event.clientX, event.clientY);
+          if (this.selectionRoot.caretPositionFromPoint) {
+              var pos = this.selectionRoot.caretPositionFromPoint(event.clientX, event.clientY);
               let range = document.createRange();
               range.setStart(pos.offsetNode, pos.offset);
               range.collapse();
               range.insertNode(img);
           }
           // Next, the WebKit way. This works in Chrome.
-          else if (document.caretRangeFromPoint) {
-              let range = document.caretRangeFromPoint(event.clientX, event.clientY);
+          else if (this.selectionRoot.caretRangeFromPoint) {
+              let range = this.selectionRoot.caretRangeFromPoint(event.clientX, event.clientY);
               range?.insertNode(img);
           } else if(this.getSelection()?.rangeCount) {
             this.getSelection()?.getRangeAt(0).insertNode(img);
@@ -728,17 +728,17 @@ export class MarkdownDocument extends LitElement {
   affectToolbar() {
 
 
-    if(allRangeUnderInline("markdown-strong", this.currentSelection?.getRangeAt(0)!)) {
+    if(this.currentSelection?.getRangeAt(0) && allRangeUnderInline("markdown-strong", this.currentSelection?.getRangeAt(0)!)) {
       this.toolbar?.highlightBoldButton();
     } else {
       this.toolbar?.removeBoldButtonHighlighting();
     }
-    if(allRangeUnderInline("markdown-emphasis", this.currentSelection?.getRangeAt(0)!)) {
+    if(this.currentSelection?.getRangeAt(0) && allRangeUnderInline("markdown-emphasis", this.currentSelection?.getRangeAt(0)!)) {
       this.toolbar?.highlightItalicButton();
     } else {
       this.toolbar?.removeItalicButtonHighlighting();
     }
-    if(allRangeUnderInline("markdown-strike", this.currentSelection?.getRangeAt(0)!)) {
+    if(this.currentSelection?.getRangeAt(0) && allRangeUnderInline("markdown-strike", this.currentSelection?.getRangeAt(0)!)) {
       this.toolbar?.highlightStrikeButton();
     } else {
       this.toolbar?.removeBoldStrikeHighlighting();
@@ -775,16 +775,20 @@ export class MarkdownDocument extends LitElement {
 
   makeBold() {
     this.domModificationOperation(() => {
-      surroundRangeIfNotYet('markdown-strong', this.currentSelection?.getRangeAt(0)!);
-      this.normalizeDOM();
+      if(this.currentSelection?.getRangeAt(0)) {
+        surroundRangeIfNotYet('markdown-strong', this.currentSelection?.getRangeAt(0)!);
+        this.normalizeDOM();
+      }
     });
     this.onChange();
   }
 
   removeBold() {
     this.domModificationOperation(() => {
-      unsurroundRange('markdown-strong', this.currentSelection?.getRangeAt(0)!);
-      this.normalizeDOM();
+      if(this.currentSelection?.getRangeAt(0)) {
+        unsurroundRange('markdown-strong', this.currentSelection?.getRangeAt(0)!);
+        this.normalizeDOM();
+      }
     });
     this.onChange();
   }
@@ -818,15 +822,19 @@ export class MarkdownDocument extends LitElement {
 
   makeItalic() {
     this.domModificationOperation(() => {
-      surroundRangeIfNotYet('markdown-emphasis', this.currentSelection?.getRangeAt(0)!);
-      this.normalizeDOM();
+      if(this.currentSelection?.getRangeAt(0)) {
+        surroundRangeIfNotYet('markdown-emphasis', this.currentSelection?.getRangeAt(0)!);
+        this.normalizeDOM();
+      }
     });
     this.onChange();
   }
   removeItalic() {
     this.domModificationOperation(() => {
-      unsurroundRange('markdown-emphasis', this.currentSelection?.getRangeAt(0)!);
-      this.normalizeDOM();
+      if(this.currentSelection?.getRangeAt(0)) {
+        unsurroundRange('markdown-emphasis', this.currentSelection?.getRangeAt(0)!);
+        this.normalizeDOM();
+      }
     });
     this.onChange();
   }
@@ -837,15 +845,19 @@ export class MarkdownDocument extends LitElement {
 
   makeStrike() {
     this.domModificationOperation(() => {
-      surroundRangeIfNotYet('markdown-strike', this.currentSelection?.getRangeAt(0)!);
-      this.normalizeDOM();
+      if(this.currentSelection?.getRangeAt(0)) {
+        surroundRangeIfNotYet('markdown-strike', this.currentSelection?.getRangeAt(0)!);
+        this.normalizeDOM();
+      }
     });
     this.onChange();
   }
   removeStrike() {
     this.domModificationOperation(() => {
-      unsurroundRange('markdown-strike', this.currentSelection?.getRangeAt(0)!);
-      this.normalizeDOM();
+      if(this.currentSelection?.getRangeAt(0)) {
+        unsurroundRange('markdown-strike', this.currentSelection?.getRangeAt(0)!);
+        this.normalizeDOM();
+      }
     });
     this.onChange();
   }
@@ -904,7 +916,7 @@ export class MarkdownDocument extends LitElement {
       const focusOffset = this.currentSelection?.focusOffset;
       const parent = this.currentSelection?.anchorNode?.parentElement;
 
-      if (parent && anchorOffset && focusOffset) {
+      if (parent && anchorOffset != null && focusOffset != null) {
         const text = this.currentSelection?.anchorNode as Text;
         const secondPart = text.splitText(anchorOffset);
         secondPart;

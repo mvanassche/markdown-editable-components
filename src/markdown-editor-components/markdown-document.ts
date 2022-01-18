@@ -892,12 +892,13 @@ export class MarkdownDocument extends LitElement {
     }
   }
 
-  insertPhoto(url: string, text: string) {
+  insertPhoto(url: string | null, text: string | null) {
     if (this.currentSelection?.anchorNode) {
       const image = document.createElement('markdown-image') as MarkdownImage;
-      image.destination = url;
-      image.title = text;
-      image.innerHTML = 'Logic Tools';
+      if(text) image.title = text;
+      if(url != null) {
+        image.destination = url;
+      }
 
       const anchorOffset = this.currentSelection?.anchorOffset;
       const focusOffset = this.currentSelection?.focusOffset;
@@ -907,7 +908,6 @@ export class MarkdownDocument extends LitElement {
         const text = this.currentSelection?.anchorNode as Text;
         const secondPart = text.splitText(anchorOffset);
         secondPart;
-
         text.after(image);
         this.onChange();
       }

@@ -157,14 +157,14 @@ export class Toolbar extends LitElement {
             <material-icon>format_size</material-icon>
           </toolbar-button-->
 
-          <toolbar-dropdown>
+          <toolbar-button @click=${this.insertPhotoButtonClick}>
             <material-icon>insert_photo</material-icon>
-            <dropdown-elements slot='dropdown-elements' id='insert-photo'>
+            <!--dropdown-elements slot='dropdown-elements' id='insert-photo'>
               URL: <input type="text" class="insert-photo-url">
               Description: <input type="text" class="insert-photo-text">
               <button @click=${this.insertPhotoButtonClick}>Insert</button>
-            </dropdown-elements>
-          </toolbar-dropdown>
+            </dropdown-elements-->
+          </toolbar-button>
 
           <toolbar-button @click=${this.insertLinkButtonClick}>
             <material-icon>insert_link</material-icon>
@@ -218,10 +218,10 @@ export class Toolbar extends LitElement {
   }
 
   insertPhotoButtonClick() {
-    const photoURLInput = this.shadowRoot?.querySelector('input.insert-photo-url') as HTMLInputElement;
-    const photoTextInput = this.shadowRoot?.querySelector('input.insert-photo-text') as HTMLInputElement;
+    //const photoURLInput = this.shadowRoot?.querySelector('input.insert-photo-url') as HTMLInputElement;
+    //const photoTextInput = this.shadowRoot?.querySelector('input.insert-photo-text') as HTMLInputElement;
 
-    this.markdownDocument?.insertPhoto(photoURLInput.value, photoTextInput.value);
+    this.markdownDocument?.insertPhoto(null, null);
   }
 
   insertLinkButtonClick() {

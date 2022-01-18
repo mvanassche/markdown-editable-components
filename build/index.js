@@ -45966,6 +45966,7 @@ exports.MarkdownImage = class MarkdownImage extends TerminalInlineElement {
     render() {
         // TODO the alt innertext is not working
         return html `
+      <input class='upload' type="file" @change="${this.upload}" accept="image/*">
       <img src="${this.destination}" title="${this.title}" alt="${this.innerText}"/>
       <slot style='display:none;'></slot>
     `;
@@ -45979,8 +45980,28 @@ exports.MarkdownImage = class MarkdownImage extends TerminalInlineElement {
     isDeletableAsAWhole() {
         return true;
     }
+    upload() {
+        var _a, _b;
+        let input = (_a = this.shadowRoot) === null || _a === void 0 ? void 0 : _a.querySelector('.upload');
+        let file = (_b = input === null || input === void 0 ? void 0 : input.files) === null || _b === void 0 ? void 0 : _b[0];
+        if (file) {
+            let fr = new FileReader();
+            fr.onload = (data) => {
+                var _a;
+                this.setAttribute('destination', (_a = data.target) === null || _a === void 0 ? void 0 : _a.result);
+            };
+            fr.readAsDataURL(file);
+        }
+    }
 };
 exports.MarkdownImage.styles = css$1 `
+    :host([destination]) .upload {
+      display: none;
+    }
+    .upload {
+      border: #c7c7c7 1px dashed;
+      padding: 10px;
+    }
   `;
 __decorate$y([
     property()
@@ -48324,9 +48345,11 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         var _a, _b, _c, _d, _e, _f;
         if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) {
             const image = document.createElement('markdown-image');
-            image.destination = url;
-            image.title = text;
-            image.innerHTML = 'Logic Tools';
+            if (text)
+                image.title = text;
+            if (url != null) {
+                image.destination = url;
+            }
             const anchorOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorOffset;
             const focusOffset = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.focusOffset;
             const parent = (_e = (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.anchorNode) === null || _e === void 0 ? void 0 : _e.parentElement;
@@ -50035,14 +50058,14 @@ exports.Toolbar = class Toolbar extends LitElement {
             <material-icon>format_size</material-icon>
           </toolbar-button-->
 
-          <toolbar-dropdown>
+          <toolbar-button @click=${this.insertPhotoButtonClick}>
             <material-icon>insert_photo</material-icon>
-            <dropdown-elements slot='dropdown-elements' id='insert-photo'>
+            <!--dropdown-elements slot='dropdown-elements' id='insert-photo'>
               URL: <input type="text" class="insert-photo-url">
               Description: <input type="text" class="insert-photo-text">
               <button @click=${this.insertPhotoButtonClick}>Insert</button>
-            </dropdown-elements>
-          </toolbar-dropdown>
+            </dropdown-elements-->
+          </toolbar-button>
 
           <toolbar-button @click=${this.insertLinkButtonClick}>
             <material-icon>insert_link</material-icon>
@@ -50093,10 +50116,10 @@ exports.Toolbar = class Toolbar extends LitElement {
         });
     }
     insertPhotoButtonClick() {
-        var _a, _b, _c;
-        const photoURLInput = (_a = this.shadowRoot) === null || _a === void 0 ? void 0 : _a.querySelector('input.insert-photo-url');
-        const photoTextInput = (_b = this.shadowRoot) === null || _b === void 0 ? void 0 : _b.querySelector('input.insert-photo-text');
-        (_c = this.markdownDocument) === null || _c === void 0 ? void 0 : _c.insertPhoto(photoURLInput.value, photoTextInput.value);
+        //const photoURLInput = this.shadowRoot?.querySelector('input.insert-photo-url') as HTMLInputElement;
+        //const photoTextInput = this.shadowRoot?.querySelector('input.insert-photo-text') as HTMLInputElement;
+        var _a;
+        (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.insertPhoto(null, null);
     }
     insertLinkButtonClick() {
         //const linkURLInput = this.shadowRoot?.querySelector('input.insert-link-url') as HTMLInputElement;

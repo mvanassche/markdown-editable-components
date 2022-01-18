@@ -36,6 +36,10 @@ export abstract class InlineElement extends MarkdownLitElement {
         if(content.normalizeContent()) {
           return this.normalizeContent();
         }
+      } else {
+        if(this.normalizeChildContent(content)) {
+          return true;
+        }        
       }
     }
     return false;

@@ -150,6 +150,27 @@ export class MarkdownDocument extends LitElement {
       this.disableEditable();
     });
 
+    this.addEventListener('drop', (e) => this.onDrop(e), false);
+    this.addEventListener('dragover', (event) => {
+
+      if ((document as any).caretPositionFromPoint) {
+        var pos = (document as any).caretPositionFromPoint(event.clientX, event.clientY);
+        let range = document.createRange();
+        range.setStart(pos.offsetNode, pos.offset);
+        range.collapse();
+        this.getSelection()?.removeAllRanges();
+        this.getSelection()?.addRange(range);    
+      } else if (document.caretRangeFromPoint) {
+          let range = document.caretRangeFromPoint(event.clientX, event.clientY);
+          if(range) {
+            this.getSelection()?.removeAllRanges();
+            this.getSelection()?.addRange(range);    
+          }
+      }
+      event.preventDefault();
+      //event.stopPropagation();
+    }, false);
+
   }
 
   disconnectedCallback() {
@@ -260,7 +281,7 @@ export class MarkdownDocument extends LitElement {
 
 
   debugSelection() {
-    //console.log("selection " + this.selectionToContentRange())
+    console.log("selection " + this.selectionToContentRange())
     /*let ancohor = this.getSelection()?.anchorNode;
     if(ancohor instanceof Text) {
       console.log("     selection " + ancohor.textContent + " " + this.getSelection()?.anchorOffset)
@@ -327,6 +348,42 @@ export class MarkdownDocument extends LitElement {
       return null;
     }
   }
+
+  onDrop(event: DragEvent) {
+    if(event.dataTransfer?.files != null && event.dataTransfer?.files?.length == 1) {
+      let file = event.dataTransfer.files[0];
+      if (file.type.match('image.*')) {
+        event.stopPropagation();
+        event.preventDefault();
+        var reader = new FileReader();
+        reader.onload = (theFile) => {
+          //get the data uri
+          var dataURI = theFile.target?.result;
+          let img = document.createElement('markdown-image') as MarkdownImage;
+          img.setAttribute('destination', dataURI as string);
+
+
+          if ((document as any).caretPositionFromPoint) {
+              var pos = (document as any).caretPositionFromPoint(event.clientX, event.clientY);
+              let range = document.createRange();
+              range.setStart(pos.offsetNode, pos.offset);
+              range.collapse();
+              range.insertNode(img);
+          }
+          // Next, the WebKit way. This works in Chrome.
+          else if (document.caretRangeFromPoint) {
+              let range = document.caretRangeFromPoint(event.clientX, event.clientY);
+              range?.insertNode(img);
+          } else if(this.getSelection()?.rangeCount) {
+            this.getSelection()?.getRangeAt(0).insertNode(img);
+          }
+    
+        };
+        reader.readAsDataURL(file);    
+      }
+    }
+  }
+
 
   contentLengthUntil(child: ChildNode): number {
     const childNodes = Array.from(this.childNodes);
@@ -460,6 +517,20 @@ export class MarkdownDocument extends LitElement {
           this.append(divChild);
         })
         child.remove();
+      } else if (child instanceof HTMLImageElement) {
+        let img = document.createElement('markdown-image') as MarkdownImage;
+        child.replaceWith(img);
+        //  src="${this.destination}" title="${this.title}" alt="${this.innerText}"
+        if(child.getAttribute('src') != null) {
+          img.destination = child.getAttribute('src')!;
+        }
+        if(child.getAttribute('title') != null) {
+          img.destination = child.getAttribute('title')!;
+        }
+        if(child.getAttribute('alt') != null) {
+          img.innerText = child.getAttribute('alt')!;
+        }
+
       } else if (child instanceof Text && child.textContent!.trim().length > 0) {
         let p = document.createElement('markdown-paragraph');
         p.textContent = child.textContent;

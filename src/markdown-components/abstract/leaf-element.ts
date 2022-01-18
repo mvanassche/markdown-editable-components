@@ -69,7 +69,10 @@ export abstract class LeafElement extends BlockElement {
         if(content.length > 1 && content.textContent!.indexOf('\u200b') >= 0) {
           content.textContent = content.textContent!.replace('\u200b', '');
         }
-        
+      } else {
+        if(this.normalizeChildContent(content)) {
+          return true;
+        }
       }
     }
     return false;

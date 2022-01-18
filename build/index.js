@@ -2721,6 +2721,29 @@ class MarkdownLitElement extends LitElement {
                     return this.normalizeContent();
                 }
             }
+            else {
+                if (this.normalizeChildContent(content)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    normalizeChildContent(content) {
+        if (content instanceof HTMLImageElement) {
+            let img = document.createElement('markdown-image');
+            content.replaceWith(img);
+            //  src="${this.destination}" title="${this.title}" alt="${this.innerText}"
+            if (content.getAttribute('src') != null) {
+                img.setAttribute('destination', content.getAttribute('src'));
+            }
+            if (content.getAttribute('title') != null) {
+                img.setAttribute('title', content.getAttribute('title'));
+            }
+            if (content.getAttribute('alt') != null) {
+                img.innerText = content.getAttribute('alt');
+            }
+            return true;
         }
         return false;
     }
@@ -2988,6 +3011,11 @@ class LeafElement extends BlockElement {
                 // TODO should this be higher up? not just leaves?
                 if (content.length > 1 && content.textContent.indexOf('\u200b') >= 0) {
                     content.textContent = content.textContent.replace('\u200b', '');
+                }
+            }
+            else {
+                if (this.normalizeChildContent(content)) {
+                    return true;
                 }
             }
         }
@@ -45843,6 +45871,11 @@ class InlineElement extends MarkdownLitElement {
                     return this.normalizeContent();
                 }
             }
+            else {
+                if (this.normalizeChildContent(content)) {
+                    return true;
+                }
+            }
         }
         return false;
     }
@@ -47583,6 +47616,27 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             if (this.getAttribute("contenteditable") == "true")
                 this.disableEditable();
         });
+        this.addEventListener('drop', (e) => this.onDrop(e), false);
+        this.addEventListener('dragover', (event) => {
+            var _a, _b, _c, _d;
+            if (document.caretPositionFromPoint) {
+                var pos = document.caretPositionFromPoint(event.clientX, event.clientY);
+                let range = document.createRange();
+                range.setStart(pos.offsetNode, pos.offset);
+                range.collapse();
+                (_a = this.getSelection()) === null || _a === void 0 ? void 0 : _a.removeAllRanges();
+                (_b = this.getSelection()) === null || _b === void 0 ? void 0 : _b.addRange(range);
+            }
+            else if (document.caretRangeFromPoint) {
+                let range = document.caretRangeFromPoint(event.clientX, event.clientY);
+                if (range) {
+                    (_c = this.getSelection()) === null || _c === void 0 ? void 0 : _c.removeAllRanges();
+                    (_d = this.getSelection()) === null || _d === void 0 ? void 0 : _d.addRange(range);
+                }
+            }
+            event.preventDefault();
+            //event.stopPropagation();
+        }, false);
     }
     disconnectedCallback() {
         document.removeEventListener('selectionchange', this._selectionchange);
@@ -47685,7 +47739,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
     }
     debugSelection() {
-        //console.log("selection " + this.selectionToContentRange())
+        console.log("selection " + this.selectionToContentRange());
         /*let ancohor = this.getSelection()?.anchorNode;
         if(ancohor instanceof Text) {
           console.log("     selection " + ancohor.textContent + " " + this.getSelection()?.anchorOffset)
@@ -47756,6 +47810,40 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
         else {
             return null;
+        }
+    }
+    onDrop(event) {
+        var _a, _b, _c;
+        if (((_a = event.dataTransfer) === null || _a === void 0 ? void 0 : _a.files) != null && ((_c = (_b = event.dataTransfer) === null || _b === void 0 ? void 0 : _b.files) === null || _c === void 0 ? void 0 : _c.length) == 1) {
+            let file = event.dataTransfer.files[0];
+            if (file.type.match('image.*')) {
+                event.stopPropagation();
+                event.preventDefault();
+                var reader = new FileReader();
+                reader.onload = (theFile) => {
+                    var _a, _b, _c;
+                    //get the data uri
+                    var dataURI = (_a = theFile.target) === null || _a === void 0 ? void 0 : _a.result;
+                    let img = document.createElement('markdown-image');
+                    img.setAttribute('destination', dataURI);
+                    if (document.caretPositionFromPoint) {
+                        var pos = document.caretPositionFromPoint(event.clientX, event.clientY);
+                        let range = document.createRange();
+                        range.setStart(pos.offsetNode, pos.offset);
+                        range.collapse();
+                        range.insertNode(img);
+                    }
+                    // Next, the WebKit way. This works in Chrome.
+                    else if (document.caretRangeFromPoint) {
+                        let range = document.caretRangeFromPoint(event.clientX, event.clientY);
+                        range === null || range === void 0 ? void 0 : range.insertNode(img);
+                    }
+                    else if ((_b = this.getSelection()) === null || _b === void 0 ? void 0 : _b.rangeCount) {
+                        (_c = this.getSelection()) === null || _c === void 0 ? void 0 : _c.getRangeAt(0).insertNode(img);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
         }
     }
     contentLengthUntil(child) {
@@ -47891,6 +47979,20 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                     this.append(divChild);
                 });
                 child.remove();
+            }
+            else if (child instanceof HTMLImageElement) {
+                let img = document.createElement('markdown-image');
+                child.replaceWith(img);
+                //  src="${this.destination}" title="${this.title}" alt="${this.innerText}"
+                if (child.getAttribute('src') != null) {
+                    img.destination = child.getAttribute('src');
+                }
+                if (child.getAttribute('title') != null) {
+                    img.destination = child.getAttribute('title');
+                }
+                if (child.getAttribute('alt') != null) {
+                    img.innerText = child.getAttribute('alt');
+                }
             }
             else if (child instanceof Text && child.textContent.trim().length > 0) {
                 let p = document.createElement('markdown-paragraph');
@@ -48614,6 +48716,11 @@ exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
                 // TODO should this be higher up? not just leaves?
                 if (content.length > 1 && content.textContent.indexOf('\u200b') >= 0) {
                     content.textContent = content.textContent.replace('\u200b', '');
+                }
+            }
+            else {
+                if (this.normalizeChildContent(content)) {
+                    return true;
                 }
             }
         }
@@ -49469,6 +49576,11 @@ exports.NumericListItem = NumericListItem_1 = class NumericListItem extends Cont
                 // TODO should this be higher up? not just leaves?
                 if (content.length > 1 && content.textContent.indexOf('\u200b') >= 0) {
                     content.textContent = content.textContent.replace('\u200b', '');
+                }
+            }
+            else {
+                if (this.normalizeChildContent(content)) {
+                    return true;
                 }
             }
         }

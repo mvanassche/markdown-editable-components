@@ -34,6 +34,10 @@ export class TableOfContent extends LitElement implements MarkdownElement {
     .level {
       font-size: 0.9em;
     }
+    div {
+      display: flex;
+      flex-direction: column;
+    }
   `;
 
   render() {

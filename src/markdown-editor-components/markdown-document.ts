@@ -281,7 +281,7 @@ export class MarkdownDocument extends LitElement {
 
 
   debugSelection() {
-    console.log("selection " + this.selectionToContentRange())
+    //console.log("selection " + this.selectionToContentRange())
     /*let ancohor = this.getSelection()?.anchorNode;
     if(ancohor instanceof Text) {
       console.log("     selection " + ancohor.textContent + " " + this.getSelection()?.anchorOffset)
@@ -725,20 +725,28 @@ export class MarkdownDocument extends LitElement {
     }
   }
 
+
+  allRangeUnderInline(tagName: string): Boolean | null {
+    if(this.currentSelection && this.currentSelection.rangeCount > 0) {
+      return allRangeUnderInline(tagName, this.currentSelection?.getRangeAt(0)!);
+    } else {
+      return null;
+    }
+  }
+
   affectToolbar() {
 
-
-    if(this.currentSelection?.getRangeAt(0) && allRangeUnderInline("markdown-strong", this.currentSelection?.getRangeAt(0)!)) {
+    if(this.allRangeUnderInline("markdown-strong") == true) {
       this.toolbar?.highlightBoldButton();
     } else {
       this.toolbar?.removeBoldButtonHighlighting();
     }
-    if(this.currentSelection?.getRangeAt(0) && allRangeUnderInline("markdown-emphasis", this.currentSelection?.getRangeAt(0)!)) {
+    if(this.allRangeUnderInline("markdown-emphasis") == true) {
       this.toolbar?.highlightItalicButton();
     } else {
       this.toolbar?.removeItalicButtonHighlighting();
     }
-    if(this.currentSelection?.getRangeAt(0) && allRangeUnderInline("markdown-strike", this.currentSelection?.getRangeAt(0)!)) {
+    if(this.allRangeUnderInline("markdown-strike") == true) {
       this.toolbar?.highlightStrikeButton();
     } else {
       this.toolbar?.removeBoldStrikeHighlighting();

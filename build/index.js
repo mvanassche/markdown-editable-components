@@ -47766,7 +47766,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
     }
     debugSelection() {
-        console.log("selection " + this.selectionToContentRange());
+        //console.log("selection " + this.selectionToContentRange())
         /*let ancohor = this.getSelection()?.anchorNode;
         if(ancohor instanceof Text) {
           console.log("     selection " + ancohor.textContent + " " + this.getSelection()?.anchorOffset)
@@ -48188,46 +48188,55 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             this.onChange();
         }
     }
+    allRangeUnderInline(tagName) {
+        var _a;
+        if (this.currentSelection && this.currentSelection.rangeCount > 0) {
+            return allRangeUnderInline(tagName, (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
+        }
+        else {
+            return null;
+        }
+    }
     affectToolbar() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15;
-        if (((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) && allRangeUnderInline("markdown-strong", (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0))) {
-            (_c = this.toolbar) === null || _c === void 0 ? void 0 : _c.highlightBoldButton();
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9;
+        if (this.allRangeUnderInline("markdown-strong") == true) {
+            (_a = this.toolbar) === null || _a === void 0 ? void 0 : _a.highlightBoldButton();
         }
         else {
-            (_d = this.toolbar) === null || _d === void 0 ? void 0 : _d.removeBoldButtonHighlighting();
+            (_b = this.toolbar) === null || _b === void 0 ? void 0 : _b.removeBoldButtonHighlighting();
         }
-        if (((_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.getRangeAt(0)) && allRangeUnderInline("markdown-emphasis", (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.getRangeAt(0))) {
-            (_g = this.toolbar) === null || _g === void 0 ? void 0 : _g.highlightItalicButton();
-        }
-        else {
-            (_h = this.toolbar) === null || _h === void 0 ? void 0 : _h.removeItalicButtonHighlighting();
-        }
-        if (((_j = this.currentSelection) === null || _j === void 0 ? void 0 : _j.getRangeAt(0)) && allRangeUnderInline("markdown-strike", (_k = this.currentSelection) === null || _k === void 0 ? void 0 : _k.getRangeAt(0))) {
-            (_l = this.toolbar) === null || _l === void 0 ? void 0 : _l.highlightStrikeButton();
+        if (this.allRangeUnderInline("markdown-emphasis") == true) {
+            (_c = this.toolbar) === null || _c === void 0 ? void 0 : _c.highlightItalicButton();
         }
         else {
-            (_m = this.toolbar) === null || _m === void 0 ? void 0 : _m.removeBoldStrikeHighlighting();
+            (_d = this.toolbar) === null || _d === void 0 ? void 0 : _d.removeItalicButtonHighlighting();
         }
-        if (((_q = (_p = (_o = this.currentSelection) === null || _o === void 0 ? void 0 : _o.anchorNode) === null || _p === void 0 ? void 0 : _p.parentElement) === null || _q === void 0 ? void 0 : _q.tagName) === "MARKDOWN-PARAGRAPH") {
-            (_r = this.toolbar) === null || _r === void 0 ? void 0 : _r.setDropdownTitle('Paragraph');
+        if (this.allRangeUnderInline("markdown-strike") == true) {
+            (_e = this.toolbar) === null || _e === void 0 ? void 0 : _e.highlightStrikeButton();
         }
-        if (((_u = (_t = (_s = this.currentSelection) === null || _s === void 0 ? void 0 : _s.anchorNode) === null || _t === void 0 ? void 0 : _t.parentElement) === null || _u === void 0 ? void 0 : _u.tagName) === "MARKDOWN-HEADER-1") {
-            (_v = this.toolbar) === null || _v === void 0 ? void 0 : _v.setDropdownTitle('Heading 1');
+        else {
+            (_f = this.toolbar) === null || _f === void 0 ? void 0 : _f.removeBoldStrikeHighlighting();
         }
-        if (((_y = (_x = (_w = this.currentSelection) === null || _w === void 0 ? void 0 : _w.anchorNode) === null || _x === void 0 ? void 0 : _x.parentElement) === null || _y === void 0 ? void 0 : _y.tagName) === "MARKDOWN-HEADER-2") {
-            (_z = this.toolbar) === null || _z === void 0 ? void 0 : _z.setDropdownTitle('Heading 2');
+        if (((_j = (_h = (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.anchorNode) === null || _h === void 0 ? void 0 : _h.parentElement) === null || _j === void 0 ? void 0 : _j.tagName) === "MARKDOWN-PARAGRAPH") {
+            (_k = this.toolbar) === null || _k === void 0 ? void 0 : _k.setDropdownTitle('Paragraph');
         }
-        if (((_2 = (_1 = (_0 = this.currentSelection) === null || _0 === void 0 ? void 0 : _0.anchorNode) === null || _1 === void 0 ? void 0 : _1.parentElement) === null || _2 === void 0 ? void 0 : _2.tagName) === "MARKDOWN-HEADER-3") {
-            (_3 = this.toolbar) === null || _3 === void 0 ? void 0 : _3.setDropdownTitle('Heading 3');
+        if (((_o = (_m = (_l = this.currentSelection) === null || _l === void 0 ? void 0 : _l.anchorNode) === null || _m === void 0 ? void 0 : _m.parentElement) === null || _o === void 0 ? void 0 : _o.tagName) === "MARKDOWN-HEADER-1") {
+            (_p = this.toolbar) === null || _p === void 0 ? void 0 : _p.setDropdownTitle('Heading 1');
         }
-        if (((_6 = (_5 = (_4 = this.currentSelection) === null || _4 === void 0 ? void 0 : _4.anchorNode) === null || _5 === void 0 ? void 0 : _5.parentElement) === null || _6 === void 0 ? void 0 : _6.tagName) === "MARKDOWN-HEADER-4") {
-            (_7 = this.toolbar) === null || _7 === void 0 ? void 0 : _7.setDropdownTitle('Heading 4');
+        if (((_s = (_r = (_q = this.currentSelection) === null || _q === void 0 ? void 0 : _q.anchorNode) === null || _r === void 0 ? void 0 : _r.parentElement) === null || _s === void 0 ? void 0 : _s.tagName) === "MARKDOWN-HEADER-2") {
+            (_t = this.toolbar) === null || _t === void 0 ? void 0 : _t.setDropdownTitle('Heading 2');
         }
-        if (((_10 = (_9 = (_8 = this.currentSelection) === null || _8 === void 0 ? void 0 : _8.anchorNode) === null || _9 === void 0 ? void 0 : _9.parentElement) === null || _10 === void 0 ? void 0 : _10.tagName) === "MARKDOWN-HEADER-5") {
-            (_11 = this.toolbar) === null || _11 === void 0 ? void 0 : _11.setDropdownTitle('Heading 5');
+        if (((_w = (_v = (_u = this.currentSelection) === null || _u === void 0 ? void 0 : _u.anchorNode) === null || _v === void 0 ? void 0 : _v.parentElement) === null || _w === void 0 ? void 0 : _w.tagName) === "MARKDOWN-HEADER-3") {
+            (_x = this.toolbar) === null || _x === void 0 ? void 0 : _x.setDropdownTitle('Heading 3');
         }
-        if (((_14 = (_13 = (_12 = this.currentSelection) === null || _12 === void 0 ? void 0 : _12.anchorNode) === null || _13 === void 0 ? void 0 : _13.parentElement) === null || _14 === void 0 ? void 0 : _14.tagName) === "MARKDOWN-HEADER-6") {
-            (_15 = this.toolbar) === null || _15 === void 0 ? void 0 : _15.setDropdownTitle('Heading 6');
+        if (((_0 = (_z = (_y = this.currentSelection) === null || _y === void 0 ? void 0 : _y.anchorNode) === null || _z === void 0 ? void 0 : _z.parentElement) === null || _0 === void 0 ? void 0 : _0.tagName) === "MARKDOWN-HEADER-4") {
+            (_1 = this.toolbar) === null || _1 === void 0 ? void 0 : _1.setDropdownTitle('Heading 4');
+        }
+        if (((_4 = (_3 = (_2 = this.currentSelection) === null || _2 === void 0 ? void 0 : _2.anchorNode) === null || _3 === void 0 ? void 0 : _3.parentElement) === null || _4 === void 0 ? void 0 : _4.tagName) === "MARKDOWN-HEADER-5") {
+            (_5 = this.toolbar) === null || _5 === void 0 ? void 0 : _5.setDropdownTitle('Heading 5');
+        }
+        if (((_8 = (_7 = (_6 = this.currentSelection) === null || _6 === void 0 ? void 0 : _6.anchorNode) === null || _7 === void 0 ? void 0 : _7.parentElement) === null || _8 === void 0 ? void 0 : _8.tagName) === "MARKDOWN-HEADER-6") {
+            (_9 = this.toolbar) === null || _9 === void 0 ? void 0 : _9.setDropdownTitle('Heading 6');
         }
     }
     makeBold() {
@@ -49524,6 +49533,10 @@ exports.TableOfContent.styles = css$1 `
     }
     .level {
       font-size: 0.9em;
+    }
+    div {
+      display: flex;
+      flex-direction: column;
     }
   `;
 __decorate$c([

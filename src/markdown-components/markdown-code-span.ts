@@ -1,5 +1,6 @@
 import { html, customElement } from 'lit-element';
 import { TerminalInlineElement } from './abstract/inline-element';
+import { getMarkdownWithTextForElement } from './functions';
 
 @customElement('markdown-code-span')
 export class CodeSpan extends TerminalInlineElement {
@@ -9,7 +10,7 @@ export class CodeSpan extends TerminalInlineElement {
   }
 
   getMarkdown(): string {
-    return '`' + super.getMarkdown() + '`';
+    return '`' + getMarkdownWithTextForElement(this) + '`';
   }
   containsMarkdownTextContent(): Boolean {
     return true;

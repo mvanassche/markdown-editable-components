@@ -672,6 +672,7 @@ export class MarkdownDocument extends LitElement {
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
 
+      this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: markdownBreak }));
       this.onChange();
     }
   }
@@ -890,6 +891,7 @@ export class MarkdownDocument extends LitElement {
       range.collapse(true);
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
+      this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: item }));
       this.onChange();
     }
   }
@@ -908,6 +910,7 @@ export class MarkdownDocument extends LitElement {
       range.collapse(true);
       this.currentSelection?.removeAllRanges();
       this.currentSelection?.addRange(range);
+      this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: item }));
       this.onChange();
     }
   }
@@ -929,6 +932,7 @@ export class MarkdownDocument extends LitElement {
         const secondPart = text.splitText(anchorOffset);
         secondPart;
         text.after(image);
+        this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: image }));
         this.onChange();
       }
     }
@@ -1062,6 +1066,7 @@ export class MarkdownDocument extends LitElement {
     if (oldElement != null) {
       element.innerHTML = oldElement.innerHTML;
       oldElement.replaceWith(element);
+      this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: element }));
       this.onChange();
     }
   }

@@ -48137,6 +48137,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             range.collapse(true);
             (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.removeAllRanges();
             (_h = this.currentSelection) === null || _h === void 0 ? void 0 : _h.addRange(range);
+            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: markdownBreak }));
             this.onChange();
         }
     }
@@ -48343,6 +48344,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             range.collapse(true);
             (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.removeAllRanges();
             (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.addRange(range);
+            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: item }));
             this.onChange();
         }
     }
@@ -48359,6 +48361,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             range.collapse(true);
             (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.removeAllRanges();
             (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.addRange(range);
+            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: item }));
             this.onChange();
         }
     }
@@ -48378,6 +48381,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 const text = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode;
                 text.splitText(anchorOffset);
                 text.after(image);
+                this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: image }));
                 this.onChange();
             }
         }
@@ -48491,6 +48495,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         if (oldElement != null) {
             element.innerHTML = oldElement.innerHTML;
             oldElement.replaceWith(element);
+            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: element }));
             this.onChange();
         }
     }

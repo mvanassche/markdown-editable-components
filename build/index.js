@@ -45913,7 +45913,7 @@ exports.CodeSpan = class CodeSpan extends TerminalInlineElement {
         return html `<code><slot></slot></code>`;
     }
     getMarkdown() {
-        return '`' + super.getMarkdown() + '`';
+        return '`' + getMarkdownWithTextForElement(this) + '`';
     }
     containsMarkdownTextContent() {
         return true;
@@ -47634,6 +47634,10 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 this.normalizeContent();
                 this.onChange();
             }
+            let current = this.getCurrentLeafBlock();
+            if (current != null && current.scrollIntoViewIfNeeded != null) { // until standard lands (https://github.com/w3c/csswg-drafts/pull/5677)
+                current.scrollIntoViewIfNeeded();
+            }
         });
         this.addEventListener("input", () => {
             this.normalizeContent();
@@ -48328,7 +48332,13 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         this.onChange();
     }
     makeCodeInline() {
-        this.wrapCurrentSelectionInNewElement('markdown-code-span');
+        this.domModificationOperation(() => {
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                surroundRangeIfNotYet('markdown-code-span', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
+        });
         this.onChange();
     }
     listBulletedClick() {
@@ -48665,7 +48675,7 @@ function surroundRangeIfNotYet(tagName, range) {
         if (((_a = t.parentElement) === null || _a === void 0 ? void 0 : _a.closest(tagName)) == null) {
             var replaceLevel = t;
             while (replaceLevel.parentElement instanceof TerminalInlineElement) { // terminal inline is the lowest level you cannot surround the text inside, but it can be surrounded
-                replaceLevel = t.parentElement;
+                replaceLevel = replaceLevel.parentElement;
             }
             let enclosing = document.createElement(tagName);
             replaceLevel.replaceWith(enclosing);
@@ -50039,9 +50049,9 @@ exports.Toolbar = class Toolbar extends LitElement {
 
           <toolbar-separator></toolbar-separator>
 
-          <toggle-toolbar-button class='bold' @click=${this.boldButtonClick}>format_bold</toggle-toolbar-button>
-          <toggle-toolbar-button class='italic' @click=${this.italicButtonClick}>format_italic</toggle-toolbar-button>
-          <toggle-toolbar-button class='strike' @click=${this.strikeButtonClick}>format_strikethrough</toggle-toolbar-button>
+          <toggle-toolbar-button title='toggle bold' class='bold' @click=${this.boldButtonClick}>format_bold</toggle-toolbar-button>
+          <toggle-toolbar-button title='toggle italic' class='italic' @click=${this.italicButtonClick}>format_italic</toggle-toolbar-button>
+          <toggle-toolbar-button title='toggle strike' class='strike' @click=${this.strikeButtonClick}>format_strikethrough</toggle-toolbar-button>
           <!--toolbar-button @click=${this.underlineButtonClick}>
             <material-icon>format_underlined</material-icon>
           </toolbar-button-->
@@ -50067,29 +50077,29 @@ exports.Toolbar = class Toolbar extends LitElement {
           <toolbar-separator></toolbar-separator-->
 
           <toolbar-button @click=${this.listBulletedClick}>
-            <material-icon>format_list_bulleted</material-icon>
+            <material-icon title='list'>format_list_bulleted</material-icon>
           </toolbar-button>
           <toolbar-button @click=${this.listNumericClick}>
-            <material-icon>format_list_numbered</material-icon>
+            <material-icon title='numbered list'>format_list_numbered</material-icon>
           </toolbar-button>
 
           <toolbar-separator></toolbar-separator>
 
           <toolbar-button @click=${this.codeButtonClick}>
-            <material-icon>format_quote</material-icon>
+            <material-icon title='code inline'>format_quote</material-icon>
           </toolbar-button>
           <!--toolbar-button>
             <material-icon>border_all</material-icon>
           </toolbar-button-->
           <toolbar-button @click=${this.breakButtonClick}>
-            <material-icon>horizontal_rule</material-icon>
+            <material-icon title='break'>horizontal_rule</material-icon>
           </toolbar-button>
           <!--toolbar-button>
             <material-icon>format_size</material-icon>
           </toolbar-button-->
 
           <toolbar-button @click=${this.insertPhotoButtonClick}>
-            <material-icon>insert_photo</material-icon>
+            <material-icon title='insert image'>insert_photo</material-icon>
             <!--dropdown-elements slot='dropdown-elements' id='insert-photo'>
               URL: <input type="text" class="insert-photo-url">
               Description: <input type="text" class="insert-photo-text">
@@ -50098,7 +50108,7 @@ exports.Toolbar = class Toolbar extends LitElement {
           </toolbar-button>
 
           <toolbar-button @click=${this.insertLinkButtonClick}>
-            <material-icon>insert_link</material-icon>
+            <material-icon title='insert link'>insert_link</material-icon>
             <!--dropdown-elements slot='dropdown-elements' id='insert-link'>
               URL: <input type="text" class="insert-link-url">
               Text: <input type="text" class="insert-link-text">
@@ -50107,7 +50117,7 @@ exports.Toolbar = class Toolbar extends LitElement {
           </toolbar-button>
 
           <toolbar-button @click=${this.codeBlockButtonClick}>
-            <material-icon>code</material-icon>
+            <material-icon title='insert code block'>code</material-icon>
           </toolbar-button>
 
           <toolbar-separator></toolbar-separator>

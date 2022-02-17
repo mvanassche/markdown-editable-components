@@ -137,6 +137,11 @@ export class MarkdownDocument extends LitElement {
         this.normalizeContent();
         this.onChange();  
       }
+
+      let current = this.getCurrentLeafBlock();
+      if(current != null && (current as any).scrollIntoViewIfNeeded != null) { // until standard lands (https://github.com/w3c/csswg-drafts/pull/5677)
+        (current as any).scrollIntoViewIfNeeded();
+      }
     });
 
     this.addEventListener("input", () => {
@@ -872,7 +877,12 @@ export class MarkdownDocument extends LitElement {
   }
 
   makeCodeInline() {
-    this.wrapCurrentSelectionInNewElement('markdown-code-span');
+    this.domModificationOperation(() => {
+      if(this.currentSelection?.getRangeAt(0)) {
+        surroundRangeIfNotYet('markdown-code-span', this.currentSelection?.getRangeAt(0)!);
+        this.normalizeDOM();
+      }
+    });
     this.onChange();
   }
 
@@ -1182,7 +1192,7 @@ export function surroundRangeIfNotYet(tagName: string, range: Range) {
     if(t.parentElement?.closest(tagName) == null) {
       var replaceLevel: ChildNode = t;
       while(replaceLevel.parentElement instanceof TerminalInlineElement) { // terminal inline is the lowest level you cannot surround the text inside, but it can be surrounded
-        replaceLevel = t.parentElement!;
+        replaceLevel = replaceLevel.parentElement!;
       }
       let enclosing = document.createElement(tagName);
       replaceLevel.replaceWith(enclosing);

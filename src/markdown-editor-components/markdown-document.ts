@@ -120,27 +120,28 @@ export class MarkdownDocument extends LitElement {
     document.addEventListener('selectionchange', this._selectionchange);
 
     this.addEventListener('keydown', (e: KeyboardEvent) => {
+      if(this.editable) {
+        if (e.code === 'Enter') {
+          e.preventDefault();
+          this.handleEnterKeyDown();
+        } else if (e.code === 'Backspace') {
+          this.handleBackspaceKeyDown(e);
+        } else if (e.code === 'Delete') {
+          this.handleDeleteKeyDown(e);
+        } else if (e.code === 'Tab') {
+          e.preventDefault();
+          this.handleTabKeyDown();
+        }
+        if(e.defaultPrevented) {
+          // if default prevented, chances are that input is note triggered.
+          this.normalizeContent();
+          this.onChange();  
+        }
 
-      if (e.code === 'Enter') {
-        e.preventDefault();
-        this.handleEnterKeyDown();
-      } else if (e.code === 'Backspace') {
-        this.handleBackspaceKeyDown(e);
-      } else if (e.code === 'Delete') {
-        this.handleDeleteKeyDown(e);
-      } else if (e.code === 'Tab') {
-        e.preventDefault();
-        this.handleTabKeyDown();
-      }
-      if(e.defaultPrevented) {
-        // if default prevented, chances are that input is note triggered.
-        this.normalizeContent();
-        this.onChange();  
-      }
-
-      let current = this.getCurrentLeafBlock();
-      if(current != null && (current as any).scrollIntoViewIfNeeded != null) { // until standard lands (https://github.com/w3c/csswg-drafts/pull/5677)
-        (current as any).scrollIntoViewIfNeeded();
+        let current = this.getCurrentLeafBlock();
+        if(current != null && (current as any).scrollIntoViewIfNeeded != null) { // until standard lands (https://github.com/w3c/csswg-drafts/pull/5677)
+          (current as any).scrollIntoViewIfNeeded();
+        }
       }
     });
 

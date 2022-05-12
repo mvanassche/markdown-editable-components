@@ -1,5 +1,6 @@
 import { html, customElement, css } from 'lit-element';
 import { LeafElement } from './abstract/leaf-element';
+import { MarkdownLitElement } from './abstract/markdown-lit-element';
 import { isMarkdownElement } from './functions';
 
 /*
@@ -37,5 +38,13 @@ export class MarkdownParagraph extends LeafElement {
   }
   containsMarkdownTextContent(): Boolean {
     return true;
+  }
+
+  normalizeContent(): boolean {
+    if(this.lastChild instanceof MarkdownLitElement) {
+      let p = document.createTextNode('\u200b');
+      this.append(p);
+    }
+    return super.normalizeContent();
   }
 }

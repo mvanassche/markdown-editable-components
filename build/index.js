@@ -48919,6 +48919,13 @@ exports.MarkdownParagraph = class MarkdownParagraph extends LeafElement {
     containsMarkdownTextContent() {
         return true;
     }
+    normalizeContent() {
+        if (this.lastChild instanceof MarkdownLitElement) {
+            let p = document.createTextNode('\u200b');
+            this.append(p);
+        }
+        return super.normalizeContent();
+    }
 };
 exports.MarkdownParagraph.styles = css$1 `
     :host {

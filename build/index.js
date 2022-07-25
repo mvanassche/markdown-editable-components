@@ -49971,6 +49971,10 @@ var __decorate$6 = (undefined && undefined.__decorate) || function (decorators, 
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 exports.ToolbarDropdown = class ToolbarDropdown extends LitElement {
+    constructor() {
+        super(...arguments);
+        this._mouseDownListener = null;
+    }
     render() {
         return html `
       <toolbar-button @mousedown=${this.showDropdown}>
@@ -49991,9 +49995,16 @@ exports.ToolbarDropdown = class ToolbarDropdown extends LitElement {
         dropdownElements.style.display = 'none';
     }
     firstUpdated() {
-        document.addEventListener('mousedown', () => {
+        this._mouseDownListener = () => {
             this.hideDropdown();
-        }, false);
+        };
+        document.addEventListener('mousedown', this._mouseDownListener, false);
+    }
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        if (this._mouseDownListener != null) {
+            document.removeEventListener('mousedown', this._mouseDownListener, false);
+        }
     }
 };
 exports.ToolbarDropdown.styles = css$1 `

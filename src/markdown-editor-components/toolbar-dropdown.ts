@@ -35,9 +35,20 @@ export class ToolbarDropdown extends LitElement {
     dropdownElements.style.display = 'none';
   }
 
+  _mouseDownListener?: EventListener | null = null;
+
   firstUpdated() {
-    document.addEventListener('mousedown', () => {
+    this._mouseDownListener = () => {
       this.hideDropdown();
-    }, false);
+    };
+    document.addEventListener('mousedown', this._mouseDownListener, false);
   }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if(this._mouseDownListener != null) {
+      document.removeEventListener('mousedown', this._mouseDownListener, false);
+    }
+  }
+
 }

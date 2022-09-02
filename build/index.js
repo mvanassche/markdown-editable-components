@@ -46044,6 +46044,16 @@ exports.MarkdownLink = class MarkdownLink extends TerminalInlineElement {
         else {
             a.target = '_blank';
         }
+        a.onclick = (e) => {
+            let continueDefault = this.dispatchEvent(new CustomEvent('link-click', { detail: this.destination, bubbles: true, cancelable: true }));
+            if (!continueDefault) {
+                e.preventDefault();
+            }
+        };
+        /*let doc = this.closest('markdown-document');
+        if(doc != null && doc instanceof MarkdownDocument && doc.onLinkClick != null) {
+          a.onclick = () => { doc!.onLinkClick?.call(this, this.destination); };
+        }*/
     }
     destinationInput() {
         let input = this.shadowRoot.querySelector('input');
@@ -47578,6 +47588,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         this.parser = (markdown) => parse(markdown);
         this.toolbar = null;
         this.selectionRoot = document;
+        this.onLinkClick = null;
         this.currentSelection = null;
         this._mouseSelection = false;
         this.isChrome = !!window.chrome;
@@ -48568,6 +48579,9 @@ __decorate$v([
 __decorate$v([
     property()
 ], exports.MarkdownDocument.prototype, "selectionRoot", void 0);
+__decorate$v([
+    property()
+], exports.MarkdownDocument.prototype, "onLinkClick", void 0);
 exports.MarkdownDocument = MarkdownDocument_1 = __decorate$v([
     customElement('markdown-document')
 ], exports.MarkdownDocument);

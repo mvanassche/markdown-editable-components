@@ -72,6 +72,8 @@ export class MarkdownDocument extends LitElement {
   @property()
   selectionRoot: any = document;
 
+  @property()
+  onLinkClick: ((url: string) => void) | null = null;
 
   currentSelection: Selection | null = null
 

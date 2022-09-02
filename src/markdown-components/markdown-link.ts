@@ -1,4 +1,5 @@
 import { html, customElement, property, css } from 'lit-element';
+//import { MarkdownDocument } from '../markdown-editor-components';
 import { TerminalInlineElement } from './abstract/inline-element';
 
 @customElement('markdown-link')
@@ -64,6 +65,18 @@ export class MarkdownLink extends TerminalInlineElement {
     } else {
       a.target = '_blank';
     }
+
+    a.onclick = (e: Event) => {
+      let continueDefault = this.dispatchEvent(new CustomEvent('link-click', { detail: this.destination, bubbles: true, cancelable: true }));
+      if(!continueDefault) {
+        e.preventDefault();
+      }
+    };
+
+    /*let doc = this.closest('markdown-document');
+    if(doc != null && doc instanceof MarkdownDocument && doc.onLinkClick != null) {
+      a.onclick = () => { doc!.onLinkClick?.call(this, this.destination); };
+    }*/
   }
 
   destinationInput() {

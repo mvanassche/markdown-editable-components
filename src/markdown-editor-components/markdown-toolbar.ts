@@ -73,6 +73,11 @@ export class Toolbar extends LitElement {
       font-size: var(--header6-font-size);
       font-weight: bold;
     }
+    @media print {
+        :host {
+          display: none;
+        }
+      }
   `;
 
   render() {

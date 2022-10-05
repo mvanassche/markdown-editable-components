@@ -54,6 +54,11 @@ export class MarkdownDocument extends LitElement {
         top: 0px;
         right: 0%;
       }
+      @media print {
+        :host {
+          border: none;
+        }
+      }
     `,
   ];
 

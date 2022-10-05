@@ -12,18 +12,20 @@ export class TableOfContent extends LitElement implements MarkdownElement {
     :host {
       display: block;
     }
-    :host(.floating) {
-      position: absolute;
-      right: 0px;
-      top: 0px;
-    }
-    :host(.floating) .level-2 {
-      height: 0px;
-      visibility: collapse;
-    }
-    :host(.floating:hover) .level-2 {
-      height: auto;
-      visibility: visible;
+    @media screen {
+      :host(.floating) {
+        position: absolute;
+        right: 0px;
+        top: 0px;
+      }
+      :host(.floating) .level-2 {
+        height: 0px;
+        visibility: collapse;
+      }
+      :host(.floating:hover) .level-2 {
+        height: auto;
+        visibility: visible;
+      }
     }
     .level {
       padding-left: 10px;

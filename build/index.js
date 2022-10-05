@@ -48565,6 +48565,11 @@ exports.MarkdownDocument.styles = [
         top: 0px;
         right: 0%;
       }
+      @media print {
+        :host {
+          border: none;
+        }
+      }
     `,
 ];
 __decorate$v([
@@ -49550,18 +49555,20 @@ exports.TableOfContent.styles = css$1 `
     :host {
       display: block;
     }
-    :host(.floating) {
-      position: absolute;
-      right: 0px;
-      top: 0px;
-    }
-    :host(.floating) .level-2 {
-      height: 0px;
-      visibility: collapse;
-    }
-    :host(.floating:hover) .level-2 {
-      height: auto;
-      visibility: visible;
+    @media screen {
+      :host(.floating) {
+        position: absolute;
+        right: 0px;
+        top: 0px;
+      }
+      :host(.floating) .level-2 {
+        height: 0px;
+        visibility: collapse;
+      }
+      :host(.floating:hover) .level-2 {
+        height: auto;
+        visibility: visible;
+      }
     }
     .level {
       padding-left: 10px;
@@ -50412,6 +50419,11 @@ exports.Toolbar.styles = css$1 `
       font-size: var(--header6-font-size);
       font-weight: bold;
     }
+    @media print {
+        :host {
+          display: none;
+        }
+      }
   `;
 exports.Toolbar = __decorate$5([
     customElement('markdown-toolbar')

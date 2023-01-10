@@ -129,11 +129,19 @@ export class MarkdownEditableComponentsRenderer extends Renderer {
   }
 
   link(href: string, title: string, text: string): string {
-    return `<markdown-link destination='${href}' title='${title}'>${text}</markdown-link>`;
+    if(title) {
+      return `<markdown-link destination='${href}' title='${title}'>${text}</markdown-link>`;
+    } else {
+      return `<markdown-link destination='${href}'>${text}</markdown-link>`;
+    }
   }
 
   image(href: string, title: string, text: string): string {
-    return `<markdown-image destination='${href}' title='${title}'>${text}</markdown-image>`;
+    if(title) {
+      return `<markdown-image destination='${href}' title='${title}'>${text}</markdown-image>`;
+    } else {
+      return `<markdown-image destination='${href}'>${text}</markdown-image>`;
+    }
   }
 
   // strong(text: string): string;

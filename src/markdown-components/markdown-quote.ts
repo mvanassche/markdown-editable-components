@@ -1,9 +1,22 @@
-import { html, customElement } from 'lit-element';
+import { html, customElement, css } from 'lit-element';
 import { ContainerElement } from './abstract/container-element';
 import { isMarkdownElement } from './functions';
 
 @customElement('markdown-quote')
 export class BlockQuote extends ContainerElement {
+  static styles = css`
+        :host {
+          position: relative;
+        }
+        blockquote::before {
+          position: absolute;
+          width: 3px;
+          height: 100%;
+          left: 20px;
+          background-color: lightgray;
+          content: '';
+        }
+  `;
   render() {
     return html`
     <blockquote>

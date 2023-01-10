@@ -47522,10 +47522,20 @@ class MarkdownEditableComponentsRenderer extends Renderer {
         }
     }
     link(href, title, text) {
-        return `<markdown-link destination='${href}' title='${title}'>${text}</markdown-link>`;
+        if (title) {
+            return `<markdown-link destination='${href}' title='${title}'>${text}</markdown-link>`;
+        }
+        else {
+            return `<markdown-link destination='${href}'>${text}</markdown-link>`;
+        }
     }
     image(href, title, text) {
-        return `<markdown-image destination='${href}' title='${title}'>${text}</markdown-image>`;
+        if (title) {
+            return `<markdown-image destination='${href}' title='${title}'>${text}</markdown-image>`;
+        }
+        else {
+            return `<markdown-image destination='${href}'>${text}</markdown-image>`;
+        }
     }
     // strong(text: string): string;
     // em(text: string): string;
@@ -48988,6 +48998,19 @@ exports.BlockQuote = class BlockQuote extends ContainerElement {
         return true;
     }
 };
+exports.BlockQuote.styles = css$1 `
+        :host {
+          position: relative;
+        }
+        blockquote::before {
+          position: absolute;
+          width: 3px;
+          height: 100%;
+          left: 20px;
+          background-color: lightgray;
+          content: '';
+        }
+  `;
 exports.BlockQuote = __decorate$s([
     customElement('markdown-quote')
 ], exports.BlockQuote);

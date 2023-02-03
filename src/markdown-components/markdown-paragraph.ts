@@ -34,7 +34,7 @@ export class MarkdownParagraph extends LeafElement {
           return child.textContent?.replace(/^\s+/gm, ' ');
         }
       }
-    }).join('') + '\n\n';
+    }).join('').replaceAll('\u200b', '') + '\n\n';
   }
   containsMarkdownTextContent(): Boolean {
     return true;

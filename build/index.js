@@ -3013,6 +3013,7 @@ class LeafElement extends BlockElement {
             else if (content instanceof Text) {
                 // TODO should this be higher up? not just leaves?
                 if (content.length > 1 && content.textContent.indexOf('\u200b') >= 0) {
+                    // if there was a ZWSP because it was empty to start with, but after, the user added more text after, the ZWSP has no purpose anymore
                     content.textContent = content.textContent.replace('\u200b', '');
                 }
             }
@@ -48825,6 +48826,7 @@ exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
             else if (content instanceof Text) {
                 // TODO should this be higher up? not just leaves?
                 if (content.length > 1 && content.textContent.indexOf('\u200b') >= 0) {
+                    // if there was a ZWSP because it was empty to start with, but after, the user added more text after, the ZWSP has no purpose anymore
                     content.textContent = content.textContent.replace('\u200b', '');
                 }
             }
@@ -48943,7 +48945,7 @@ exports.MarkdownParagraph = class MarkdownParagraph extends LeafElement {
                     return (_b = child.textContent) === null || _b === void 0 ? void 0 : _b.replace(/^\s+/gm, ' ');
                 }
             }
-        }).join('') + '\n\n';
+        }).join('').replaceAll('\u200b', '') + '\n\n';
     }
     containsMarkdownTextContent() {
         return true;
@@ -49711,6 +49713,7 @@ exports.NumericListItem = NumericListItem_1 = class NumericListItem extends Cont
             else if (content instanceof Text) {
                 // TODO should this be higher up? not just leaves?
                 if (content.length > 1 && content.textContent.indexOf('\u200b') >= 0) {
+                    // if there was a ZWSP because it was empty to start with, but after, the user added more text after, the ZWSP has no purpose anymore
                     content.textContent = content.textContent.replace('\u200b', '');
                 }
             }

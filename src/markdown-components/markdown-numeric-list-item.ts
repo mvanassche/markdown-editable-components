@@ -74,6 +74,7 @@ export class NumericListItem extends ContainerElement {
       } else if(content instanceof Text) {
         // TODO should this be higher up? not just leaves?
         if(content.length > 1 && content.textContent!.indexOf('\u200b') >= 0) {
+          // if there was a ZWSP because it was empty to start with, but after, the user added more text after, the ZWSP has no purpose anymore
           content.textContent = content.textContent!.replace('\u200b', '');
         }
       } else {

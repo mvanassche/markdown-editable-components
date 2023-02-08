@@ -31,5 +31,5 @@ export abstract class ContainerElement extends MarkdownLitElement {
     elementEndWithEndOfLineEquivalent(): boolean {
         return (this.children.length > 0);
       }
-    
+
 }

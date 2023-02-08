@@ -2959,6 +2959,34 @@ class MarkdownLitElement extends LitElement {
 class BlockElement extends MarkdownLitElement {
 }
 
+class ContainerElement extends MarkdownLitElement {
+    contentLength() {
+        var result = 0;
+        Array.from(this.childNodes).forEach((child) => {
+            if (child instanceof MarkdownLitElement) {
+                result += child.contentLength();
+            }
+        });
+        return result + this.endOfLineEquivalentLength();
+    }
+    contentLengthUntil(child) {
+        const childNodes = Array.from(this.childNodes);
+        const indexOfChild = childNodes.indexOf(child);
+        var result = 0;
+        if (indexOfChild >= 0) {
+            childNodes.slice(0, indexOfChild).forEach((child) => {
+                if (child instanceof MarkdownLitElement) {
+                    result += child.contentLength();
+                }
+            });
+        }
+        return result;
+    }
+    elementEndWithEndOfLineEquivalent() {
+        return (this.children.length > 0);
+    }
+}
+
 class LeafElement extends BlockElement {
     connectedCallback() {
         super.connectedCallback();
@@ -3026,16 +3054,25 @@ class LeafElement extends BlockElement {
         return false;
     }
     mergeWithPrevious(currentSelection) {
-        if (this.previousElementSibling instanceof LeafElement) {
-            // TODO modularize in top element
-            if (currentSelection === null || currentSelection === void 0 ? void 0 : currentSelection.containsNode(this, true)) {
-                this.previousElementSibling.setSelectionToEnd(currentSelection);
+        // go previous, then potentially down if container
+        this.mergeWith(currentSelection, this.previousElementSibling);
+    }
+    mergeWith(currentSelection, element) {
+        if (element) {
+            if (element instanceof LeafElement) {
+                // TODO modularize in top element
+                if (currentSelection === null || currentSelection === void 0 ? void 0 : currentSelection.containsNode(this, true)) {
+                    element.setSelectionToEnd(currentSelection);
+                }
+                Array.from(this.childNodes).forEach((child) => {
+                    element === null || element === void 0 ? void 0 : element.appendChild(child);
+                });
+                this.remove();
             }
-            Array.from(this.childNodes).forEach((child) => {
-                var _a;
-                (_a = this.previousElementSibling) === null || _a === void 0 ? void 0 : _a.appendChild(child);
-            });
-            this.remove();
+            else if (element instanceof ContainerElement) {
+                // container -> try to merge with last down element
+                this.mergeWith(currentSelection, element.lastElementChild);
+            }
         }
     }
     mergeNextIn() {
@@ -46136,34 +46173,6 @@ exports.MarkdownLink = __decorate$x([
     customElement('markdown-link')
 ], exports.MarkdownLink);
 
-class ContainerElement extends MarkdownLitElement {
-    contentLength() {
-        var result = 0;
-        Array.from(this.childNodes).forEach((child) => {
-            if (child instanceof MarkdownLitElement) {
-                result += child.contentLength();
-            }
-        });
-        return result + this.endOfLineEquivalentLength();
-    }
-    contentLengthUntil(child) {
-        const childNodes = Array.from(this.childNodes);
-        const indexOfChild = childNodes.indexOf(child);
-        var result = 0;
-        if (indexOfChild >= 0) {
-            childNodes.slice(0, indexOfChild).forEach((child) => {
-                if (child instanceof MarkdownLitElement) {
-                    result += child.contentLength();
-                }
-            });
-        }
-        return result;
-    }
-    elementEndWithEndOfLineEquivalent() {
-        return (this.children.length > 0);
-    }
-}
-
 var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -46182,6 +46191,29 @@ exports.List = class List extends ContainerElement {
     }
     containsMarkdownTextContent() {
         return true;
+    }
+    goDownOneLevel(child) {
+        if (child) {
+            const list = document.createElement('markdown-list');
+            const item = document.createElement('markdown-list-item');
+            item.innerHTML = child.innerHTML;
+            list.appendChild(item);
+            child.innerHTML = '&nbsp';
+            child.appendChild(list);
+        }
+    }
+    goUpOneLevel(child) {
+        var _a;
+        if (child) {
+            let nextUp = (_a = this.parentElement) === null || _a === void 0 ? void 0 : _a.closest('markdown-list-item');
+            if (nextUp) {
+                let indexOfChild = Array.from(this.childNodes).indexOf(child);
+                for (let j = indexOfChild; j < this.childNodes.length; j++) {
+                    nextUp.after(this.childNodes[j]);
+                }
+                //nextUp.after(child);
+            }
+        }
     }
 };
 exports.List.styles = css$1 `
@@ -47650,7 +47682,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 }
                 else if (e.code === 'Tab') {
                     e.preventDefault();
-                    this.handleTabKeyDown();
+                    this.handleTabKeyDown(e.shiftKey);
                 }
                 if (e.defaultPrevented) {
                     // if default prevented, chances are that input is note triggered.
@@ -47721,7 +47753,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         }
     }
     mousedown(e) {
-        if (e.buttons % 2 == 1) {
+        if (e.buttons % 2 == 1) { // TODO potential issue with left-handed mouse buttons redefined?
             this._mouseSelection = true;
         }
     }
@@ -48177,7 +48209,12 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         const sibling = (_f = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode) === null || _f === void 0 ? void 0 : _f.previousSibling;
         if (parent && anchorOffset == 0 && focusOffset == 0 && parent instanceof MarkdownLitElement && sibling == null) {
             e.preventDefault();
-            parent.mergeWithPrevious(this.currentSelection);
+            if (isMarkdownElementEscapeByBackspace(parent.parentElement)) {
+                parent.parentElement.escapeByBackspace(parent);
+            }
+            else {
+                parent.mergeWithPrevious(this.currentSelection);
+            }
         }
         else if (sibling && anchorOffset == 0 && focusOffset == 0 &&
             sibling instanceof MarkdownLitElement && sibling.isDeletableAsAWhole()) {
@@ -48204,16 +48241,19 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
           sibling.remove();
         }*/
     }
-    handleTabKeyDown() {
+    handleTabKeyDown(shift) {
         var _a, _b;
-        const parent = (_b = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) === null || _b === void 0 ? void 0 : _b.parentElement;
-        if (parent) {
-            const list = document.createElement('markdown-list');
-            const item = document.createElement('markdown-list-item');
-            item.innerHTML = parent === null || parent === void 0 ? void 0 : parent.innerHTML;
-            list.appendChild(item);
-            parent.innerHTML = '&nbsp';
-            parent.appendChild(list);
+        let parent = (_b = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) === null || _b === void 0 ? void 0 : _b.parentElement;
+        let child = null;
+        while (parent && parent != this && !isMarkdownElementWithLevel(parent)) {
+            child = parent;
+            parent = parent.parentElement;
+        }
+        if (parent && isMarkdownElementWithLevel(parent)) {
+            if (shift)
+                parent.goUpOneLevel(child);
+            else
+                parent.goDownOneLevel(child);
             this.onChange();
         }
     }
@@ -48528,6 +48568,18 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         const oldElement = this.getCurrentLeafBlock();
         if (oldElement != null) {
             element.innerHTML = oldElement.innerHTML;
+            oldElement.replaceWith(element);
+            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: element }));
+            this.onChange();
+        }
+    }
+    makeQuoteBlock() {
+        const element = document.createElement('markdown-quote');
+        const p = document.createElement('markdown-paragraph');
+        element.append(p);
+        const oldElement = this.getCurrentLeafBlock();
+        if (oldElement != null) {
+            p.innerHTML = oldElement.innerHTML;
             oldElement.replaceWith(element);
             this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: element }));
             this.onChange();
@@ -48957,6 +49009,9 @@ exports.MarkdownParagraph = class MarkdownParagraph extends LeafElement {
         }
         return super.normalizeContent();
     }
+    isEmpty() {
+        return this.getMarkdown() == '\n\n';
+    }
 };
 exports.MarkdownParagraph.styles = css$1 `
     :host {
@@ -48977,6 +49032,7 @@ var __decorate$s = (undefined && undefined.__decorate) || function (decorators, 
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+//import { MarkdownParagraph } from './markdown-paragraph';
 exports.BlockQuote = class BlockQuote extends ContainerElement {
     render() {
         return html `
@@ -48998,6 +49054,49 @@ exports.BlockQuote = class BlockQuote extends ContainerElement {
     }
     containsMarkdownTextContent() {
         return true;
+    }
+    mergeWithPrevious(_currentSelection) {
+        if (this.firstChild) {
+            this.before(this.firstChild);
+        }
+    }
+    goDownOneLevel(child) {
+        if (child) {
+            const q = document.createElement('markdown-quote');
+            child.replaceWith(q);
+            q.append(child);
+        }
+    }
+    goUpOneLevel(child) {
+        // do a split, lower just the child
+        if (child && this.childNodes.length > 1) {
+            let indexOfChild = Array.from(this.childNodes).indexOf(child);
+            if (indexOfChild < this.childNodes.length - 1) {
+                const q = document.createElement('markdown-quote');
+                this.after(q);
+                for (let j = indexOfChild + 1; j < this.childNodes.length; j++) {
+                    q.append(this.childNodes[j]);
+                }
+            }
+            if (indexOfChild > 0) {
+                this.after(child);
+            }
+            else {
+                this.before(child);
+            }
+            if (this.childNodes.length == 0) {
+                this.remove();
+            }
+        }
+        else {
+            // not sure we want to get out the whole thing?
+            // TODO maybe we should not get out if there are no quote parent? use closest?
+            Array.from(this.childNodes).forEach(c => this.before(c));
+            this.remove();
+        }
+    }
+    escapeByBackspace(child) {
+        this.goUpOneLevel(child);
     }
 };
 exports.BlockQuote.styles = css$1 `
@@ -49635,6 +49734,29 @@ exports.NumericList = class NumericList extends ContainerElement {
     containsMarkdownTextContent() {
         return false;
     }
+    goDownOneLevel(child) {
+        if (child) {
+            const list = document.createElement('markdown-numeric-list');
+            const item = document.createElement('markdown-numeric-list-item');
+            item.innerHTML = child.innerHTML;
+            list.appendChild(item);
+            child.innerHTML = '&nbsp';
+            child.appendChild(list);
+        }
+    }
+    goUpOneLevel(child) {
+        var _a;
+        if (child) {
+            let nextUp = (_a = this.parentElement) === null || _a === void 0 ? void 0 : _a.closest('markdown-numeric-list-item');
+            if (nextUp) {
+                let indexOfChild = Array.from(this.childNodes).indexOf(child);
+                for (let j = indexOfChild; j < this.childNodes.length; j++) {
+                    nextUp.after(this.childNodes[j]);
+                }
+                //nextUp.after(child);
+            }
+        }
+    }
 };
 exports.NumericList.styles = css$1 `
     :host {
@@ -49804,6 +49926,13 @@ __decorate$a([
 exports.NumericListItem = NumericListItem_1 = __decorate$a([
     customElement('markdown-numeric-list-item')
 ], exports.NumericListItem);
+
+function isMarkdownElementWithLevel(element) {
+    return element && element.goDownOneLevel !== undefined;
+}
+function isMarkdownElementEscapeByBackspace(element) {
+    return element && element.escapeByBackspace !== undefined;
+}
 
 /**
  * @license
@@ -50153,7 +50282,7 @@ exports.Toolbar = class Toolbar extends LitElement {
           <toolbar-separator></toolbar-separator>
 
           <toolbar-button @click=${this.codeButtonClick}>
-            <material-icon title='code inline'>format_quote</material-icon>
+            <material-icon title='code inline'>data_object</material-icon>
           </toolbar-button>
           <!--toolbar-button>
             <material-icon>border_all</material-icon>
@@ -50185,6 +50314,10 @@ exports.Toolbar = class Toolbar extends LitElement {
 
           <toolbar-button @click=${this.codeBlockButtonClick}>
             <material-icon title='insert code block'>code</material-icon>
+          </toolbar-button>
+
+          <toolbar-button @click=${this.quoteButtonClick}>
+            <material-icon title='insert quote'>format_quote</material-icon>
           </toolbar-button>
 
           <toolbar-separator></toolbar-separator>
@@ -50288,6 +50421,10 @@ exports.Toolbar = class Toolbar extends LitElement {
     codeBlockButtonClick() {
         var _a;
         (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.makeCodeBlock();
+    }
+    quoteButtonClick() {
+        var _a;
+        (_a = this.markdownDocument) === null || _a === void 0 ? void 0 : _a.makeQuoteBlock();
     }
     boldButtonClick() {
         var _a, _b;
@@ -50599,6 +50736,8 @@ exports.ToggleToolbarButton = __decorate([
 ], exports.ToggleToolbarButton);
 
 exports.MarkdownEditableComponentsRenderer = MarkdownEditableComponentsRenderer;
+exports.isMarkdownElementEscapeByBackspace = isMarkdownElementEscapeByBackspace;
+exports.isMarkdownElementWithLevel = isMarkdownElementWithLevel;
 exports.parse = parse;
 exports.surroundRangeIfNotYet = surroundRangeIfNotYet;
 exports.unsurroundRange = unsurroundRange;

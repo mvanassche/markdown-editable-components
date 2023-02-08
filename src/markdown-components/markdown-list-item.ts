@@ -146,6 +146,7 @@ export class ListItem extends ContainerElement {
     }
   }
 
+
   elementEndWithEndOfLineEquivalent(): boolean {
     return (this.textContent && this.textContent?.length > 0) || this.children.length > 0;
   }

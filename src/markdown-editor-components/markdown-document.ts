@@ -9,6 +9,7 @@ import { MarkdownLink } from '../markdown-components/markdown-link';
 import { MarkdownLitElement } from '../markdown-components/abstract/markdown-lit-element';
 import { globalVariables } from '../styles/global-variables';
 import { TerminalInlineElement } from '../markdown-components/abstract/inline-element';
+import { isMarkdownElementEscapeByBackspace, isMarkdownElementWithLevel } from '../markdown-components';
 
 @customElement('markdown-document')
 export class MarkdownDocument extends LitElement {
@@ -137,7 +138,7 @@ export class MarkdownDocument extends LitElement {
           this.handleDeleteKeyDown(e);
         } else if (e.code === 'Tab') {
           e.preventDefault();
-          this.handleTabKeyDown();
+          this.handleTabKeyDown(e.shiftKey);
         }
         if(e.defaultPrevented) {
           // if default prevented, chances are that input is note triggered.
@@ -216,7 +217,7 @@ export class MarkdownDocument extends LitElement {
   }
 
   mousedown(e: MouseEvent) {
-    if(e.buttons % 2 == 1) {
+    if(e.buttons % 2 == 1) { // TODO potential issue with left-handed mouse buttons redefined?
       this._mouseSelection = true;
     }
   }
@@ -697,7 +698,11 @@ export class MarkdownDocument extends LitElement {
     const sibling = this.currentSelection?.anchorNode?.previousSibling;
     if (parent && anchorOffset == 0 && focusOffset == 0 && parent instanceof MarkdownLitElement && sibling == null) {
       e.preventDefault();
-      parent.mergeWithPrevious(this.currentSelection);
+      if(isMarkdownElementEscapeByBackspace(parent.parentElement)) {
+        parent.parentElement.escapeByBackspace(parent);
+      } else {
+        parent.mergeWithPrevious(this.currentSelection);
+      }
     } else if (sibling && anchorOffset == 0 && focusOffset == 0 &&
                   sibling instanceof MarkdownLitElement && sibling.isDeletableAsAWhole()) {
       e.preventDefault();
@@ -724,17 +729,18 @@ export class MarkdownDocument extends LitElement {
     }*/
   }
 
-  handleTabKeyDown() {
-    const parent = this.currentSelection?.anchorNode?.parentElement;
+  handleTabKeyDown(shift: boolean) {
+    let parent = this.currentSelection?.anchorNode?.parentElement;
+    let child: Element | null = null;
     
-    if (parent) {
-      const list = document.createElement('markdown-list');
-      const item = document.createElement('markdown-list-item');
+    while(parent && parent != this && !isMarkdownElementWithLevel(parent)) {
+      child = parent;
+      parent = parent.parentElement;
+    }
 
-      item.innerHTML = parent?.innerHTML;
-      list.appendChild(item);
-      parent.innerHTML= '&nbsp';
-      parent.appendChild(list);
+    if (parent && isMarkdownElementWithLevel(parent)) {
+      if(shift) parent.goUpOneLevel(child);
+      else parent.goDownOneLevel(child);
       this.onChange();
     }
   }
@@ -1089,6 +1095,19 @@ export class MarkdownDocument extends LitElement {
     }
   }
 
+  makeQuoteBlock() {
+    const element = document.createElement('markdown-quote');
+    const p = document.createElement('markdown-paragraph');
+    element.append(p);
+    const oldElement = this.getCurrentLeafBlock();
+
+    if (oldElement != null) {
+      p.innerHTML = oldElement.innerHTML;
+      oldElement.replaceWith(element);
+      this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: element }));
+      this.onChange();
+    }
+  }
 }
 
 function getWord(range: Range): Range | null {

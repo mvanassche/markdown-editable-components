@@ -150,7 +150,7 @@ export class Toolbar extends LitElement {
           <toolbar-separator></toolbar-separator>
 
           <toolbar-button @click=${this.codeButtonClick}>
-            <material-icon title='code inline'>format_quote</material-icon>
+            <material-icon title='code inline'>data_object</material-icon>
           </toolbar-button>
           <!--toolbar-button>
             <material-icon>border_all</material-icon>
@@ -182,6 +182,10 @@ export class Toolbar extends LitElement {
 
           <toolbar-button @click=${this.codeBlockButtonClick}>
             <material-icon title='insert code block'>code</material-icon>
+          </toolbar-button>
+
+          <toolbar-button @click=${this.quoteButtonClick}>
+            <material-icon title='insert quote'>format_quote</material-icon>
           </toolbar-button>
 
           <toolbar-separator></toolbar-separator>
@@ -293,6 +297,10 @@ export class Toolbar extends LitElement {
 
   codeBlockButtonClick() {
     this.markdownDocument?.makeCodeBlock();
+  }
+
+  quoteButtonClick() {
+    this.markdownDocument?.makeQuoteBlock();
   }
 
   boldButtonClick() {

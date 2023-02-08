@@ -1,4 +1,5 @@
 import { BlockElement } from "./block-element";
+import { ContainerElement } from "./container-element";
 import { MarkdownLitElement } from "./markdown-lit-element";
 
 export abstract class LeafElement extends BlockElement {
@@ -81,17 +82,27 @@ export abstract class LeafElement extends BlockElement {
 
 
   mergeWithPrevious(currentSelection: Selection | null) {
-    if(this.previousElementSibling instanceof LeafElement) {
-      // TODO modularize in top element
-      if(currentSelection?.containsNode(this, true)) {
-        this.previousElementSibling.setSelectionToEnd(currentSelection);
-      }
+    // go previous, then potentially down if container
+    this.mergeWith(currentSelection, this.previousElementSibling);
+  }
 
-      Array.from(this.childNodes).forEach((child) => {
-        this.previousElementSibling?.appendChild(child);
-      });
-      
-      this.remove();
+  mergeWith(currentSelection: Selection | null, element: Element | null) {
+    if(element) {
+      if(element instanceof LeafElement) {
+        // TODO modularize in top element
+        if(currentSelection?.containsNode(this, true)) {
+          element.setSelectionToEnd(currentSelection);
+        }
+
+        Array.from(this.childNodes).forEach((child) => {
+          element?.appendChild(child);
+        });
+        
+        this.remove();
+      } else if(element instanceof ContainerElement) {
+        // container -> try to merge with last down element
+        this.mergeWith(currentSelection, element.lastElementChild);
+      }
     }
   }
 

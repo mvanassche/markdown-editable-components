@@ -47,4 +47,7 @@ export class MarkdownParagraph extends LeafElement {
     }
     return super.normalizeContent();
   }
+  isEmpty(): boolean {
+    return this.getMarkdown() == '\n\n';
+  }
 }

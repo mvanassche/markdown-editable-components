@@ -154,5 +154,4 @@ export class NumericListItem extends ContainerElement {
   containsMarkdownTextContent(): Boolean {
     return true;
   }
-
 }

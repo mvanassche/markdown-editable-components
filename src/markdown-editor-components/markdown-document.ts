@@ -81,7 +81,8 @@ export class MarkdownDocument extends LitElement {
   @property()
   onLinkClick: ((url: string) => void) | null = null;
 
-  currentSelection: Selection | null = null
+  currentSelection: Selection | null = null;
+  lastSelection: any = null;
 
   _selectionchange: any;
   _selectstart: any;
@@ -259,7 +260,8 @@ export class MarkdownDocument extends LitElement {
         }
 
         this.currentSelection = selection;
-        //console.log(this.currentSelection);
+        this.lastSelection = { anchorNode: selection.anchorNode, anchorOffset: selection.anchorOffset };
+        console.log(this.currentSelection);
         this.stashedSelection = {
           anchorNode: selection.anchorNode,
           anchorOffset: selection.anchorOffset,
@@ -632,6 +634,27 @@ export class MarkdownDocument extends LitElement {
     let selection = this.getSelection();
 
     const anchorNode = selection?.anchorNode;
+    // console.log('anchorNode');
+    // console.log(anchorNode);
+
+    if (anchorNode != null) {
+      let element: Node | null = anchorNode;
+
+      while (element != null && element != document && !(element instanceof MarkdownDocument)) { 
+        if (element instanceof LeafElement) {
+          return element;
+        }
+
+        element = element?.parentNode;
+      }
+    }
+
+    return null;
+  }
+
+  public getLastLeafBlock(): LeafElement | null {
+
+    const anchorNode = this.lastSelection?.anchorNode;
     // console.log('anchorNode');
     // console.log(anchorNode);
 

@@ -47633,6 +47633,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
         this.selectionRoot = document;
         this.onLinkClick = null;
         this.currentSelection = null;
+        this.lastSelection = null;
         this._mouseSelection = false;
         this.isChrome = !!window.chrome;
         this.editable = false;
@@ -47791,7 +47792,8 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                     this.disableEditable();
                 }
                 this.currentSelection = selection;
-                //console.log(this.currentSelection);
+                this.lastSelection = { anchorNode: selection.anchorNode, anchorOffset: selection.anchorOffset };
+                console.log(this.currentSelection);
                 this.stashedSelection = {
                     anchorNode: selection.anchorNode,
                     anchorOffset: selection.anchorOffset,
@@ -48156,6 +48158,22 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
     getCurrentLeafBlock() {
         let selection = this.getSelection();
         const anchorNode = selection === null || selection === void 0 ? void 0 : selection.anchorNode;
+        // console.log('anchorNode');
+        // console.log(anchorNode);
+        if (anchorNode != null) {
+            let element = anchorNode;
+            while (element != null && element != document && !(element instanceof MarkdownDocument_1)) {
+                if (element instanceof LeafElement) {
+                    return element;
+                }
+                element = element === null || element === void 0 ? void 0 : element.parentNode;
+            }
+        }
+        return null;
+    }
+    getLastLeafBlock() {
+        var _a;
+        const anchorNode = (_a = this.lastSelection) === null || _a === void 0 ? void 0 : _a.anchorNode;
         // console.log('anchorNode');
         // console.log(anchorNode);
         if (anchorNode != null) {

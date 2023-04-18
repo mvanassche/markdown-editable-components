@@ -261,7 +261,6 @@ export class MarkdownDocument extends LitElement {
 
         this.currentSelection = selection;
         this.lastSelection = { anchorNode: selection.anchorNode, anchorOffset: selection.anchorOffset };
-        console.log(this.currentSelection);
         this.stashedSelection = {
           anchorNode: selection.anchorNode,
           anchorOffset: selection.anchorOffset,
@@ -930,6 +929,10 @@ export class MarkdownDocument extends LitElement {
       const item = document.createElement('markdown-list-item');
       item.innerHTML = "<br />";
       list.appendChild(item);
+      const oldElement = this.getCurrentLeafBlock();
+      if (oldElement != null) {
+        item.innerHTML = oldElement.innerHTML;
+      }
 
       (this.currentSelection?.anchorNode as HTMLElement).replaceWith(list);
 
@@ -949,6 +952,10 @@ export class MarkdownDocument extends LitElement {
       const item = document.createElement('markdown-numeric-list-item');
       item.innerHTML = "<br />";
       list.appendChild(item);
+      const oldElement = this.getCurrentLeafBlock();
+      if (oldElement != null) {
+        item.innerHTML = oldElement.innerHTML;
+      }
 
       (this.currentSelection?.anchorNode as HTMLElement).replaceWith(list);
 

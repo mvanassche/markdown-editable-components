@@ -132,6 +132,12 @@ export class ListItem extends ContainerElement {
       });
       
       this.remove();
+    } else if(this.parentElement?.childNodes?.length == 1) {
+      // there is only one item left
+      Array.from(this.childNodes).forEach((child) => {
+        this.parentElement?.after(child);
+      });
+      this.parentElement?.remove();
     }
   }
 

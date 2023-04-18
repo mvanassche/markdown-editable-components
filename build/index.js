@@ -47793,7 +47793,6 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
                 }
                 this.currentSelection = selection;
                 this.lastSelection = { anchorNode: selection.anchorNode, anchorOffset: selection.anchorOffset };
-                console.log(this.currentSelection);
                 this.stashedSelection = {
                     anchorNode: selection.anchorNode,
                     anchorOffset: selection.anchorOffset,
@@ -48430,6 +48429,10 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             const item = document.createElement('markdown-list-item');
             item.innerHTML = "<br />";
             list.appendChild(item);
+            const oldElement = this.getCurrentLeafBlock();
+            if (oldElement != null) {
+                item.innerHTML = oldElement.innerHTML;
+            }
             ((_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorNode).replaceWith(list);
             const range = document.createRange();
             range.selectNodeContents(item);
@@ -48447,6 +48450,10 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             const item = document.createElement('markdown-numeric-list-item');
             item.innerHTML = "<br />";
             list.appendChild(item);
+            const oldElement = this.getCurrentLeafBlock();
+            if (oldElement != null) {
+                item.innerHTML = oldElement.innerHTML;
+            }
             ((_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorNode).replaceWith(list);
             const range = document.createRange();
             range.selectNodeContents(item);
@@ -48946,6 +48953,7 @@ exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
         return result;
     }
     mergeWithPrevious(currentSelection) {
+        var _a, _b, _c;
         if (this.previousElementSibling instanceof ListItem_1) {
             // TODO modularize in top element
             if (currentSelection === null || currentSelection === void 0 ? void 0 : currentSelection.containsNode(this, true)) {
@@ -48956,6 +48964,14 @@ exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
                 (_a = this.previousElementSibling) === null || _a === void 0 ? void 0 : _a.appendChild(child);
             });
             this.remove();
+        }
+        else if (((_b = (_a = this.parentElement) === null || _a === void 0 ? void 0 : _a.childNodes) === null || _b === void 0 ? void 0 : _b.length) == 1) {
+            // there is only one item left
+            Array.from(this.childNodes).forEach((child) => {
+                var _a;
+                (_a = this.parentElement) === null || _a === void 0 ? void 0 : _a.after(child);
+            });
+            (_c = this.parentElement) === null || _c === void 0 ? void 0 : _c.remove();
         }
     }
     mergeNextIn() {

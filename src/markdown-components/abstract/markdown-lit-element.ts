@@ -1,7 +1,7 @@
 import { LitElement } from 'lit-element';
 import { isMarkdownElement } from '../functions';
 import { MarkdownElement } from '../interfaces/markdown-element';
-import { MarkdownImage } from '../markdown-image';
+import { normalizeContent } from '../../markdown-editor-components/markdown-document';
 
 export abstract class MarkdownLitElement extends LitElement implements MarkdownElement {
 
@@ -17,38 +17,7 @@ export abstract class MarkdownLitElement extends LitElement implements MarkdownE
 
   // returns a boolean that if true, it means that the element changed something that will impact a ancestor, so normalize should be redone
   normalizeContent(): boolean {
-    for (let i = 0; i < this.childNodes.length; i++) {
-      const content = this.childNodes[i];
-      if(content instanceof MarkdownLitElement) {
-        if(content.normalizeContent()) {
-          return this.normalizeContent();
-        }
-      } else {
-        if(this.normalizeChildContent(content)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  normalizeChildContent(content: Node): boolean {
-    if (content instanceof HTMLImageElement) {
-      let img = document.createElement('markdown-image') as MarkdownImage;
-      content.replaceWith(img);
-      //  src="${this.destination}" title="${this.title}" alt="${this.innerText}"
-      if(content.getAttribute('src') != null) {
-        img.setAttribute('destination', content.getAttribute('src')!);
-      }
-      if(content.getAttribute('title') != null) {
-        img.setAttribute('title', content.getAttribute('title')!);
-      }
-      if(content.getAttribute('alt') != null) {
-        img.innerText = content.getAttribute('alt')!;
-      }
-      return true;
-    }
-    return false;
+    return normalizeContent(this);
   }
 
   pushNodesAfterBreakToParent(content: HTMLBRElement) {

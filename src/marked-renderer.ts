@@ -42,6 +42,10 @@ export class MarkdownEditableComponentsRenderer extends Renderer {
     return `<markdown-code ${langAttr} ${idAttr}>${code}</markdown-code>`;
   }
 
+  custom(tag: string, content: string): string {
+    return `<${tag}>${content}</${tag}>`;
+  }
+
   blockquote(quote: string): string {
     return `<markdown-quote>${quote}</markdown-quote>`;
   }
@@ -182,6 +186,13 @@ export function parse(markdown: string, renderer?: MarkdownEditableComponentsRen
     /^ *(`{3,}|~{3,})[ .]*(\S+)? +{([^}]+)} *\n([\s\S]*?)\s*\1 *(?:\n+|$)/,
     function(this: MarkdownEditableComponentsRenderer, execArr) {
       return this.codeWithAnchor(execArr![4], execArr![2], execArr![3])
+    }
+  );
+
+  Marked.setBlockRule(
+    /^\[\[\[([a-z\-]+)\n([\s\S]+?)\1\]\]\]\n/,
+    function(this: MarkdownEditableComponentsRenderer, execArr) {
+      return this.custom(execArr![1], parse(execArr![2], renderer));
     }
   );
 

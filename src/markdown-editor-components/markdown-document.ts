@@ -9,7 +9,7 @@ import { MarkdownLink } from '../markdown-components/markdown-link';
 import { MarkdownLitElement } from '../markdown-components/abstract/markdown-lit-element';
 import { globalVariables } from '../styles/global-variables';
 import { TerminalInlineElement } from '../markdown-components/abstract/inline-element';
-import { isMarkdownElementEscapeByBackspace, isMarkdownElementWithLevel } from '../markdown-components';
+import { MarkdownElement, isMarkdownElementEscapeByBackspace, isMarkdownElementWithLevel } from '../markdown-components';
 
 @customElement('markdown-document')
 export class MarkdownDocument extends LitElement {
@@ -131,8 +131,16 @@ export class MarkdownDocument extends LitElement {
     this.addEventListener('keydown', (e: KeyboardEvent) => {
       if(this.editable) {
         if (e.code === 'Enter') {
-          e.preventDefault();
-          this.handleEnterKeyDown();
+          //e.preventDefault();
+          //this.handleEnterKeyDown();
+          //document.execCommand('insertHTML', false, '#');
+          //document.execCommand('insertHTML', false, '&ZeroWidthSpace;&ZeroWidthSpace;');
+          //document.execCommand('insertLineBreak');
+          /*let n = this.currentSelection?.anchorNode;
+          let i = this.currentSelection?.anchorOffset;
+          if(n != null && i != null && n instanceof Text) {
+            n.data = n.data.substring(0, i) + '\u200b' + n.data.substring(i)
+          }*/
         } else if (e.code === 'Backspace') {
           this.handleBackspaceKeyDown(e);
         } else if (e.code === 'Delete') {
@@ -142,7 +150,7 @@ export class MarkdownDocument extends LitElement {
           this.handleTabKeyDown(e.shiftKey);
         }
         if(e.defaultPrevented) {
-          // if default prevented, chances are that input is note triggered.
+          // if default prevented, chances are that input is not triggered.
           this.normalizeContent();
           this.onChange();  
         }
@@ -521,10 +529,17 @@ export class MarkdownDocument extends LitElement {
     //console.log("doc normalize")
     for (let i = 0; i < this.childNodes.length; i++) {
       const child = this.childNodes[i];
-      if(child instanceof MarkdownLitElement) {
-        if(child.normalizeContent()) {
-          this.normalizeDOM();
-          break;
+      if(isMarkdownElement(child)) {
+        if(child instanceof MarkdownLitElement) {
+          if(child.normalizeContent()) {
+            this.normalizeDOM();
+            break;
+          }
+        } else {
+          if(normalizeContent(child)) {
+            this.normalizeDOM();
+            break;
+          }
         }
       } else if (child instanceof HTMLDivElement) {
           // on chromium new lines are handled by divs, it splits up the tags properly.
@@ -545,7 +560,11 @@ export class MarkdownDocument extends LitElement {
         if(child.getAttribute('alt') != null) {
           img.innerText = child.getAttribute('alt')!;
         }
-
+      } else if(child instanceof HTMLElement && child.tagName.toLowerCase() === 'markdown-paragraph' && child.childNodes.length == 1 && child.childNodes[0] instanceof HTMLBRElement) {
+        // For some reason, sometimes the paragraph component has not been constructed yet on return
+        child.childNodes[0].remove();
+        let p = document.createTextNode('\u200b');
+        child.append(p);
       } else if (child instanceof Text && child.textContent!.trim().length > 0) {
         let p = document.createElement('markdown-paragraph');
         p.textContent = child.textContent;
@@ -1312,3 +1331,51 @@ export function unsurroundRange(tagName: string, range: Range) {
 }
 
 
+
+   // returns a boolean that if true, it means that the element changed something that will impact a ancestor, so normalize should be redone
+export function normalizeContent(element: MarkdownElement): boolean {
+  for (let i = 0; i < element.childNodes.length; i++) {
+    const content = element.childNodes[i];
+    if(content instanceof MarkdownLitElement) {
+      if(content.normalizeContent()) {
+        return normalizeContent(element);
+      }
+    } else if(isMarkdownElement(content)) {
+      if(normalizeContent(content)) {
+        return normalizeContent(element);
+      }
+    } else {
+      if(normalizeChildContent(content)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+
+export function normalizeChildContent(content: Node): boolean {
+  if (content instanceof HTMLImageElement) {
+    let img = document.createElement('markdown-image') as MarkdownImage;
+    content.replaceWith(img);
+    if(content.getAttribute('src') != null) {
+      img.setAttribute('destination', content.getAttribute('src')!);
+    }
+    if(content.getAttribute('title') != null) {
+      img.setAttribute('title', content.getAttribute('title')!);
+    }
+    if(content.getAttribute('alt') != null) {
+      img.innerText = content.getAttribute('alt')!;
+    }
+    return true;
+  } else if(content instanceof HTMLElement && content.tagName.toLowerCase() === 'markdown-paragraph') {
+    // For some reason, sometimes the paragraph component has not been constructed yet on return
+    if(content.childNodes.length == 1 && content.childNodes[0] instanceof HTMLBRElement) {
+      content.childNodes[0].remove();
+      let p = document.createTextNode('\u200b');
+      content.append(p);
+      return true;
+    }
+  }
+  return false;
+}

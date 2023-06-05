@@ -1,5 +1,5 @@
 import { html, customElement, property, css } from 'lit-element';
-import { MarkdownDocument } from '../markdown-editor-components/markdown-document';
+import { MarkdownDocument, normalizeChildContent } from '../markdown-editor-components/markdown-document';
 import { ContainerElement } from './abstract/container-element';
 import { List } from './markdown-list';
 import { isMarkdownElement } from './functions';
@@ -77,7 +77,7 @@ export class ListItem extends ContainerElement {
           content.textContent = content.textContent!.replace('\u200b', '');
         }
       } else {
-        if(this.normalizeChildContent(content)) {
+        if(normalizeChildContent(content)) {
           return true;
         }        
       }

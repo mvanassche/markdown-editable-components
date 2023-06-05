@@ -1243,7 +1243,7 @@ const parts = new WeakMap();
  *     container. Render options must *not* change between renders to the same
  *     container, as those changes will not effect previously rendered DOM.
  */
-const render$1 = (result, container, options) => {
+const render = (result, container, options) => {
     let part = parts.get(container);
     if (part === undefined) {
         removeNodes(container, container.firstChild);
@@ -1322,7 +1322,7 @@ const defaultTemplateProcessor = new DefaultTemplateProcessor();
 // This line will be used in regexes to search for lit-html usage.
 // TODO(justinfagnani): inject version number at build time
 if (typeof window !== 'undefined') {
-    (window['litHtmlVersions'] || (window['litHtmlVersions'] = [])).push('1.3.0');
+    (window['litHtmlVersions'] || (window['litHtmlVersions'] = [])).push('1.4.1');
 }
 /**
  * Interprets a template literal as an HTML template that can efficiently
@@ -1548,7 +1548,7 @@ const prepareTemplateStyles = (scopeName, renderedDOM, template) => {
  * non-shorthand names (for example `border` and `border-width`) is not
  * supported.
  */
-const render = (result, container, options) => {
+const render$1 = (result, container, options) => {
     if (!options || typeof options !== 'object' || !options.scopeName) {
         throw new Error('The `scopeName` option is required.');
     }
@@ -1562,7 +1562,7 @@ const render = (result, container, options) => {
     // On first scope render, render into a fragment; this cannot be a single
     // fragment that is reused since nested renders can occur synchronously.
     const renderContainer = firstScopeRender ? document.createDocumentFragment() : container;
-    render$1(result, renderContainer, Object.assign({ templateFactory: shadyTemplateFactory(scopeName) }, options));
+    render(result, renderContainer, Object.assign({ templateFactory: shadyTemplateFactory(scopeName) }, options));
     // When performing first scope render,
     // (1) We've rendered into a fragment so that there's a chance to
     // `prepareTemplateStyles` before sub-elements hit the DOM
@@ -1647,6 +1647,7 @@ const defaultConverter = {
                 return value === null ? null : Number(value);
             case Object:
             case Array:
+                // Type assert to adhere to Bazel's "must type assert JSON parse" rule.
                 return JSON.parse(value);
         }
         return value;
@@ -2211,8 +2212,29 @@ class UpdatingElement extends HTMLElement {
      *       await this._myChild.updateComplete;
      *     }
      *   }
+     * @deprecated Override `getUpdateComplete()` instead for forward
+     *     compatibility with `lit-element` 3.0 / `@lit/reactive-element`.
      */
     _getUpdateComplete() {
+        return this.getUpdateComplete();
+    }
+    /**
+     * Override point for the `updateComplete` promise.
+     *
+     * It is not safe to override the `updateComplete` getter directly due to a
+     * limitation in TypeScript which means it is not possible to call a
+     * superclass getter (e.g. `super.updateComplete.then(...)`) when the target
+     * language is ES5 (https://github.com/microsoft/TypeScript/issues/338).
+     * This method should be overridden instead. For example:
+     *
+     *   class MyElement extends LitElement {
+     *     async getUpdateComplete() {
+     *       await super.getUpdateComplete();
+     *       await this._myChild.updateComplete;
+     *     }
+     *   }
+     */
+    getUpdateComplete() {
         return this._updatePromise;
     }
     /**
@@ -2464,7 +2486,7 @@ const textFromCSSResult = (value) => {
  * string values may be used. To incorporate non-literal values [[`unsafeCSS`]]
  * may be used inside a template string part.
  */
-const css$1 = (strings, ...values) => {
+const css = (strings, ...values) => {
     const cssText = values.reduce((acc, v, idx) => acc + textFromCSSResult(v) + strings[idx + 1], strings[0]);
     return new CSSResult(cssText, constructionToken);
 };
@@ -2486,7 +2508,7 @@ const css$1 = (strings, ...values) => {
 // This line will be used in regexes to search for LitElement usage.
 // TODO(justinfagnani): inject version number at build time
 (window['litElementVersions'] || (window['litElementVersions'] = []))
-    .push('2.4.0');
+    .push('2.5.1');
 /**
  * Sentinal value used to avoid calling lit-html's render function when
  * subclasses do not implement `render`
@@ -2586,7 +2608,7 @@ class LitElement extends UpdatingElement {
      * @returns {Element|DocumentFragment} Returns a node into which to render.
      */
     createRenderRoot() {
-        return this.attachShadow({ mode: 'open' });
+        return this.attachShadow(this.constructor.shadowRootOptions);
     }
     /**
      * Applies styling to the element shadowRoot using the [[`styles`]]
@@ -2692,7 +2714,9 @@ LitElement['finalized'] = true;
  *
  * @nocollapse
  */
-LitElement.render = render;
+LitElement.render = render$1;
+/** @nocollapse */
+LitElement.shadowRootOptions = { mode: 'open' };
 
 function isMarkdownElement(x) {
     return 'getMarkdown' in x;
@@ -2708,6 +2732,1366 @@ function getMarkdownWithTextForElement(element) {
     }).join('');
 }
 
+/*
+ * @license
+ *
+ * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
+ * https://github.com/chjj/marked
+ *
+ * Copyright (c) 2018-2021, Костя Третяк. (MIT Licensed)
+ * https://github.com/ts-stack/markdown
+ */
+class ExtendRegexp {
+    constructor(regex, flags = '') {
+        this.source = regex.source;
+        this.flags = flags;
+    }
+    /**
+     * Extend regular expression.
+     *
+     * @param groupName Regular expression for search a group name.
+     * @param groupRegexp Regular expression of named group.
+     */
+    setGroup(groupName, groupRegexp) {
+        let newRegexp = typeof groupRegexp == 'string' ? groupRegexp : groupRegexp.source;
+        newRegexp = newRegexp.replace(/(^|[^\[])\^/g, '$1');
+        // Extend regexp.
+        this.source = this.source.replace(groupName, newRegexp);
+        return this;
+    }
+    /**
+     * Returns a result of extending a regular expression.
+     */
+    getRegexp() {
+        return new RegExp(this.source, this.flags);
+    }
+}
+
+/**
+ * @license
+ *
+ * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
+ * https://github.com/chjj/marked
+ *
+ * Copyright (c) 2018-2021, Костя Третяк. (MIT Licensed)
+ * https://github.com/ts-stack/markdown
+ */
+const escapeTest = /[&<>"']/;
+const escapeReplace = /[&<>"']/g;
+const replacements = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    // tslint:disable-next-line:quotemark
+    "'": '&#39;',
+};
+const escapeTestNoEncode = /[<>"']|&(?!#?\w+;)/;
+const escapeReplaceNoEncode = /[<>"']|&(?!#?\w+;)/g;
+function escape(html, encode) {
+    if (encode) {
+        if (escapeTest.test(html)) {
+            return html.replace(escapeReplace, (ch) => replacements[ch]);
+        }
+    }
+    else {
+        if (escapeTestNoEncode.test(html)) {
+            return html.replace(escapeReplaceNoEncode, (ch) => replacements[ch]);
+        }
+    }
+    return html;
+}
+function unescape(html) {
+    // Explicitly match decimal, hex, and named HTML entities
+    return html.replace(/&(#(?:\d+)|(?:#x[0-9A-Fa-f]+)|(?:\w+));?/gi, function (_, n) {
+        n = n.toLowerCase();
+        if (n === 'colon') {
+            return ':';
+        }
+        if (n.charAt(0) === '#') {
+            return n.charAt(1) === 'x'
+                ? String.fromCharCode(parseInt(n.substring(2), 16))
+                : String.fromCharCode(+n.substring(1));
+        }
+        return '';
+    });
+}
+
+/**
+ * @license
+ *
+ * Copyright (c) 2018-2021, Костя Третяк. (MIT Licensed)
+ * https://github.com/ts-stack/markdown
+ */
+var TokenType;
+(function (TokenType) {
+    TokenType[TokenType["space"] = 1] = "space";
+    TokenType[TokenType["text"] = 2] = "text";
+    TokenType[TokenType["paragraph"] = 3] = "paragraph";
+    TokenType[TokenType["heading"] = 4] = "heading";
+    TokenType[TokenType["listStart"] = 5] = "listStart";
+    TokenType[TokenType["listEnd"] = 6] = "listEnd";
+    TokenType[TokenType["looseItemStart"] = 7] = "looseItemStart";
+    TokenType[TokenType["looseItemEnd"] = 8] = "looseItemEnd";
+    TokenType[TokenType["listItemStart"] = 9] = "listItemStart";
+    TokenType[TokenType["listItemEnd"] = 10] = "listItemEnd";
+    TokenType[TokenType["blockquoteStart"] = 11] = "blockquoteStart";
+    TokenType[TokenType["blockquoteEnd"] = 12] = "blockquoteEnd";
+    TokenType[TokenType["code"] = 13] = "code";
+    TokenType[TokenType["table"] = 14] = "table";
+    TokenType[TokenType["html"] = 15] = "html";
+    TokenType[TokenType["hr"] = 16] = "hr";
+})(TokenType || (TokenType = {}));
+class MarkedOptions {
+    constructor() {
+        this.gfm = true;
+        this.tables = true;
+        this.breaks = false;
+        this.pedantic = false;
+        this.sanitize = false;
+        this.mangle = true;
+        this.smartLists = false;
+        this.silent = false;
+        this.langPrefix = 'lang-';
+        this.smartypants = false;
+        this.headerPrefix = '';
+        /**
+         * Self-close the tags for void elements (&lt;br/&gt;, &lt;img/&gt;, etc.)
+         * with a "/" as required by XHTML.
+         */
+        this.xhtml = false;
+        /**
+         * The function that will be using to escape HTML entities.
+         * By default using inner helper.
+         */
+        this.escape = escape;
+        /**
+         * The function that will be using to unescape HTML entities.
+         * By default using inner helper.
+         */
+        this.unescape = unescape;
+    }
+}
+
+/**
+ * @license
+ *
+ * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
+ * https://github.com/chjj/marked
+ *
+ * Copyright (c) 2018-2021, Костя Третяк. (MIT Licensed)
+ * https://github.com/ts-stack/markdown
+ */
+class Renderer {
+    constructor(options) {
+        this.options = options || Marked.options;
+    }
+    code(code, lang, escaped, meta) {
+        if (this.options.highlight) {
+            const out = this.options.highlight(code, lang);
+            if (out != null && out !== code) {
+                escaped = true;
+                code = out;
+            }
+        }
+        const escapedCode = (escaped ? code : this.options.escape(code, true));
+        if (!lang) {
+            return `\n<pre><code>${escapedCode}\n</code></pre>\n`;
+        }
+        const className = this.options.langPrefix + this.options.escape(lang, true);
+        return `\n<pre><code class="${className}">${escapedCode}\n</code></pre>\n`;
+    }
+    blockquote(quote) {
+        return `<blockquote>\n${quote}</blockquote>\n`;
+    }
+    html(html) {
+        return html;
+    }
+    heading(text, level, raw) {
+        const id = this.options.headerPrefix + raw.toLowerCase().replace(/[^\w]+/g, '-');
+        return `<h${level} id="${id}">${text}</h${level}>\n`;
+    }
+    hr() {
+        return this.options.xhtml ? '<hr/>\n' : '<hr>\n';
+    }
+    list(body, ordered) {
+        const type = ordered ? 'ol' : 'ul';
+        return `\n<${type}>\n${body}</${type}>\n`;
+    }
+    listitem(text) {
+        return '<li>' + text + '</li>\n';
+    }
+    paragraph(text) {
+        return '<p>' + text + '</p>\n';
+    }
+    table(header, body) {
+        return `
+<table>
+<thead>
+${header}</thead>
+<tbody>
+${body}</tbody>
+</table>
+`;
+    }
+    tablerow(content) {
+        return '<tr>\n' + content + '</tr>\n';
+    }
+    tablecell(content, flags) {
+        const type = flags.header ? 'th' : 'td';
+        const tag = flags.align ? '<' + type + ' style="text-align:' + flags.align + '">' : '<' + type + '>';
+        return tag + content + '</' + type + '>\n';
+    }
+    // *** Inline level renderer methods. ***
+    strong(text) {
+        return '<strong>' + text + '</strong>';
+    }
+    em(text) {
+        return '<em>' + text + '</em>';
+    }
+    codespan(text) {
+        return '<code>' + text + '</code>';
+    }
+    br() {
+        return this.options.xhtml ? '<br/>' : '<br>';
+    }
+    del(text) {
+        return '<del>' + text + '</del>';
+    }
+    link(href, title, text) {
+        if (this.options.sanitize) {
+            let prot;
+            try {
+                prot = decodeURIComponent(this.options.unescape(href))
+                    .replace(/[^\w:]/g, '')
+                    .toLowerCase();
+            }
+            catch (e) {
+                return text;
+            }
+            if (prot.indexOf('javascript:') === 0 || prot.indexOf('vbscript:') === 0 || prot.indexOf('data:') === 0) {
+                return text;
+            }
+        }
+        let out = '<a href="' + href + '"';
+        if (title) {
+            out += ' title="' + title + '"';
+        }
+        out += '>' + text + '</a>';
+        return out;
+    }
+    image(href, title, text) {
+        let out = '<img src="' + href + '" alt="' + text + '"';
+        if (title) {
+            out += ' title="' + title + '"';
+        }
+        out += this.options.xhtml ? '/>' : '>';
+        return out;
+    }
+    text(text) {
+        return text;
+    }
+}
+
+/**
+ * @license
+ *
+ * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
+ * https://github.com/chjj/marked
+ *
+ * Copyright (c) 2018-2021, Костя Третяк. (MIT Licensed)
+ * https://github.com/ts-stack/markdown
+ */
+/**
+ * Inline Lexer & Compiler.
+ */
+class InlineLexer {
+    constructor(staticThis, links, options = Marked.options, renderer) {
+        this.staticThis = staticThis;
+        this.links = links;
+        this.options = options;
+        this.renderer = renderer || this.options.renderer || new Renderer(this.options);
+        if (!this.links) {
+            throw new Error(`InlineLexer requires 'links' parameter.`);
+        }
+        this.setRules();
+    }
+    /**
+     * Static Lexing/Compiling Method.
+     */
+    static output(src, links, options) {
+        const inlineLexer = new this(this, links, options);
+        return inlineLexer.output(src);
+    }
+    static getRulesBase() {
+        if (this.rulesBase) {
+            return this.rulesBase;
+        }
+        /**
+         * Inline-Level Grammar.
+         */
+        const base = {
+            escape: /^\\([\\`*{}\[\]()#+\-.!_>])/,
+            autolink: /^<([^ <>]+(@|:\/)[^ <>]+)>/,
+            tag: /^<!--[\s\S]*?-->|^<\/?\w+(?:"[^"]*"|'[^']*'|[^<'">])*?>/,
+            link: /^!?\[(inside)\]\(href\)/,
+            reflink: /^!?\[(inside)\]\s*\[([^\]]*)\]/,
+            nolink: /^!?\[((?:\[[^\]]*\]|[^\[\]])*)\]/,
+            strong: /^__([\s\S]+?)__(?!_)|^\*\*([\s\S]+?)\*\*(?!\*)/,
+            em: /^\b_((?:[^_]|__)+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,
+            code: /^(`+)([\s\S]*?[^`])\1(?!`)/,
+            br: /^ {2,}\n(?!\s*$)/,
+            text: /^[\s\S]+?(?=[\\<!\[_*`]| {2,}\n|$)/,
+            _inside: /(?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*/,
+            _href: /\s*<?([\s\S]*?)>?(?:\s+['"]([\s\S]*?)['"])?\s*/,
+        };
+        base.link = new ExtendRegexp(base.link).setGroup('inside', base._inside).setGroup('href', base._href).getRegexp();
+        base.reflink = new ExtendRegexp(base.reflink).setGroup('inside', base._inside).getRegexp();
+        return (this.rulesBase = base);
+    }
+    static getRulesPedantic() {
+        if (this.rulesPedantic) {
+            return this.rulesPedantic;
+        }
+        return (this.rulesPedantic = Object.assign(Object.assign({}, this.getRulesBase()), {
+            strong: /^__(?=\S)([\s\S]*?\S)__(?!_)|^\*\*(?=\S)([\s\S]*?\S)\*\*(?!\*)/,
+            em: /^_(?=\S)([\s\S]*?\S)_(?!_)|^\*(?=\S)([\s\S]*?\S)\*(?!\*)/,
+        }));
+    }
+    static getRulesGfm() {
+        if (this.rulesGfm) {
+            return this.rulesGfm;
+        }
+        const base = this.getRulesBase();
+        const escape = new ExtendRegexp(base.escape).setGroup('])', '~|])').getRegexp();
+        const text = new ExtendRegexp(base.text).setGroup(']|', '~]|').setGroup('|', '|https?://|').getRegexp();
+        return (this.rulesGfm = Object.assign(Object.assign({}, base), {
+            escape,
+            url: /^(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/,
+            del: /^~~(?=\S)([\s\S]*?\S)~~/,
+            text,
+        }));
+    }
+    static getRulesBreaks() {
+        if (this.rulesBreaks) {
+            return this.rulesBreaks;
+        }
+        const inline = this.getRulesGfm();
+        const gfm = this.getRulesGfm();
+        return (this.rulesBreaks = Object.assign(Object.assign({}, gfm), {
+            br: new ExtendRegexp(inline.br).setGroup('{2,}', '*').getRegexp(),
+            text: new ExtendRegexp(gfm.text).setGroup('{2,}', '*').getRegexp(),
+        }));
+    }
+    setRules() {
+        if (this.options.gfm) {
+            if (this.options.breaks) {
+                this.rules = this.staticThis.getRulesBreaks();
+            }
+            else {
+                this.rules = this.staticThis.getRulesGfm();
+            }
+        }
+        else if (this.options.pedantic) {
+            this.rules = this.staticThis.getRulesPedantic();
+        }
+        else {
+            this.rules = this.staticThis.getRulesBase();
+        }
+        this.hasRulesGfm = this.rules.url !== undefined;
+    }
+    /**
+     * Lexing/Compiling.
+     */
+    output(nextPart) {
+        nextPart = nextPart;
+        let execArr;
+        let out = '';
+        while (nextPart) {
+            // escape
+            if ((execArr = this.rules.escape.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                out += execArr[1];
+                continue;
+            }
+            // autolink
+            if ((execArr = this.rules.autolink.exec(nextPart))) {
+                let text;
+                let href;
+                nextPart = nextPart.substring(execArr[0].length);
+                if (execArr[2] === '@') {
+                    text = this.options.escape(execArr[1].charAt(6) === ':' ? this.mangle(execArr[1].substring(7)) : this.mangle(execArr[1]));
+                    href = this.mangle('mailto:') + text;
+                }
+                else {
+                    text = this.options.escape(execArr[1]);
+                    href = text;
+                }
+                out += this.renderer.link(href, null, text);
+                continue;
+            }
+            // url (gfm)
+            if (!this.inLink && this.hasRulesGfm && (execArr = this.rules.url.exec(nextPart))) {
+                let text;
+                let href;
+                nextPart = nextPart.substring(execArr[0].length);
+                text = this.options.escape(execArr[1]);
+                href = text;
+                out += this.renderer.link(href, null, text);
+                continue;
+            }
+            // tag
+            if ((execArr = this.rules.tag.exec(nextPart))) {
+                if (!this.inLink && /^<a /i.test(execArr[0])) {
+                    this.inLink = true;
+                }
+                else if (this.inLink && /^<\/a>/i.test(execArr[0])) {
+                    this.inLink = false;
+                }
+                nextPart = nextPart.substring(execArr[0].length);
+                out += this.options.sanitize
+                    ? this.options.sanitizer
+                        ? this.options.sanitizer(execArr[0])
+                        : this.options.escape(execArr[0])
+                    : execArr[0];
+                continue;
+            }
+            // link
+            if ((execArr = this.rules.link.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                this.inLink = true;
+                out += this.outputLink(execArr, {
+                    href: execArr[2],
+                    title: execArr[3],
+                });
+                this.inLink = false;
+                continue;
+            }
+            // reflink, nolink
+            if ((execArr = this.rules.reflink.exec(nextPart)) || (execArr = this.rules.nolink.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                const keyLink = (execArr[2] || execArr[1]).replace(/\s+/g, ' ');
+                const link = this.links[keyLink.toLowerCase()];
+                if (!link || !link.href) {
+                    out += execArr[0].charAt(0);
+                    nextPart = execArr[0].substring(1) + nextPart;
+                    continue;
+                }
+                this.inLink = true;
+                out += this.outputLink(execArr, link);
+                this.inLink = false;
+                continue;
+            }
+            // strong
+            if ((execArr = this.rules.strong.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                out += this.renderer.strong(this.output(execArr[2] || execArr[1]));
+                continue;
+            }
+            // em
+            if ((execArr = this.rules.em.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                out += this.renderer.em(this.output(execArr[2] || execArr[1]));
+                continue;
+            }
+            // code
+            if ((execArr = this.rules.code.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                out += this.renderer.codespan(this.options.escape(execArr[2].trim(), true));
+                continue;
+            }
+            // br
+            if ((execArr = this.rules.br.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                out += this.renderer.br();
+                continue;
+            }
+            // del (gfm)
+            if (this.hasRulesGfm && (execArr = this.rules.del.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                out += this.renderer.del(this.output(execArr[1]));
+                continue;
+            }
+            // text
+            if ((execArr = this.rules.text.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                out += this.renderer.text(this.options.escape(this.smartypants(execArr[0])));
+                continue;
+            }
+            if (nextPart) {
+                throw new Error('Infinite loop on byte: ' + nextPart.charCodeAt(0));
+            }
+        }
+        return out;
+    }
+    /**
+     * Compile Link.
+     */
+    outputLink(execArr, link) {
+        const href = this.options.escape(link.href);
+        const title = link.title ? this.options.escape(link.title) : null;
+        return execArr[0].charAt(0) !== '!'
+            ? this.renderer.link(href, title, this.output(execArr[1]))
+            : this.renderer.image(href, title, this.options.escape(execArr[1]));
+    }
+    /**
+     * Smartypants Transformations.
+     */
+    smartypants(text) {
+        if (!this.options.smartypants) {
+            return text;
+        }
+        return (text
+            // em-dashes
+            .replace(/---/g, '\u2014')
+            // en-dashes
+            .replace(/--/g, '\u2013')
+            // opening singles
+            .replace(/(^|[-\u2014/(\[{"\s])'/g, '$1\u2018')
+            // closing singles & apostrophes
+            .replace(/'/g, '\u2019')
+            // opening doubles
+            .replace(/(^|[-\u2014/(\[{\u2018\s])"/g, '$1\u201c')
+            // closing doubles
+            .replace(/"/g, '\u201d')
+            // ellipses
+            .replace(/\.{3}/g, '\u2026'));
+    }
+    /**
+     * Mangle Links.
+     */
+    mangle(text) {
+        if (!this.options.mangle) {
+            return text;
+        }
+        let out = '';
+        const length = text.length;
+        for (let i = 0; i < length; i++) {
+            let str;
+            if (Math.random() > 0.5) {
+                str = 'x' + text.charCodeAt(i).toString(16);
+            }
+            out += '&#' + str + ';';
+        }
+        return out;
+    }
+}
+InlineLexer.rulesBase = null;
+/**
+ * Pedantic Inline Grammar.
+ */
+InlineLexer.rulesPedantic = null;
+/**
+ * GFM Inline Grammar
+ */
+InlineLexer.rulesGfm = null;
+/**
+ * GFM + Line Breaks Inline Grammar.
+ */
+InlineLexer.rulesBreaks = null;
+
+/**
+ * @license
+ *
+ * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
+ * https://github.com/chjj/marked
+ *
+ * Copyright (c) 2018-2021, Костя Третяк. (MIT Licensed)
+ * https://github.com/ts-stack/markdown
+ */
+/**
+ * Parsing & Compiling.
+ */
+class Parser {
+    constructor(options) {
+        this.simpleRenderers = [];
+        this.line = 0;
+        this.tokens = [];
+        this.token = null;
+        this.options = options || Marked.options;
+        this.renderer = this.options.renderer || new Renderer(this.options);
+    }
+    static parse(tokens, links, options) {
+        const parser = new this(options);
+        return parser.parse(links, tokens);
+    }
+    parse(links, tokens) {
+        this.inlineLexer = new InlineLexer(InlineLexer, links, this.options, this.renderer);
+        this.tokens = tokens.reverse();
+        let out = '';
+        while (this.next()) {
+            out += this.tok();
+        }
+        return out;
+    }
+    debug(links, tokens) {
+        this.inlineLexer = new InlineLexer(InlineLexer, links, this.options, this.renderer);
+        this.tokens = tokens.reverse();
+        let out = '';
+        while (this.next()) {
+            const outToken = this.tok();
+            this.token.line = this.line += outToken.split('\n').length - 1;
+            out += outToken;
+        }
+        return out;
+    }
+    next() {
+        return (this.token = this.tokens.pop());
+    }
+    getNextElement() {
+        return this.tokens[this.tokens.length - 1];
+    }
+    parseText() {
+        let body = this.token.text;
+        let nextElement;
+        while ((nextElement = this.getNextElement()) && nextElement.type == TokenType.text) {
+            body += '\n' + this.next().text;
+        }
+        return this.inlineLexer.output(body);
+    }
+    tok() {
+        switch (this.token.type) {
+            case TokenType.space: {
+                return '';
+            }
+            case TokenType.paragraph: {
+                return this.renderer.paragraph(this.inlineLexer.output(this.token.text));
+            }
+            case TokenType.text: {
+                if (this.options.isNoP) {
+                    return this.parseText();
+                }
+                else {
+                    return this.renderer.paragraph(this.parseText());
+                }
+            }
+            case TokenType.heading: {
+                return this.renderer.heading(this.inlineLexer.output(this.token.text), this.token.depth, this.token.text);
+            }
+            case TokenType.listStart: {
+                let body = '';
+                const ordered = this.token.ordered;
+                while (this.next().type != TokenType.listEnd) {
+                    body += this.tok();
+                }
+                return this.renderer.list(body, ordered);
+            }
+            case TokenType.listItemStart: {
+                let body = '';
+                while (this.next().type != TokenType.listItemEnd) {
+                    body += this.token.type == TokenType.text ? this.parseText() : this.tok();
+                }
+                return this.renderer.listitem(body);
+            }
+            case TokenType.looseItemStart: {
+                let body = '';
+                while (this.next().type != TokenType.listItemEnd) {
+                    body += this.tok();
+                }
+                return this.renderer.listitem(body);
+            }
+            case TokenType.code: {
+                return this.renderer.code(this.token.text, this.token.lang, this.token.escaped, this.token.meta);
+            }
+            case TokenType.table: {
+                let header = '';
+                let body = '';
+                let cell;
+                // header
+                cell = '';
+                for (let i = 0; i < this.token.header.length; i++) {
+                    const flags = { header: true, align: this.token.align[i] };
+                    const out = this.inlineLexer.output(this.token.header[i]);
+                    cell += this.renderer.tablecell(out, flags);
+                }
+                header += this.renderer.tablerow(cell);
+                for (const row of this.token.cells) {
+                    cell = '';
+                    for (let j = 0; j < row.length; j++) {
+                        cell += this.renderer.tablecell(this.inlineLexer.output(row[j]), {
+                            header: false,
+                            align: this.token.align[j]
+                        });
+                    }
+                    body += this.renderer.tablerow(cell);
+                }
+                return this.renderer.table(header, body);
+            }
+            case TokenType.blockquoteStart: {
+                let body = '';
+                while (this.next().type != TokenType.blockquoteEnd) {
+                    body += this.tok();
+                }
+                return this.renderer.blockquote(body);
+            }
+            case TokenType.hr: {
+                return this.renderer.hr();
+            }
+            case TokenType.html: {
+                const html = !this.token.pre && !this.options.pedantic ? this.inlineLexer.output(this.token.text) : this.token.text;
+                return this.renderer.html(html);
+            }
+            default: {
+                if (this.simpleRenderers.length) {
+                    for (let i = 0; i < this.simpleRenderers.length; i++) {
+                        if (this.token.type == 'simpleRule' + (i + 1)) {
+                            return this.simpleRenderers[i].call(this.renderer, this.token.execArr);
+                        }
+                    }
+                }
+                const errMsg = `Token with "${this.token.type}" type was not found.`;
+                if (this.options.silent) {
+                    console.log(errMsg);
+                }
+                else {
+                    throw new Error(errMsg);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * @license
+ *
+ * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
+ * https://github.com/chjj/marked
+ *
+ * Copyright (c) 2018-2021, Костя Третяк. (MIT Licensed)
+ * https://github.com/ts-stack/markdown
+ */
+class Marked {
+    /**
+     * Merges the default options with options that will be set.
+     *
+     * @param options Hash of options.
+     */
+    static setOptions(options) {
+        Object.assign(this.options, options);
+        return this;
+    }
+    /**
+     * Setting simple block rule.
+     */
+    static setBlockRule(regexp, renderer = () => '') {
+        BlockLexer.simpleRules.push(regexp);
+        this.simpleRenderers.push(renderer);
+        return this;
+    }
+    /**
+     * Accepts Markdown text and returns text in HTML format.
+     *
+     * @param src String of markdown source to be compiled.
+     * @param options Hash of options. They replace, but do not merge with the default options.
+     * If you want the merging, you can to do this via `Marked.setOptions()`.
+     */
+    static parse(src, options = this.options) {
+        try {
+            const { tokens, links } = this.callBlockLexer(src, options);
+            return this.callParser(tokens, links, options);
+        }
+        catch (e) {
+            return this.callMe(e);
+        }
+    }
+    /**
+     * Accepts Markdown text and returns object with text in HTML format,
+     * tokens and links from `BlockLexer.parser()`.
+     *
+     * @param src String of markdown source to be compiled.
+     * @param options Hash of options. They replace, but do not merge with the default options.
+     * If you want the merging, you can to do this via `Marked.setOptions()`.
+     */
+    static debug(src, options = this.options) {
+        const { tokens, links } = this.callBlockLexer(src, options);
+        let origin = tokens.slice();
+        const parser = new Parser(options);
+        parser.simpleRenderers = this.simpleRenderers;
+        const result = parser.debug(links, tokens);
+        /**
+         * Translates a token type into a readable form,
+         * and moves `line` field to a first place in a token object.
+         */
+        origin = origin.map(token => {
+            token.type = TokenType[token.type] || token.type;
+            const line = token.line;
+            delete token.line;
+            if (line) {
+                return Object.assign({ line }, token);
+            }
+            else {
+                return token;
+            }
+        });
+        return { tokens: origin, links, result };
+    }
+    static callBlockLexer(src = '', options) {
+        if (typeof src != 'string') {
+            throw new Error(`Expected that the 'src' parameter would have a 'string' type, got '${typeof src}'`);
+        }
+        // Preprocessing.
+        src = src
+            .replace(/\r\n|\r/g, '\n')
+            .replace(/\t/g, '    ')
+            .replace(/\u00a0/g, ' ')
+            .replace(/\u2424/g, '\n')
+            .replace(/^ +$/gm, '');
+        return BlockLexer.lex(src, options, true);
+    }
+    static callParser(tokens, links, options) {
+        if (this.simpleRenderers.length) {
+            const parser = new Parser(options);
+            parser.simpleRenderers = this.simpleRenderers;
+            return parser.parse(links, tokens);
+        }
+        else {
+            return Parser.parse(tokens, links, options);
+        }
+    }
+    static callMe(err) {
+        err.message += '\nPlease report this to https://github.com/ts-stack/markdown';
+        if (this.options.silent) {
+            return '<p>An error occured:</p><pre>' + this.options.escape(err.message + '', true) + '</pre>';
+        }
+        throw err;
+    }
+}
+Marked.options = new MarkedOptions();
+Marked.simpleRenderers = [];
+
+/**
+ * @license
+ *
+ * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
+ * https://github.com/chjj/marked
+ *
+ * Copyright (c) 2018-2021, Костя Третяк. (MIT Licensed)
+ * https://github.com/ts-stack/markdown
+ */
+class BlockLexer {
+    constructor(staticThis, options) {
+        this.staticThis = staticThis;
+        this.links = {};
+        this.tokens = [];
+        this.options = options || Marked.options;
+        this.setRules();
+    }
+    /**
+     * Accepts Markdown text and returns object with tokens and links.
+     *
+     * @param src String of markdown source to be compiled.
+     * @param options Hash of options.
+     */
+    static lex(src, options, top, isBlockQuote) {
+        const lexer = new this(this, options);
+        return lexer.getTokens(src, top, isBlockQuote);
+    }
+    static getRulesBase() {
+        if (this.rulesBase) {
+            return this.rulesBase;
+        }
+        const base = {
+            newline: /^\n+/,
+            code: /^( {4}[^\n]+\n*)+/,
+            hr: /^( *[-*_]){3,} *(?:\n+|$)/,
+            heading: /^ *(#{1,6}) *([^\n]+?) *#* *(?:\n+|$)/,
+            lheading: /^([^\n]+)\n *(=|-){2,} *(?:\n+|$)/,
+            blockquote: /^( *>[^\n]+(\n[^\n]+)*\n*)+/,
+            list: /^( *)(bull) [\s\S]+?(?:hr|def|\n{2,}(?! )(?!\1bull )\n*|\s*$)/,
+            html: /^ *(?:comment *(?:\n|\s*$)|closed *(?:\n{2,}|\s*$)|closing *(?:\n{2,}|\s*$))/,
+            def: /^ *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$)/,
+            paragraph: /^((?:[^\n]+\n?(?!hr|heading|lheading|blockquote|tag|def))+)\n*/,
+            text: /^[^\n]+/,
+            bullet: /(?:[*+-]|\d+\.)/,
+            item: /^( *)(bull) [^\n]*(?:\n(?!\1bull )[^\n]*)*/,
+        };
+        base.item = new ExtendRegexp(base.item, 'gm').setGroup(/bull/g, base.bullet).getRegexp();
+        base.list = new ExtendRegexp(base.list)
+            .setGroup(/bull/g, base.bullet)
+            .setGroup('hr', '\\n+(?=\\1?(?:[-*_] *){3,}(?:\\n+|$))')
+            .setGroup('def', '\\n+(?=' + base.def.source + ')')
+            .getRegexp();
+        const tag = '(?!(?:' +
+            'a|em|strong|small|s|cite|q|dfn|abbr|data|time|code' +
+            '|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo' +
+            '|span|br|wbr|ins|del|img)\\b)\\w+(?!:/|[^\\w\\s@]*@)\\b';
+        base.html = new ExtendRegexp(base.html)
+            .setGroup('comment', /<!--[\s\S]*?-->/)
+            .setGroup('closed', /<(tag)[\s\S]+?<\/\1>/)
+            .setGroup('closing', /<tag(?:"[^"]*"|'[^']*'|[^'">])*?>/)
+            .setGroup(/tag/g, tag)
+            .getRegexp();
+        base.paragraph = new ExtendRegexp(base.paragraph)
+            .setGroup('hr', base.hr)
+            .setGroup('heading', base.heading)
+            .setGroup('lheading', base.lheading)
+            .setGroup('blockquote', base.blockquote)
+            .setGroup('tag', '<' + tag)
+            .setGroup('def', base.def)
+            .getRegexp();
+        return (this.rulesBase = base);
+    }
+    static getRulesGfm() {
+        if (this.rulesGfm) {
+            return this.rulesGfm;
+        }
+        const base = this.getRulesBase();
+        const gfm = Object.assign(Object.assign({}, base), {
+            fences: /^ *(`{3,}|~{3,})[ \.]*((\S+)? *[^\n]*)\n([\s\S]*?)\s*\1 *(?:\n+|$)/,
+            paragraph: /^/,
+            heading: /^ *(#{1,6}) +([^\n]+?) *#* *(?:\n+|$)/,
+        });
+        const group1 = gfm.fences.source.replace('\\1', '\\2');
+        const group2 = base.list.source.replace('\\1', '\\3');
+        gfm.paragraph = new ExtendRegexp(base.paragraph).setGroup('(?!', `(?!${group1}|${group2}|`).getRegexp();
+        return (this.rulesGfm = gfm);
+    }
+    static getRulesTable() {
+        if (this.rulesTables) {
+            return this.rulesTables;
+        }
+        return (this.rulesTables = Object.assign(Object.assign({}, this.getRulesGfm()), {
+            nptable: /^ *(\S.*\|.*)\n *([-:]+ *\|[-| :]*)\n((?:.*\|.*(?:\n|$))*)\n*/,
+            table: /^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/,
+        }));
+    }
+    setRules() {
+        if (this.options.gfm) {
+            if (this.options.tables) {
+                this.rules = this.staticThis.getRulesTable();
+            }
+            else {
+                this.rules = this.staticThis.getRulesGfm();
+            }
+        }
+        else {
+            this.rules = this.staticThis.getRulesBase();
+        }
+        this.hasRulesGfm = this.rules.fences !== undefined;
+        this.hasRulesTables = this.rules.table !== undefined;
+    }
+    /**
+     * Lexing.
+     */
+    getTokens(src, top, isBlockQuote) {
+        let nextPart = src;
+        let execArr;
+        mainLoop: while (nextPart) {
+            // newline
+            if ((execArr = this.rules.newline.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                if (execArr[0].length > 1) {
+                    this.tokens.push({ type: TokenType.space });
+                }
+            }
+            // code
+            if ((execArr = this.rules.code.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                const code = execArr[0].replace(/^ {4}/gm, '');
+                this.tokens.push({
+                    type: TokenType.code,
+                    text: !this.options.pedantic ? code.replace(/\n+$/, '') : code,
+                });
+                continue;
+            }
+            // fences code (gfm)
+            if (this.hasRulesGfm && (execArr = this.rules.fences.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                this.tokens.push({
+                    type: TokenType.code,
+                    meta: execArr[2],
+                    lang: execArr[3],
+                    text: execArr[4] || '',
+                });
+                continue;
+            }
+            // heading
+            if ((execArr = this.rules.heading.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                this.tokens.push({
+                    type: TokenType.heading,
+                    depth: execArr[1].length,
+                    text: execArr[2],
+                });
+                continue;
+            }
+            // table no leading pipe (gfm)
+            if (top && this.hasRulesTables && (execArr = this.rules.nptable.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                const item = {
+                    type: TokenType.table,
+                    header: execArr[1].replace(/^ *| *\| *$/g, '').split(/ *\| */),
+                    align: execArr[2].replace(/^ *|\| *$/g, '').split(/ *\| */),
+                    cells: [],
+                };
+                for (let i = 0; i < item.align.length; i++) {
+                    if (/^ *-+: *$/.test(item.align[i])) {
+                        item.align[i] = 'right';
+                    }
+                    else if (/^ *:-+: *$/.test(item.align[i])) {
+                        item.align[i] = 'center';
+                    }
+                    else if (/^ *:-+ *$/.test(item.align[i])) {
+                        item.align[i] = 'left';
+                    }
+                    else {
+                        item.align[i] = null;
+                    }
+                }
+                const td = execArr[3].replace(/\n$/, '').split('\n');
+                for (let i = 0; i < td.length; i++) {
+                    item.cells[i] = td[i].split(/ *\| */);
+                }
+                this.tokens.push(item);
+                continue;
+            }
+            // lheading
+            if ((execArr = this.rules.lheading.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                this.tokens.push({
+                    type: TokenType.heading,
+                    depth: execArr[2] === '=' ? 1 : 2,
+                    text: execArr[1],
+                });
+                continue;
+            }
+            // hr
+            if ((execArr = this.rules.hr.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                this.tokens.push({ type: TokenType.hr });
+                continue;
+            }
+            // blockquote
+            if ((execArr = this.rules.blockquote.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                this.tokens.push({ type: TokenType.blockquoteStart });
+                const str = execArr[0].replace(/^ *> ?/gm, '');
+                // Pass `top` to keep the current
+                // "toplevel" state. This is exactly
+                // how markdown.pl works.
+                this.getTokens(str);
+                this.tokens.push({ type: TokenType.blockquoteEnd });
+                continue;
+            }
+            // list
+            if ((execArr = this.rules.list.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                const bull = execArr[2];
+                this.tokens.push({ type: TokenType.listStart, ordered: bull.length > 1 });
+                // Get each top-level item.
+                const str = execArr[0].match(this.rules.item);
+                const length = str.length;
+                let next = false;
+                let space;
+                let blockBullet;
+                let loose;
+                for (let i = 0; i < length; i++) {
+                    let item = str[i];
+                    // Remove the list item's bullet so it is seen as the next token.
+                    space = item.length;
+                    item = item.replace(/^ *([*+-]|\d+\.) +/, '');
+                    // Outdent whatever the list item contains. Hacky.
+                    if (item.indexOf('\n ') !== -1) {
+                        space -= item.length;
+                        item = !this.options.pedantic
+                            ? item.replace(new RegExp('^ {1,' + space + '}', 'gm'), '')
+                            : item.replace(/^ {1,4}/gm, '');
+                    }
+                    // Determine whether the next list item belongs here.
+                    // Backpedal if it does not belong in this list.
+                    if (this.options.smartLists && i !== length - 1) {
+                        blockBullet = this.staticThis.getRulesBase().bullet.exec(str[i + 1])[0];
+                        if (bull !== blockBullet && !(bull.length > 1 && blockBullet.length > 1)) {
+                            nextPart = str.slice(i + 1).join('\n') + nextPart;
+                            i = length - 1;
+                        }
+                    }
+                    // Determine whether item is loose or not.
+                    // Use: /(^|\n)(?! )[^\n]+\n\n(?!\s*$)/
+                    // for discount behavior.
+                    loose = next || /\n\n(?!\s*$)/.test(item);
+                    if (i !== length - 1) {
+                        next = item.charAt(item.length - 1) === '\n';
+                        if (!loose) {
+                            loose = next;
+                        }
+                    }
+                    this.tokens.push({ type: loose ? TokenType.looseItemStart : TokenType.listItemStart });
+                    // Recurse.
+                    this.getTokens(item, false, isBlockQuote);
+                    this.tokens.push({ type: TokenType.listItemEnd });
+                }
+                this.tokens.push({ type: TokenType.listEnd });
+                continue;
+            }
+            // html
+            if ((execArr = this.rules.html.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                const attr = execArr[1];
+                const isPre = attr === 'pre' || attr === 'script' || attr === 'style';
+                this.tokens.push({
+                    type: this.options.sanitize ? TokenType.paragraph : TokenType.html,
+                    pre: !this.options.sanitizer && isPre,
+                    text: execArr[0],
+                });
+                continue;
+            }
+            // def
+            if (top && (execArr = this.rules.def.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                this.links[execArr[1].toLowerCase()] = {
+                    href: execArr[2],
+                    title: execArr[3],
+                };
+                continue;
+            }
+            // table (gfm)
+            if (top && this.hasRulesTables && (execArr = this.rules.table.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                const item = {
+                    type: TokenType.table,
+                    header: execArr[1].replace(/^ *| *\| *$/g, '').split(/ *\| */),
+                    align: execArr[2].replace(/^ *|\| *$/g, '').split(/ *\| */),
+                    cells: [],
+                };
+                for (let i = 0; i < item.align.length; i++) {
+                    if (/^ *-+: *$/.test(item.align[i])) {
+                        item.align[i] = 'right';
+                    }
+                    else if (/^ *:-+: *$/.test(item.align[i])) {
+                        item.align[i] = 'center';
+                    }
+                    else if (/^ *:-+ *$/.test(item.align[i])) {
+                        item.align[i] = 'left';
+                    }
+                    else {
+                        item.align[i] = null;
+                    }
+                }
+                const td = execArr[3].replace(/(?: *\| *)?\n$/, '').split('\n');
+                for (let i = 0; i < td.length; i++) {
+                    item.cells[i] = td[i].replace(/^ *\| *| *\| *$/g, '').split(/ *\| */);
+                }
+                this.tokens.push(item);
+                continue;
+            }
+            // simple rules
+            if (this.staticThis.simpleRules.length) {
+                const simpleRules = this.staticThis.simpleRules;
+                for (let i = 0; i < simpleRules.length; i++) {
+                    if ((execArr = simpleRules[i].exec(nextPart))) {
+                        nextPart = nextPart.substring(execArr[0].length);
+                        const type = 'simpleRule' + (i + 1);
+                        this.tokens.push({ type, execArr });
+                        continue mainLoop;
+                    }
+                }
+            }
+            // top-level paragraph
+            if (top && (execArr = this.rules.paragraph.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                if (execArr[1].slice(-1) === '\n') {
+                    this.tokens.push({
+                        type: TokenType.paragraph,
+                        text: execArr[1].slice(0, -1),
+                    });
+                }
+                else {
+                    this.tokens.push({
+                        type: this.tokens.length > 0 ? TokenType.paragraph : TokenType.text,
+                        text: execArr[1],
+                    });
+                }
+                continue;
+            }
+            // text
+            // Top-level should never reach here.
+            if ((execArr = this.rules.text.exec(nextPart))) {
+                nextPart = nextPart.substring(execArr[0].length);
+                this.tokens.push({ type: TokenType.text, text: execArr[0] });
+                continue;
+            }
+            if (nextPart) {
+                throw new Error('Infinite loop on byte: ' + nextPart.charCodeAt(0) + `, near text '${nextPart.slice(0, 30)}...'`);
+            }
+        }
+        return { tokens: this.tokens, links: this.links };
+    }
+}
+BlockLexer.simpleRules = [];
+BlockLexer.rulesBase = null;
+/**
+ * GFM Block Grammar.
+ */
+BlockLexer.rulesGfm = null;
+/**
+ * GFM + Tables Block Grammar.
+ */
+BlockLexer.rulesTables = null;
+
+/*
+  https://www.markdownguide.org/extended-syntax/#heading-ids
+  https://github.com/syntax-tree/mdast#code
+  https://stackoverflow.com/questions/5319754/cross-reference-named-anchor-in-markdown
+  https://github.com/ts-stack/markdown#overriding-renderer-methods
+*/
+class MarkdownEditableComponentsRenderer extends Renderer {
+    toc() {
+        return `<markdown-toc></markdown-toc>`;
+    }
+    code(code, lang, escaped) {
+        var _a;
+        // TODO escaped?
+        if (!escaped && this.options.escape) {
+            code = (_a = this.options.escape) === null || _a === void 0 ? void 0 : _a.call(this, code);
+            escaped = true;
+        }
+        if (lang) {
+            let id;
+            [id, lang] = this.parseAnchor("code-" + (Date.now() + Math.random()), lang, false);
+            return this.codeWithAnchor(code, lang, id, escaped);
+        }
+        else {
+            return this.codeWithAnchor(code, lang, undefined, escaped);
+        }
+    }
+    codeWithAnchor(code, lang, id, escaped) {
+        var _a;
+        const langAttr = lang ? `lang='${lang}'` : "";
+        const idAttr = id ? `id='${id}'` : "";
+        if (!escaped && this.options.escape) {
+            code = (_a = this.options.escape) === null || _a === void 0 ? void 0 : _a.call(this, code);
+            escaped = true;
+        }
+        return `<markdown-code ${langAttr} ${idAttr}>${code}</markdown-code>`;
+    }
+    custom(tag, content) {
+        return `<${tag}>${content}</${tag}>`;
+    }
+    blockquote(quote) {
+        return `<markdown-quote>${quote}</markdown-quote>`;
+    }
+    html(html) {
+        return `<markdown-html>${html}</markdown-html>`;
+    }
+    heading(text, level, raw) {
+        let id;
+        [id, text] = this.parseAnchor("heading-", text, true);
+        return this.headingWithAnchor(text, level, raw, id);
+    }
+    headingWithAnchor(text, level, _raw, id) {
+        const idAttr = id ? `id='${id}'` : "";
+        return `<markdown-header-${level} ${idAttr}>${text}</markdown-header-${level}>`;
+    }
+    list(body, ordered) {
+        return `<markdown-list ordered='${ordered}'>${body}</markdown-list>`;
+    }
+    listitem(text) {
+        if (text.startsWith("<markdown-paragraph>[ ] ")) {
+            // see https://github.com/ts-stack/markdown/issues/8
+            return `<markdown-task-list-item>${text.replace("<markdown-paragraph>[ ] ", "<markdown-paragraph>")}</markdown-task-list-item>`;
+        }
+        else if (text.startsWith("<markdown-paragraph>[x] ")) {
+            return `<markdown-task-list-item checked='true'>${text.replace("<markdown-paragraph>[x] ", "<markdown-paragraph>")}</markdown-task-list-item>`;
+        }
+        else if (text.startsWith("[ ] ")) {
+            // see https://github.com/ts-stack/markdown/issues/8
+            return `<markdown-task-list-item>${text.replace("[ ] ", "")}</markdown-task-list-item>`;
+        }
+        else if (text.startsWith("[x] ")) {
+            return `<markdown-task-list-item checked='true'>${text.replace("[x] ", "")}</markdown-task-list-item>`;
+        }
+        else {
+            return `<markdown-list-item>${text}</markdown-list-item>`;
+        }
+    }
+    paragraph(text) {
+        text = text.replaceAll("${toc}", this.toc());
+        return `<markdown-paragraph>${text}</markdown-paragraph>`;
+    }
+    codespan(text) {
+        return `<markdown-code-span>${text}</markdown-code-span>`;
+    }
+    hr() {
+        return `<markdown-break></markdown-break>`;
+    }
+    strong(text) {
+        return `<markdown-strong>${text}</markdown-strong>`;
+    }
+    em(text) {
+        return `<markdown-emphasis>${text}</markdown-emphasis>`;
+    }
+    del(text) {
+        return `<markdown-strike>${text}</markdown-strike>`;
+    }
+    table(header, body) {
+        return `<markdown-table>${header.replaceAll('markdown-table-row>', 'markdown-table-header-row>')}${body}</markdown-table>`;
+    }
+    tablerow(content) {
+        return `<markdown-table-row>${content}</markdown-table-row>`;
+    }
+    tablecell(content, flags) {
+        if (flags.header == true) {
+            return `<markdown-table-header-cell>${content}</markdown-table-header-cell>`;
+        }
+        else {
+            return `<markdown-table-cell>${content}</markdown-table-cell>`;
+        }
+    }
+    link(href, title, text) {
+        if (title) {
+            return `<markdown-link destination='${href}' title='${title}'>${text}</markdown-link>`;
+        }
+        else {
+            return `<markdown-link destination='${href}'>${text}</markdown-link>`;
+        }
+    }
+    image(href, title, text) {
+        if (title) {
+            return `<markdown-image destination='${href}' title='${title}'>${text}</markdown-image>`;
+        }
+        else {
+            return `<markdown-image destination='${href}'>${text}</markdown-image>`;
+        }
+    }
+    // strong(text: string): string;
+    // em(text: string): string;
+    // br(): string;
+    // del(text: string): string;
+    // text(text: string): string;
+    parseAnchor(idPrefix, text, useTextInId) {
+        const regexp = /\s*{([^}]+)}$/;
+        const execArr = regexp.exec(text);
+        let id = idPrefix;
+        if (execArr) {
+            text = text.replace(regexp, '');
+            id += execArr[1];
+        }
+        else {
+            if (useTextInId) {
+                id += text.toLocaleLowerCase().replace(/[^\wа-яіїє]+/gi, '-');
+            }
+        }
+        return [id, text];
+    }
+}
+function parse(markdown, renderer) {
+    const options = new MarkedOptions();
+    options.gfm = true;
+    const actualRenderer = renderer != null ? renderer : new MarkdownEditableComponentsRenderer();
+    options.renderer = actualRenderer;
+    Marked.setBlockRule(
+    // /^ *(`{3,}|~{3,})[ \.]*(\S+)? +{([^}]+)} *\n([\s\S]*?)\s*\1 *(?:\n+|$)/, 
+    // TODO: check that works properly:
+    /^ *(`{3,}|~{3,})[ .]*(\S+)? +{([^}]+)} *\n([\s\S]*?)\s*\1 *(?:\n+|$)/, function (execArr) {
+        return this.codeWithAnchor(execArr[4], execArr[2], execArr[3]);
+    });
+    Marked.setBlockRule(/^\[\[\[([a-z\-]+)\n([\s\S]+?)\1\]\]\]\n/, function (execArr) {
+        return this.custom(execArr[1], parse(execArr[2], renderer));
+    });
+    return Marked.parse(markdown, options);
+}
+
 class MarkdownLitElement extends LitElement {
     isEditable() {
         return true;
@@ -2717,38 +4101,7 @@ class MarkdownLitElement extends LitElement {
     }
     // returns a boolean that if true, it means that the element changed something that will impact a ancestor, so normalize should be redone
     normalizeContent() {
-        for (let i = 0; i < this.childNodes.length; i++) {
-            const content = this.childNodes[i];
-            if (content instanceof MarkdownLitElement) {
-                if (content.normalizeContent()) {
-                    return this.normalizeContent();
-                }
-            }
-            else {
-                if (this.normalizeChildContent(content)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-    normalizeChildContent(content) {
-        if (content instanceof HTMLImageElement) {
-            let img = document.createElement('markdown-image');
-            content.replaceWith(img);
-            //  src="${this.destination}" title="${this.title}" alt="${this.innerText}"
-            if (content.getAttribute('src') != null) {
-                img.setAttribute('destination', content.getAttribute('src'));
-            }
-            if (content.getAttribute('title') != null) {
-                img.setAttribute('title', content.getAttribute('title'));
-            }
-            if (content.getAttribute('alt') != null) {
-                img.innerText = content.getAttribute('alt');
-            }
-            return true;
-        }
-        return false;
+        return normalizeContent(this);
     }
     pushNodesAfterBreakToParent(content) {
         if (this.parentNode != null) {
@@ -2956,6 +4309,1369 @@ class MarkdownLitElement extends LitElement {
     }
 }
 
+const globalVariables = css `
+  :host {
+    --header1-font-size: 2em;
+    --header2-font-size: 1.5em;
+    --header3-font-size: 1.17em;
+    --header4-font-size: 1em;
+    --header5-font-size: 0.83em;
+    --header6-font-size: 0.67em;
+  }
+`;
+
+class InlineElement extends MarkdownLitElement {
+    connectedCallback() {
+        super.connectedCallback();
+        //this.setAttribute("contenteditable", "true");
+    }
+    /* normalize for an inline element consists of finding <br>s and
+        - create a new element of the same type with the content after the <br>
+        - move the br to the parent, next to this
+        - move the content after, in the newly created element to the parent, after the <br>
+  
+      <parent>content1 <inline>content2 <br/> content3</inline> content4</parent>
+          becomes
+      <parent>content1 <inline>content2 </inline><br/><inline> content3</inline> content4</parent>
+  
+      It is up to the parent to deal with the <br> at this point.
+    */
+    normalizeContent() {
+        var _a;
+        if (this.mergeSameSiblings() && this.nextSibling instanceof InlineElement && this.tagName == this.nextSibling.tagName) {
+            Array.from(this.nextSibling.childNodes).forEach((e) => this.appendChild(e));
+            (_a = this.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(this.nextSibling);
+            this.normalizeContent();
+            return true;
+        }
+        for (let i = 0; i < this.childNodes.length; i++) {
+            const content = this.childNodes[i];
+            if (content instanceof HTMLBRElement) {
+                this.pushBreakAndNodesAfterToParent(content);
+                return true;
+                //return this.normalizeContent();
+            }
+            else if (content instanceof MarkdownLitElement) {
+                if (content.normalizeContent()) {
+                    return this.normalizeContent();
+                }
+            }
+            else {
+                if (normalizeChildContent(content)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    mergeSameSiblings() {
+        return false;
+    }
+    getMarkdown() {
+        return getMarkdownWithTextForElement(this);
+    }
+    mergeWithPrevious(currentSelection) {
+        if (this.parentNode instanceof MarkdownLitElement) {
+            this.parentNode.mergeWithPrevious(currentSelection);
+        }
+    }
+    mergeNextIn() {
+        if (this.parentNode instanceof MarkdownLitElement) {
+            this.parentNode.mergeNextIn();
+        }
+    }
+}
+class TerminalInlineElement extends MarkdownLitElement {
+}
+
+var __decorate = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var MarkdownDocument_1;
+exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends LitElement {
+    constructor() {
+        super(...arguments);
+        // TODO: fix eslint-disable
+        // eslint-disable-next-line no-unused-vars
+        this.parser = (markdown) => parse(markdown);
+        this.toolbar = null;
+        this.selectionRoot = document;
+        this.onLinkClick = null;
+        this.currentSelection = null;
+        this.lastSelection = null;
+        this._mouseSelection = false;
+        this.isChrome = !!window.chrome;
+        this.editable = false;
+    }
+    get markdown() { return this.getMarkdown(); }
+    set markdown(markdown) { this.renderMarkdown(markdown); }
+    render() {
+        return html `
+      <div>
+        <div class="toolbar">
+          <slot name="toolbar"></slot>
+        </div>
+        <div class="toc">
+          <!-- <slot name="markdown-toc"></slot> -->
+        </div>
+        <slot></slot>
+      </div>
+    `;
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        this.setAttribute("contenteditable", "true");
+        if (this.getAttribute("spellcheck") == null) {
+            this.setAttribute("spellcheck", "false");
+        }
+        this._mousedown = this.mousedown.bind(this);
+        this.addEventListener('mousedown', this._mousedown);
+        //ocument.addEventListener('mousedown', this._mousedown);
+        this._mouseup = this.mouseup.bind(this);
+        this.addEventListener('mouseup', this._mouseup);
+        //document.addEventListener('mouseup', this._mouseup);
+        this._selectstart = this.selectstart.bind(this);
+        document.addEventListener('selectstart', this._selectstart);
+        this._selectionchange = this.selectionchange.bind(this);
+        document.addEventListener('selectionchange', this._selectionchange);
+        this.addEventListener('keydown', (e) => {
+            if (this.editable) {
+                if (e.code === 'Enter') ;
+                else if (e.code === 'Backspace') {
+                    this.handleBackspaceKeyDown(e);
+                }
+                else if (e.code === 'Delete') {
+                    this.handleDeleteKeyDown(e);
+                }
+                else if (e.code === 'Tab') {
+                    e.preventDefault();
+                    this.handleTabKeyDown(e.shiftKey);
+                }
+                if (e.defaultPrevented) {
+                    // if default prevented, chances are that input is not triggered.
+                    this.normalizeContent();
+                    this.onChange();
+                }
+                let current = this.getCurrentLeafBlock();
+                if (current != null && current.scrollIntoViewIfNeeded != null) { // until standard lands (https://github.com/w3c/csswg-drafts/pull/5677)
+                    current.scrollIntoViewIfNeeded();
+                }
+            }
+        });
+        this.addEventListener("input", () => {
+            this.normalizeContent();
+            this.onChange();
+        });
+        this.addEventListener('blur', () => {
+            if (this.getAttribute("contenteditable") == "true")
+                this.disableEditable();
+        });
+        this.addEventListener('drop', (e) => this.onDrop(e), false);
+        this.addEventListener('dragover', (event) => {
+            var _a, _b, _c, _d;
+            if (this.selectionRoot.caretPositionFromPoint) {
+                var pos = this.selectionRoot.caretPositionFromPoint(event.clientX, event.clientY);
+                let range = document.createRange();
+                range.setStart(pos.offsetNode, pos.offset);
+                range.collapse();
+                (_a = this.getSelection()) === null || _a === void 0 ? void 0 : _a.removeAllRanges();
+                (_b = this.getSelection()) === null || _b === void 0 ? void 0 : _b.addRange(range);
+            }
+            else if (this.selectionRoot.caretRangeFromPoint) {
+                let range = this.selectionRoot.caretRangeFromPoint(event.clientX, event.clientY);
+                if (range) {
+                    (_c = this.getSelection()) === null || _c === void 0 ? void 0 : _c.removeAllRanges();
+                    (_d = this.getSelection()) === null || _d === void 0 ? void 0 : _d.addRange(range);
+                }
+            }
+            event.preventDefault();
+            //event.stopPropagation();
+        }, false);
+    }
+    disconnectedCallback() {
+        document.removeEventListener('selectionchange', this._selectionchange);
+        document.removeEventListener('selectstart', this._selectstart);
+        //document.removeEventListener('mouseup', this._mouseup);
+        //document.removeEventListener('mousedown', this._mousedown);
+        super.disconnectedCallback();
+    }
+    getSelection() {
+        if (this.selectionRoot.getSelection != null) {
+            return this.selectionRoot.getSelection();
+        }
+        else {
+            return this.ownerDocument.getSelection();
+        }
+    }
+    onMouseSelection() {
+        // see https://bugs.chromium.org/p/chromium/issues/detail?id=1162730
+        if (this.isChrome) {
+            this.setAttribute("contenteditable", "false");
+        }
+    }
+    onEndMouseSelection() {
+        if (this.isChrome && this.getAttribute("contenteditable") == "false") {
+            this.setAttribute("contenteditable", "true");
+            this.focus();
+        }
+    }
+    mousedown(e) {
+        if (e.buttons % 2 == 1) { // TODO potential issue with left-handed mouse buttons redefined?
+            this._mouseSelection = true;
+        }
+    }
+    mouseup() {
+        this._mouseSelection = false;
+        this.onEndMouseSelection();
+    }
+    selectstart() {
+        /*const selection = this.getSelection();
+        if (selection?.anchorNode) {
+          if (this.contains(selection?.anchorNode)) {
+            if(this._mouseSelection) {
+              this.onMouseSelection();
+            }
+          }
+        }*/
+    }
+    selectionchange() {
+        const selection = this.getSelection();
+        if (selection === null || selection === void 0 ? void 0 : selection.anchorNode) {
+            if (this.contains(selection === null || selection === void 0 ? void 0 : selection.anchorNode)) {
+                let element = selection.anchorNode;
+                while (element && !(element instanceof MarkdownLitElement)) {
+                    element = element.parentNode;
+                }
+                if (element instanceof MarkdownLitElement && element.isEditable()) {
+                    if (this._mouseSelection) {
+                        this.onMouseSelection();
+                    } /* else {
+                      this.onEndMouseSelection();
+                    }*/
+                    this.enableEditable();
+                }
+                else {
+                    this.disableEditable();
+                }
+                this.currentSelection = selection;
+                this.lastSelection = { anchorNode: selection.anchorNode, anchorOffset: selection.anchorOffset };
+                this.stashedSelection = {
+                    anchorNode: selection.anchorNode,
+                    anchorOffset: selection.anchorOffset,
+                    focusNode: selection.focusNode,
+                    focusOffset: selection.focusOffset,
+                };
+                this.debugSelection();
+                this.affectToolbar();
+            }
+            else {
+                this.disableEditable();
+            }
+        }
+        else {
+            this.disableEditable();
+        }
+    }
+    enableEditable() {
+        var _a, _b;
+        if (!this.editable) {
+            this.editable = true;
+            (_a = this.toolbar) === null || _a === void 0 ? void 0 : _a.classList.add('focus-enabled');
+            (_b = this.toolbar) === null || _b === void 0 ? void 0 : _b.classList.remove('focus-disabled');
+        }
+    }
+    disableEditable() {
+        var _a, _b;
+        if (this.editable) {
+            this.editable = false;
+            (_a = this.toolbar) === null || _a === void 0 ? void 0 : _a.classList.remove('focus-enabled');
+            (_b = this.toolbar) === null || _b === void 0 ? void 0 : _b.classList.add('focus-disabled');
+        }
+    }
+    debugSelection() {
+        //console.log("selection " + this.selectionToContentRange())
+        /*let ancohor = this.getSelection()?.anchorNode;
+        if(ancohor instanceof Text) {
+          console.log("     selection " + ancohor.textContent + " " + this.getSelection()?.anchorOffset)
+        } else if(ancohor instanceof HTMLElement) {
+          console.log("     selection " + ancohor.tagName + " " + this.getSelection()?.anchorOffset)
+        }*/
+    }
+    // content range is a way to represent a selection that is less browser specific, and more markdown specific
+    selectionToContentRange() {
+        let selection = this.getSelection();
+        if (selection && selection.anchorNode && selection.focusNode) {
+            let anchorOffset = this.selectionNodeAndOffsetToContentOffset(selection.anchorNode, selection.anchorOffset);
+            let focusOffset = this.selectionNodeAndOffsetToContentOffset(selection.focusNode, selection.focusOffset);
+            if (anchorOffset != null && focusOffset != null) {
+                return [anchorOffset, focusOffset];
+            }
+            else {
+                return null;
+            }
+        }
+        else {
+            return null;
+        }
+    }
+    selectionNodeAndOffsetToContentOffset(node, offset) {
+        var _a, _b, _c, _d;
+        if (node == this) {
+            return this.contentLengthUntil(this.childNodes[offset]);
+        }
+        else if (node instanceof MarkdownLitElement) {
+            if (node.parentNode) {
+                let parent = this.selectionNodeAndOffsetToContentOffset(node.parentNode, Array.from(node.parentNode.childNodes).indexOf(node));
+                if (parent != null) {
+                    return parent + node.contentLengthUntil(node.childNodes[offset]);
+                }
+                else {
+                    return null;
+                }
+            }
+            else {
+                return null;
+            }
+        }
+        else if (node instanceof Text) {
+            // find the parent
+            if (node.parentNode) {
+                let parent = this.selectionNodeAndOffsetToContentOffset(node.parentNode, Array.from(node.parentNode.childNodes).indexOf(node));
+                if (parent != null) {
+                    var littleBit = 0;
+                    /*if(offset == 0) {
+                      littleBit += 0.1;
+                    }
+                    if(offset == node.textContent?.replaceAll('\u200b', '').length) {
+                      littleBit -= 0.1;
+                    }*/
+                    // count the number of special characters that are not part of the content like the zero width space
+                    // before the offset!
+                    let numberOfSpecialChars = ((_d = (_c = (_b = (_a = node.textContent) === null || _a === void 0 ? void 0 : _a.slice(0, offset)) === null || _b === void 0 ? void 0 : _b.split('\u200b')) === null || _c === void 0 ? void 0 : _c.length) !== null && _d !== void 0 ? _d : 1) - 1;
+                    return parent + offset - numberOfSpecialChars + littleBit;
+                }
+                else {
+                    return null;
+                }
+            }
+            else {
+                return null;
+            }
+        }
+        else {
+            return null;
+        }
+    }
+    onDrop(event) {
+        var _a, _b, _c;
+        if (((_a = event.dataTransfer) === null || _a === void 0 ? void 0 : _a.files) != null && ((_c = (_b = event.dataTransfer) === null || _b === void 0 ? void 0 : _b.files) === null || _c === void 0 ? void 0 : _c.length) == 1) {
+            let file = event.dataTransfer.files[0];
+            if (file.type.match('image.*')) {
+                event.stopPropagation();
+                event.preventDefault();
+                var reader = new FileReader();
+                reader.onload = (theFile) => {
+                    var _a, _b, _c;
+                    //get the data uri
+                    var dataURI = (_a = theFile.target) === null || _a === void 0 ? void 0 : _a.result;
+                    let img = document.createElement('markdown-image');
+                    img.setAttribute('destination', dataURI);
+                    if (this.selectionRoot.caretPositionFromPoint) {
+                        var pos = this.selectionRoot.caretPositionFromPoint(event.clientX, event.clientY);
+                        let range = document.createRange();
+                        range.setStart(pos.offsetNode, pos.offset);
+                        range.collapse();
+                        range.insertNode(img);
+                    }
+                    // Next, the WebKit way. This works in Chrome.
+                    else if (this.selectionRoot.caretRangeFromPoint) {
+                        let range = this.selectionRoot.caretRangeFromPoint(event.clientX, event.clientY);
+                        range === null || range === void 0 ? void 0 : range.insertNode(img);
+                    }
+                    else if ((_b = this.getSelection()) === null || _b === void 0 ? void 0 : _b.rangeCount) {
+                        (_c = this.getSelection()) === null || _c === void 0 ? void 0 : _c.getRangeAt(0).insertNode(img);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    }
+    contentLengthUntil(child) {
+        const childNodes = Array.from(this.childNodes);
+        const indexOfChild = childNodes.indexOf(child);
+        if (indexOfChild >= 0) {
+            var result = 0;
+            childNodes.slice(0, indexOfChild).forEach((child) => {
+                if (child instanceof MarkdownLitElement) {
+                    result += child.contentLength();
+                }
+            });
+            return result;
+        }
+        else {
+            return 0;
+        }
+    }
+    setSelectionToContentRange(contentRange) {
+        var _a, _b;
+        //console.log("Reset selection to " + contentRange);
+        let [anchorNode, anchorOffset] = this.getNodeAndOffsetFromContentOffsetAnchor(contentRange[0]);
+        let [focusNode, focusOffset] = this.getNodeAndOffsetFromContentOffset(contentRange[1]);
+        const range = document.createRange();
+        range.setStart(anchorNode, anchorOffset);
+        range.setEnd(focusNode, focusOffset);
+        (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.removeAllRanges();
+        (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.addRange(range);
+    }
+    getNodeAndOffsetFromContentOffsetAnchor(contentOffset) {
+        if (this.children.length > 0) {
+            var resultNode = this.children[0];
+            //var previousNodeWasEol = false;
+            // keep the first that will fit the offset
+            for (let i = 0; i < this.children.length; i++) {
+                let child = this.children[i];
+                var lengthUntilChild = this.contentLengthUntil(child);
+                if (contentOffset == lengthUntilChild) {
+                    //if(previousNodeWasEol) {
+                    resultNode = child;
+                    //}
+                    break;
+                }
+                if (contentOffset == 0 || contentOffset < lengthUntilChild) {
+                    break;
+                }
+                resultNode = child;
+                //previousNodeWasEol = (child instanceof MarkdownLitElement && child.elementEndWithEndOfLineEquivalent());
+            }
+            if (resultNode instanceof MarkdownLitElement) {
+                return resultNode.getNodeAndOffsetFromContentOffsetAnchor(contentOffset - this.contentLengthUntil(resultNode));
+            }
+            else {
+                return [resultNode, Math.round(contentOffset) - this.contentLengthUntil(resultNode)];
+            }
+        }
+        else {
+            return [this, Math.round(contentOffset)]; // FIXME
+        }
+    }
+    getNodeAndOffsetFromContentOffset(contentOffset) {
+        if (this.children.length > 0) {
+            var resultNode = this.children[0];
+            var previousNodeWasEol = false;
+            // keep the first that will fit the offset
+            for (let i = 0; i < this.children.length; i++) {
+                let child = this.children[i];
+                var lengthUntilChild = this.contentLengthUntil(child);
+                if (contentOffset == lengthUntilChild) {
+                    if (previousNodeWasEol) {
+                        resultNode = child;
+                    }
+                    break;
+                }
+                if (contentOffset < lengthUntilChild) {
+                    break;
+                }
+                resultNode = child;
+                previousNodeWasEol = (child instanceof MarkdownLitElement && child.elementEndWithEndOfLineEquivalent());
+            }
+            if (resultNode instanceof MarkdownLitElement) {
+                return resultNode.getNodeAndOffsetFromContentOffset(contentOffset - this.contentLengthUntil(resultNode));
+            }
+            else {
+                return [resultNode, Math.round(contentOffset) - this.contentLengthUntil(resultNode)];
+            }
+        }
+        else {
+            return [this, Math.round(contentOffset)]; // FIXME
+        }
+    }
+    normalizeContent() {
+        this.domModificationOperation(() => {
+            this.normalizeDOM();
+        });
+    }
+    domModificationOperation(operation) {
+        const selectionContentRangeBefore = this.selectionToContentRange();
+        operation();
+        const selectionContentRangeAfter = this.selectionToContentRange();
+        //console.log(selectionContentRangeBefore + " -> " + selectionContentRangeAfter);
+        const equals = (a, b) => {
+            if (a == null && b == null)
+                return true;
+            if (a != null && b != null) {
+                return a[0] == b[0] && a[1] == b[1];
+            }
+            else {
+                return false;
+            }
+        };
+        if (!equals(selectionContentRangeBefore, selectionContentRangeAfter)) {
+            if (selectionContentRangeBefore) {
+                this.setSelectionToContentRange(selectionContentRangeBefore);
+            }
+        }
+        this.affectToolbar();
+        this.debugSelection();
+    }
+    normalizeDOM() {
+        //console.log("doc normalize")
+        for (let i = 0; i < this.childNodes.length; i++) {
+            const child = this.childNodes[i];
+            if (isMarkdownElement(child)) {
+                if (child instanceof MarkdownLitElement) {
+                    if (child.normalizeContent()) {
+                        this.normalizeDOM();
+                        break;
+                    }
+                }
+                else {
+                    if (normalizeContent(child)) {
+                        this.normalizeDOM();
+                        break;
+                    }
+                }
+            }
+            else if (child instanceof HTMLDivElement) {
+                // on chromium new lines are handled by divs, it splits up the tags properly.
+                Array.from(child.childNodes).forEach((divChild) => {
+                    this.append(divChild);
+                });
+                child.remove();
+            }
+            else if (child instanceof HTMLImageElement) {
+                let img = document.createElement('markdown-image');
+                child.replaceWith(img);
+                //  src="${this.destination}" title="${this.title}" alt="${this.innerText}"
+                if (child.getAttribute('src') != null) {
+                    img.destination = child.getAttribute('src');
+                }
+                if (child.getAttribute('title') != null) {
+                    img.destination = child.getAttribute('title');
+                }
+                if (child.getAttribute('alt') != null) {
+                    img.innerText = child.getAttribute('alt');
+                }
+            }
+            else if (child instanceof HTMLElement && child.tagName.toLowerCase() === 'markdown-paragraph' && child.childNodes.length == 1 && child.childNodes[0] instanceof HTMLBRElement) {
+                // For some reason, sometimes the paragraph component has not been constructed yet on return
+                child.childNodes[0].remove();
+                let p = document.createTextNode('\u200b');
+                child.append(p);
+            }
+            else if (child instanceof Text && child.textContent.trim().length > 0) {
+                let p = document.createElement('markdown-paragraph');
+                p.textContent = child.textContent;
+                child.replaceWith(p);
+                p.normalizeContent();
+            }
+        }
+        if (this.lastElementChild == null || this.lastElementChild.tagName.toLowerCase() != 'markdown-paragraph') {
+            let p = document.createElement('markdown-paragraph');
+            p.textContent = '\u200b';
+            this.append(p);
+        }
+    }
+    contentLength() {
+        var result = 0;
+        Array.from(this.children).forEach((child) => {
+            if (child instanceof MarkdownLitElement) {
+                result += child.contentLength();
+            } /* else {
+              result += child.textContent?.length ?? 0; // What would that be??? what if not normalized? divs?
+            }*/
+        });
+        return result;
+    }
+    onChange() {
+        setTimeout(() => {
+            this.dispatchEvent(new CustomEvent("change")); // TODO, what should be the event details? also add other changes than inputs
+        }, 0);
+    }
+    setToolbar(toolbar) {
+        this.toolbar = toolbar;
+        this.toolbar.setMarkdownDocument(this);
+    }
+    firstUpdated() {
+        var _a, _b, _c, _d;
+        if (this.getAttribute("floating-toc") == "true") {
+            const toc = document.createElement("markdown-toc");
+            toc.classList.add("floating");
+            toc.markdownDocument = this;
+            (_b = (_a = this.shadowRoot) === null || _a === void 0 ? void 0 : _a.querySelector(".toc")) === null || _b === void 0 ? void 0 : _b.appendChild(toc);
+            // TODO: toc reacts to changes
+        }
+        if (this.getAttribute("toolbar") == "true") {
+            this.toolbar = document.createElement("markdown-toolbar");
+            (_d = (_c = this.shadowRoot) === null || _c === void 0 ? void 0 : _c.querySelector(".toolbar")) === null || _d === void 0 ? void 0 : _d.appendChild(this.toolbar);
+            // ??? this.toolbar.setMarkdownEditor(this);
+        }
+    }
+    updated(changedProperties) {
+        if (changedProperties.has('markdown') && this.markdown != null) {
+            this.renderMarkdown(this.markdown);
+        }
+        if (changedProperties.has('toolbar') && this.toolbar != null) {
+            this.toolbar.setMarkdownDocument(this);
+        }
+    }
+    renderMarkdown(markdown) {
+        // TODO: do not remove the toolbar!? Or maybe there should be
+        // a markdown-editor component above document?
+        this.innerHTML = this.parser(markdown);
+        this.normalizeContent();
+    }
+    getMarkdown() {
+        return Array.from(this.children).map((child) => {
+            if (isMarkdownElement(child)) {
+                return child.getMarkdown();
+            }
+            else {
+                return "";
+            }
+        }).join('');
+    }
+    getCurrentLeafBlock() {
+        let selection = this.getSelection();
+        const anchorNode = selection === null || selection === void 0 ? void 0 : selection.anchorNode;
+        // console.log('anchorNode');
+        // console.log(anchorNode);
+        if (anchorNode != null) {
+            let element = anchorNode;
+            while (element != null && element != document && !(element instanceof MarkdownDocument_1)) {
+                if (element instanceof LeafElement) {
+                    return element;
+                }
+                element = element === null || element === void 0 ? void 0 : element.parentNode;
+            }
+        }
+        return null;
+    }
+    getLastLeafBlock() {
+        var _a;
+        const anchorNode = (_a = this.lastSelection) === null || _a === void 0 ? void 0 : _a.anchorNode;
+        // console.log('anchorNode');
+        // console.log(anchorNode);
+        if (anchorNode != null) {
+            let element = anchorNode;
+            while (element != null && element != document && !(element instanceof MarkdownDocument_1)) {
+                if (element instanceof LeafElement) {
+                    return element;
+                }
+                element = element === null || element === void 0 ? void 0 : element.parentNode;
+            }
+        }
+        return null;
+    }
+    handleEnterKeyDown() {
+        document.execCommand('insertHTML', false, '&ZeroWidthSpace;<br/>&ZeroWidthSpace;');
+    }
+    makeBreak() {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
+        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
+        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
+        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
+        if (parent && anchorOffset && focusOffset) {
+            const replacementLeft = document.createElement('markdown-paragraph');
+            const replacementRight = document.createElement('markdown-paragraph');
+            const markdownBreak = document.createElement('markdown-break');
+            replacementLeft.innerHTML = (_e = parent === null || parent === void 0 ? void 0 : parent.innerHTML) === null || _e === void 0 ? void 0 : _e.slice(0, anchorOffset);
+            replacementRight.innerHTML = (_f = parent === null || parent === void 0 ? void 0 : parent.innerHTML) === null || _f === void 0 ? void 0 : _f.slice(focusOffset);
+            if (replacementLeft.innerHTML.length === 0) {
+                replacementLeft.innerHTML = "<br />";
+            }
+            if (replacementRight.innerHTML.length === 0) {
+                replacementRight.innerHTML = "<br />";
+            }
+            parent.replaceWith(replacementLeft);
+            replacementLeft.after(markdownBreak);
+            markdownBreak.after(replacementRight);
+            const range = document.createRange();
+            range.selectNodeContents(replacementRight);
+            range.collapse(true);
+            (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.removeAllRanges();
+            (_h = this.currentSelection) === null || _h === void 0 ? void 0 : _h.addRange(range);
+            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: markdownBreak }));
+            this.onChange();
+        }
+    }
+    handleBackspaceKeyDown(e) {
+        var _a, _b, _c, _d, _e, _f;
+        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
+        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
+        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
+        const sibling = (_f = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode) === null || _f === void 0 ? void 0 : _f.previousSibling;
+        if (parent && anchorOffset == 0 && focusOffset == 0 && parent instanceof MarkdownLitElement && sibling == null) {
+            e.preventDefault();
+            if (isMarkdownElementEscapeByBackspace(parent.parentElement)) {
+                parent.parentElement.escapeByBackspace(parent);
+            }
+            else {
+                parent.mergeWithPrevious(this.currentSelection);
+            }
+        }
+        else if (sibling && anchorOffset == 0 && focusOffset == 0 &&
+            sibling instanceof MarkdownLitElement && sibling.isDeletableAsAWhole()) {
+            e.preventDefault();
+            sibling.remove();
+        }
+    }
+    handleDeleteKeyDown(e) {
+        var _a, _b, _c;
+        const anchor = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode;
+        const anchorOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorOffset;
+        const focusOffset = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.focusOffset;
+        const parent = anchor === null || anchor === void 0 ? void 0 : anchor.parentElement;
+        //const sibling = anchor?.nextSibling;
+        if (parent && anchor instanceof Text && anchor.nextSibling == null &&
+            anchorOffset == anchor.length && focusOffset == anchor.length && parent instanceof MarkdownLitElement) {
+            // got to the end of the parent children -> merge next one in
+            e.preventDefault();
+            parent.mergeNextIn();
+        } /*else if (sibling && anchor instanceof Text &&
+              anchorOffset == anchor.length && focusOffset == anchor.length && sibling instanceof MarkdownLitElement &&
+              sibling.isDeletableAsAWhole()) {
+          e.preventDefault();
+          sibling.remove();
+        }*/
+    }
+    handleTabKeyDown(shift) {
+        var _a, _b;
+        let parent = (_b = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) === null || _b === void 0 ? void 0 : _b.parentElement;
+        let child = null;
+        while (parent && parent != this && !isMarkdownElementWithLevel(parent)) {
+            child = parent;
+            parent = parent.parentElement;
+        }
+        if (parent && isMarkdownElementWithLevel(parent)) {
+            if (shift)
+                parent.goUpOneLevel(child);
+            else
+                parent.goDownOneLevel(child);
+            this.onChange();
+        }
+    }
+    allRangeUnderInline(tagName) {
+        var _a;
+        if (this.currentSelection && this.currentSelection.rangeCount > 0) {
+            return allRangeUnderInline(tagName, (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
+        }
+        else {
+            return null;
+        }
+    }
+    affectToolbar() {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9;
+        if (this.allRangeUnderInline("markdown-strong") == true) {
+            (_a = this.toolbar) === null || _a === void 0 ? void 0 : _a.highlightBoldButton();
+        }
+        else {
+            (_b = this.toolbar) === null || _b === void 0 ? void 0 : _b.removeBoldButtonHighlighting();
+        }
+        if (this.allRangeUnderInline("markdown-emphasis") == true) {
+            (_c = this.toolbar) === null || _c === void 0 ? void 0 : _c.highlightItalicButton();
+        }
+        else {
+            (_d = this.toolbar) === null || _d === void 0 ? void 0 : _d.removeItalicButtonHighlighting();
+        }
+        if (this.allRangeUnderInline("markdown-strike") == true) {
+            (_e = this.toolbar) === null || _e === void 0 ? void 0 : _e.highlightStrikeButton();
+        }
+        else {
+            (_f = this.toolbar) === null || _f === void 0 ? void 0 : _f.removeBoldStrikeHighlighting();
+        }
+        if (((_j = (_h = (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.anchorNode) === null || _h === void 0 ? void 0 : _h.parentElement) === null || _j === void 0 ? void 0 : _j.tagName) === "MARKDOWN-PARAGRAPH") {
+            (_k = this.toolbar) === null || _k === void 0 ? void 0 : _k.setDropdownTitle('Paragraph');
+        }
+        if (((_o = (_m = (_l = this.currentSelection) === null || _l === void 0 ? void 0 : _l.anchorNode) === null || _m === void 0 ? void 0 : _m.parentElement) === null || _o === void 0 ? void 0 : _o.tagName) === "MARKDOWN-HEADER-1") {
+            (_p = this.toolbar) === null || _p === void 0 ? void 0 : _p.setDropdownTitle('Heading 1');
+        }
+        if (((_s = (_r = (_q = this.currentSelection) === null || _q === void 0 ? void 0 : _q.anchorNode) === null || _r === void 0 ? void 0 : _r.parentElement) === null || _s === void 0 ? void 0 : _s.tagName) === "MARKDOWN-HEADER-2") {
+            (_t = this.toolbar) === null || _t === void 0 ? void 0 : _t.setDropdownTitle('Heading 2');
+        }
+        if (((_w = (_v = (_u = this.currentSelection) === null || _u === void 0 ? void 0 : _u.anchorNode) === null || _v === void 0 ? void 0 : _v.parentElement) === null || _w === void 0 ? void 0 : _w.tagName) === "MARKDOWN-HEADER-3") {
+            (_x = this.toolbar) === null || _x === void 0 ? void 0 : _x.setDropdownTitle('Heading 3');
+        }
+        if (((_0 = (_z = (_y = this.currentSelection) === null || _y === void 0 ? void 0 : _y.anchorNode) === null || _z === void 0 ? void 0 : _z.parentElement) === null || _0 === void 0 ? void 0 : _0.tagName) === "MARKDOWN-HEADER-4") {
+            (_1 = this.toolbar) === null || _1 === void 0 ? void 0 : _1.setDropdownTitle('Heading 4');
+        }
+        if (((_4 = (_3 = (_2 = this.currentSelection) === null || _2 === void 0 ? void 0 : _2.anchorNode) === null || _3 === void 0 ? void 0 : _3.parentElement) === null || _4 === void 0 ? void 0 : _4.tagName) === "MARKDOWN-HEADER-5") {
+            (_5 = this.toolbar) === null || _5 === void 0 ? void 0 : _5.setDropdownTitle('Heading 5');
+        }
+        if (((_8 = (_7 = (_6 = this.currentSelection) === null || _6 === void 0 ? void 0 : _6.anchorNode) === null || _7 === void 0 ? void 0 : _7.parentElement) === null || _8 === void 0 ? void 0 : _8.tagName) === "MARKDOWN-HEADER-6") {
+            (_9 = this.toolbar) === null || _9 === void 0 ? void 0 : _9.setDropdownTitle('Heading 6');
+        }
+    }
+    makeBold() {
+        this.domModificationOperation(() => {
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                surroundRangeIfNotYet('markdown-strong', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
+        });
+        this.onChange();
+    }
+    removeBold() {
+        this.domModificationOperation(() => {
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                unsurroundRange('markdown-strong', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
+        });
+        this.onChange();
+    }
+    wrapCurrentSelectionInNewElement(elementName) {
+        var _a, _b, _c, _d, _e, _f, _g;
+        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
+        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
+        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
+        if (parent != null && anchorOffset != null && focusOffset != null) {
+            const selectionLength = Math.abs(focusOffset - anchorOffset);
+            const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
+            const secondPart = text.splitText(Math.min(anchorOffset, focusOffset));
+            const thirdPart = secondPart.splitText(selectionLength);
+            const replacement = document.createElement(elementName);
+            replacement.appendChild(document.createTextNode(secondPart.data));
+            secondPart.replaceWith(replacement);
+            const range = document.createRange();
+            range.selectNodeContents(replacement);
+            (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
+            (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
+            this.onChange();
+            return replacement;
+        }
+        else {
+            return null;
+        }
+    }
+    makeItalic() {
+        this.domModificationOperation(() => {
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                surroundRangeIfNotYet('markdown-emphasis', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
+        });
+        this.onChange();
+    }
+    removeItalic() {
+        this.domModificationOperation(() => {
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                unsurroundRange('markdown-emphasis', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
+        });
+        this.onChange();
+    }
+    makeUnderline() {
+        //this.wrapCurrentSelectionInNewElement('u');
+    }
+    makeStrike() {
+        this.domModificationOperation(() => {
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                surroundRangeIfNotYet('markdown-strike', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
+        });
+        this.onChange();
+    }
+    removeStrike() {
+        this.domModificationOperation(() => {
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                unsurroundRange('markdown-strike', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
+        });
+        this.onChange();
+    }
+    makeCodeInline() {
+        this.domModificationOperation(() => {
+            var _a, _b;
+            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
+                surroundRangeIfNotYet('markdown-code-span', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
+                this.normalizeDOM();
+            }
+        });
+        this.onChange();
+    }
+    listBulletedClick() {
+        var _a, _b, _c, _d;
+        if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) {
+            const list = document.createElement('markdown-list');
+            const item = document.createElement('markdown-list-item');
+            item.innerHTML = "<br />";
+            list.appendChild(item);
+            const oldElement = this.getCurrentLeafBlock();
+            if (oldElement != null) {
+                item.innerHTML = oldElement.innerHTML;
+            }
+            ((_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorNode).replaceWith(list);
+            const range = document.createRange();
+            range.selectNodeContents(item);
+            range.collapse(true);
+            (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.removeAllRanges();
+            (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.addRange(range);
+            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: item }));
+            this.onChange();
+        }
+    }
+    listNumericClick() {
+        var _a, _b, _c, _d;
+        if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) {
+            const list = document.createElement('markdown-numeric-list');
+            const item = document.createElement('markdown-numeric-list-item');
+            item.innerHTML = "<br />";
+            list.appendChild(item);
+            const oldElement = this.getCurrentLeafBlock();
+            if (oldElement != null) {
+                item.innerHTML = oldElement.innerHTML;
+            }
+            ((_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorNode).replaceWith(list);
+            const range = document.createRange();
+            range.selectNodeContents(item);
+            range.collapse(true);
+            (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.removeAllRanges();
+            (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.addRange(range);
+            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: item }));
+            this.onChange();
+        }
+    }
+    insertPhoto(url, text) {
+        var _a, _b, _c, _d, _e, _f;
+        if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) {
+            const image = document.createElement('markdown-image');
+            if (text)
+                image.title = text;
+            if (url != null) {
+                image.destination = url;
+            }
+            const anchorOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorOffset;
+            const focusOffset = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.focusOffset;
+            const parent = (_e = (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.anchorNode) === null || _e === void 0 ? void 0 : _e.parentElement;
+            if (parent && anchorOffset != null && focusOffset != null) {
+                const text = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode;
+                const secondPart = text.splitText(anchorOffset);
+                text.after(image);
+                this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: image }));
+                this.onChange();
+            }
+        }
+    }
+    restoreStashedSelection() {
+        var _a, _b, _c, _d, _e, _f;
+        const range = document.createRange();
+        range.setStart((_a = this.stashedSelection) === null || _a === void 0 ? void 0 : _a.anchorNode, (_b = this.stashedSelection) === null || _b === void 0 ? void 0 : _b.anchorOffset);
+        range.setEnd((_c = this.stashedSelection) === null || _c === void 0 ? void 0 : _c.focusNode, (_d = this.stashedSelection) === null || _d === void 0 ? void 0 : _d.focusOffset);
+        (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.removeAllRanges();
+        (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.addRange(range);
+    }
+    insertLink() {
+        let link = this.wrapCurrentSelectionInNewElement('markdown-link');
+        if (link.textContent != null) {
+            if (link.textContent == '') {
+                link.textContent = 'http://';
+            }
+            link.destination = link.textContent;
+        }
+        link === null || link === void 0 ? void 0 : link.classList.add('fresh');
+        //this.restoreStashedSelection();
+        //let link = this.wrapCurrentSelectionInNewElement('markdown-link') as MarkdownLink;
+        //link.destination = url;
+        //link.innerHTML = text;
+        /*if (this.currentSelection?.anchorNode) {
+          const link = document.createElement('markdown-link') as MarkdownLink;
+          link.destination = url;
+          link.innerHTML = text;
+    
+          const anchorOffset = this.currentSelection?.anchorOffset;
+          const focusOffset = this.currentSelection?.focusOffset;
+          const parent = this.currentSelection?.anchorNode?.parentElement;
+      
+          if (parent && anchorOffset && focusOffset) {
+            const text = this.currentSelection?.anchorNode as Text;
+            const secondPart = text.splitText(anchorOffset);
+            secondPart;
+    
+            text.after(link);
+            this.onChange();
+          }
+        }*/
+    }
+    header1Element() {
+        const element = document.createElement('markdown-header-1');
+        const oldElement = this.getCurrentLeafBlock();
+        if (oldElement != null) {
+            element.innerHTML = oldElement.innerHTML;
+            oldElement.replaceWith(element);
+            this.onChange();
+        }
+    }
+    header2Element() {
+        const element = document.createElement('markdown-header-2');
+        const oldElement = this.getCurrentLeafBlock();
+        if (oldElement != null) {
+            element.innerHTML = oldElement.innerHTML;
+            oldElement.replaceWith(element);
+            this.onChange();
+        }
+    }
+    header3Element() {
+        const element = document.createElement('markdown-header-3');
+        const oldElement = this.getCurrentLeafBlock();
+        if (oldElement != null) {
+            element.innerHTML = oldElement.innerHTML;
+            oldElement.replaceWith(element);
+            this.onChange();
+        }
+    }
+    header4Element() {
+        const element = document.createElement('markdown-header-4');
+        const oldElement = this.getCurrentLeafBlock();
+        if (oldElement != null) {
+            element.innerHTML = oldElement.innerHTML;
+            oldElement.replaceWith(element);
+            this.onChange();
+        }
+    }
+    header5Element() {
+        const element = document.createElement('markdown-header-5');
+        const oldElement = this.getCurrentLeafBlock();
+        if (oldElement != null) {
+            element.innerHTML = oldElement.innerHTML;
+            oldElement.replaceWith(element);
+            this.onChange();
+        }
+    }
+    header6Element() {
+        const element = document.createElement('markdown-header-6');
+        const oldElement = this.getCurrentLeafBlock();
+        if (oldElement != null) {
+            element.innerHTML = oldElement.innerHTML;
+            oldElement.replaceWith(element);
+            this.onChange();
+        }
+    }
+    pararaphElement() {
+        const element = document.createElement('markdown-paragraph');
+        const oldElement = this.getCurrentLeafBlock();
+        if (oldElement != null) {
+            element.innerHTML = oldElement.innerHTML;
+            oldElement.replaceWith(element);
+            this.onChange();
+        }
+    }
+    makeCodeBlock() {
+        const element = document.createElement('markdown-code');
+        const oldElement = this.getCurrentLeafBlock();
+        if (oldElement != null) {
+            element.innerHTML = oldElement.innerHTML;
+            oldElement.replaceWith(element);
+            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: element }));
+            this.onChange();
+        }
+    }
+    makeQuoteBlock() {
+        const element = document.createElement('markdown-quote');
+        const p = document.createElement('markdown-paragraph');
+        element.append(p);
+        const oldElement = this.getCurrentLeafBlock();
+        if (oldElement != null) {
+            p.innerHTML = oldElement.innerHTML;
+            oldElement.replaceWith(element);
+            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: element }));
+            this.onChange();
+        }
+    }
+};
+exports.MarkdownDocument.styles = [
+    /*
+      TODO (borodanov):
+
+      I put global variables here, because
+      in this version of the editor, MarkdownDocument is the highest in the parent
+      hierarchy. Possibly better solutions to use CSS variables in Shadow and
+      Light DOM at the same time are existing but I didn't find after a lot of research.
+      Some people have already looked for the same issues:
+      https://stackoverflow.com/questions/48380267/css-variables-root-vs-host
+      https://github.com/WICG/webcomponents/issues/338
+      Importing :root { --my-var: ... } into a component is not working,
+      but that would be the best solution for particular styles importing
+      from separatly defined styles.
+
+      For now these global variables are using for the synchronization the same size of
+      markdown Headers and toolbar selectors of the current paragraph style
+      which should look like Headers but with some differences, for example
+      this selector should be without margins and paddings like in the
+      markdown document view.
+    */
+    globalVariables,
+    css `
+      :host {
+        display: block;
+        border: solid 1px gray;
+        border-top: none;
+        padding: 16px;
+      }
+      .toolbar {
+        z-index: 3;
+        top: 0px;
+        position: fixed;
+        right: 30%;
+        background: white;
+      }
+      .toc {
+        position: absolute;
+        z-index: 3;
+        top: 0px;
+        right: 0%;
+      }
+      @media print {
+        :host {
+          border: none;
+        }
+      }
+    `,
+];
+__decorate([
+    property()
+    // TODO: fix eslint-disable
+    // eslint-disable-next-line no-unused-vars
+], exports.MarkdownDocument.prototype, "parser", void 0);
+__decorate([
+    property()
+], exports.MarkdownDocument.prototype, "markdown", null);
+__decorate([
+    property({ attribute: false })
+], exports.MarkdownDocument.prototype, "toolbar", void 0);
+__decorate([
+    property()
+], exports.MarkdownDocument.prototype, "selectionRoot", void 0);
+__decorate([
+    property()
+], exports.MarkdownDocument.prototype, "onLinkClick", void 0);
+exports.MarkdownDocument = MarkdownDocument_1 = __decorate([
+    customElement('markdown-document')
+], exports.MarkdownDocument);
+function getWord(range) {
+    if (range.collapsed && range.commonAncestorContainer instanceof Text) {
+        let leftIndex = Math.max(0, range.commonAncestorContainer.textContent.substring(0, range.startOffset).lastIndexOf(' ')); // TODO this should include other whitespaces.
+        var rightIndex = range.commonAncestorContainer.textContent.substring(range.startOffset).indexOf(' ') + range.startOffset;
+        if (rightIndex <= range.startOffset)
+            rightIndex = range.commonAncestorContainer.textContent.length;
+        let result = new Range();
+        result.setStart(range.startContainer, leftIndex);
+        result.setEnd(range.startContainer, rightIndex);
+        return result;
+    }
+    return null;
+}
+function allRangeUnderInline(tagName, range) {
+    var _a, _b;
+    if (range.commonAncestorContainer instanceof Text) {
+        return ((_a = range.commonAncestorContainer.parentElement) === null || _a === void 0 ? void 0 : _a.closest(tagName)) != null;
+    }
+    else {
+        if (range.commonAncestorContainer instanceof Element && range.commonAncestorContainer.closest(tagName) != null) {
+            return true;
+        }
+    }
+    let walk = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, null);
+    var n;
+    var result = false;
+    while (n = walk.nextNode()) {
+        if (n instanceof Text && range.intersectsNode(n) && isMarkdownContentTextNode(n)) { // avoid dom spaces at the document level. only user content
+            if (((_b = n.parentElement) === null || _b === void 0 ? void 0 : _b.closest(tagName)) == null) {
+                return false;
+            }
+            else {
+                result = true;
+            }
+        }
+    }
+    return result;
+}
+function getAllTextNodesForRange(range) {
+    var _a;
+    let startNode = range.startContainer;
+    let endNode = range.endContainer;
+    let startOffset = range.startOffset;
+    var endOffset = range.endOffset;
+    // split up text nodes if necessary
+    if (startNode instanceof Text) {
+        if (startOffset > 0 && startOffset < startNode.textContent.length) {
+            // split the text node to have whole text nodes corresponding to range
+            let text = startNode.textContent;
+            (_a = startNode.parentElement) === null || _a === void 0 ? void 0 : _a.insertBefore(document.createTextNode(text.substring(0, startOffset)), startNode);
+            startNode.textContent = text.substring(startOffset);
+            range.setStart(startNode, 0);
+            if (startNode == endNode) {
+                endOffset = endOffset - startOffset;
+            }
+        }
+    }
+    if (endNode instanceof Text) {
+        if (endOffset < endNode.textContent.length) {
+            // split the text node to have whole text nodes corresponding to range
+            let text = endNode.textContent;
+            let after = document.createTextNode(text.substring(endOffset));
+            endNode.textContent = text.substring(0, endOffset);
+            endNode.after(after);
+        }
+    }
+    // get al the text nodes using commonAncestorContainer all text nodes that range intersectsNode
+    if (range.commonAncestorContainer instanceof Text) {
+        return [range.commonAncestorContainer];
+    }
+    else {
+        let result = [];
+        let walk = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, null);
+        var n;
+        while (n = walk.nextNode()) {
+            if (n instanceof Text && range.intersectsNode(n) && isMarkdownContentTextNode(n)) {
+                result.push(n);
+            }
+        }
+        return result;
+    }
+}
+function isMarkdownContentTextNode(node) {
+    return isMarkdownElement(node.parentNode) && node.parentNode instanceof MarkdownLitElement && node.parentNode.containsMarkdownTextContent();
+}
+function surroundRangeIfNotYet(tagName, range) {
+    if (range.collapsed) {
+        let wordRange = getWord(range);
+        if (wordRange != null) {
+            surroundRangeIfNotYet(tagName, wordRange);
+        }
+        else {
+            // split the text node and add 
+            /*let text = (range.commonAncestorContainer as Text).textContent;
+            (range.commonAncestorContainer as Text).textContent =
+            text?.substring(0, range.startOffset);*/
+            document.execCommand('insertHTML', false, '<' + tagName + '>&ZeroWidthSpace;</' + tagName + '>'); // TODO better do it oursleves besed on range (this is selection based
+        }
+        return;
+    }
+    let allTexts = getAllTextNodesForRange(range);
+    allTexts.forEach((t) => {
+        var _a;
+        if (((_a = t.parentElement) === null || _a === void 0 ? void 0 : _a.closest(tagName)) == null) {
+            var replaceLevel = t;
+            while (replaceLevel.parentElement instanceof TerminalInlineElement) { // terminal inline is the lowest level you cannot surround the text inside, but it can be surrounded
+                replaceLevel = replaceLevel.parentElement;
+            }
+            let enclosing = document.createElement(tagName);
+            replaceLevel.replaceWith(enclosing);
+            enclosing.append(replaceLevel);
+        }
+    });
+}
+function dispatchToChildren(element) {
+    let sibling = element.nextSibling;
+    let parent = element.parentElement;
+    element.remove();
+    Array.from(element.childNodes).forEach((ec) => {
+        let ne = element.cloneNode(false);
+        ne.appendChild(ec);
+        parent === null || parent === void 0 ? void 0 : parent.insertBefore(ne, sibling);
+    });
+}
+function unsurroundRange(tagName, range) {
+    if (range.collapsed) {
+        let wordRange = getWord(range);
+        if (wordRange != null) {
+            unsurroundRange(tagName, wordRange);
+        }
+        return;
+    }
+    let allTexts = getAllTextNodesForRange(range);
+    var surrounded = false;
+    do {
+        surrounded = false;
+        allTexts.forEach((t) => {
+            var _a, _b, _c, _d;
+            var enclosing = (_a = t.parentElement) === null || _a === void 0 ? void 0 : _a.closest(tagName);
+            if (enclosing != null) {
+                // if ancestor is there, dispatch it down one level
+                // we just push down the ancestor and fo on with the fixpoint
+                surrounded = true;
+                // bring down 
+                dispatchToChildren(enclosing);
+                // now if we are left with parent directly as the one to remove, remove that layer
+                if (((_c = (_b = t.parentElement) === null || _b === void 0 ? void 0 : _b.tagName) === null || _c === void 0 ? void 0 : _c.toLowerCase()) == tagName) {
+                    t.parentElement.replaceWith(t);
+                }
+                else {
+                    enclosing = (_d = t.parentElement) === null || _d === void 0 ? void 0 : _d.closest(tagName);
+                    // invert enclosing and its child
+                    let ec = enclosing.childNodes[0]; // we know there is only one from dispatchToChildren
+                    enclosing.replaceWith(ec);
+                    Array.from(ec.childNodes).forEach((ecc) => {
+                        ec.removeChild(ecc);
+                        enclosing === null || enclosing === void 0 ? void 0 : enclosing.append(ecc);
+                    });
+                    ec.appendChild(enclosing);
+                }
+            }
+        });
+    } while (surrounded);
+}
+// returns a boolean that if true, it means that the element changed something that will impact a ancestor, so normalize should be redone
+function normalizeContent(element) {
+    for (let i = 0; i < element.childNodes.length; i++) {
+        const content = element.childNodes[i];
+        if (content instanceof MarkdownLitElement) {
+            if (content.normalizeContent()) {
+                return normalizeContent(element);
+            }
+        }
+        else if (isMarkdownElement(content)) {
+            if (normalizeContent(content)) {
+                return normalizeContent(element);
+            }
+        }
+        else {
+            if (normalizeChildContent(content)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+function normalizeChildContent(content) {
+    if (content instanceof HTMLImageElement) {
+        let img = document.createElement('markdown-image');
+        content.replaceWith(img);
+        if (content.getAttribute('src') != null) {
+            img.setAttribute('destination', content.getAttribute('src'));
+        }
+        if (content.getAttribute('title') != null) {
+            img.setAttribute('title', content.getAttribute('title'));
+        }
+        if (content.getAttribute('alt') != null) {
+            img.innerText = content.getAttribute('alt');
+        }
+        return true;
+    }
+    else if (content instanceof HTMLElement && content.tagName.toLowerCase() === 'markdown-paragraph') {
+        // For some reason, sometimes the paragraph component has not been constructed yet on return
+        if (content.childNodes.length == 1 && content.childNodes[0] instanceof HTMLBRElement) {
+            content.childNodes[0].remove();
+            let p = document.createTextNode('\u200b');
+            content.append(p);
+            return true;
+        }
+    }
+    return false;
+}
+
 class BlockElement extends MarkdownLitElement {
 }
 
@@ -3046,7 +5762,7 @@ class LeafElement extends BlockElement {
                 }
             }
             else {
-                if (this.normalizeChildContent(content)) {
+                if (normalizeChildContent(content)) {
                     return true;
                 }
             }
@@ -3089,7 +5805,7 @@ class LeafElement extends BlockElement {
     }
 }
 
-var __decorate$C = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$1 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -3108,7 +5824,7 @@ exports.ThematicBreak = class ThematicBreak extends LeafElement {
         return false;
     }
 };
-exports.ThematicBreak = __decorate$C([
+exports.ThematicBreak = __decorate$1([
     customElement('markdown-break')
 ], exports.ThematicBreak);
 
@@ -3142,6 +5858,7 @@ var deepFreezeEs6 = deepFreeze;
 var _default = deepFreeze;
 deepFreezeEs6.default = _default;
 
+/** @implements CallbackResponse */
 class Response {
   /**
    * @param {CompiledMode} mode
@@ -3151,10 +5868,11 @@ class Response {
     if (mode.data === undefined) mode.data = {};
 
     this.data = mode.data;
+    this.isMatchIgnored = false;
   }
 
   ignoreMatch() {
-    this.ignore = true;
+    this.isMatchIgnored = true;
   }
 }
 
@@ -3455,7 +6173,7 @@ function escape$1(value) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$z(re) {
+function source(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -3466,8 +6184,8 @@ function source$z(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$y(...args) {
-  const joined = args.map((x) => source$z(x)).join("");
+function concat(...args) {
+  const joined = args.map((x) => source(x)).join("");
   return joined;
 }
 
@@ -3478,8 +6196,8 @@ function concat$y(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$c(...args) {
-  const joined = '(' + args.map((x) => source$z(x)).join("|") + ")";
+function either(...args) {
+  const joined = '(' + args.map((x) => source(x)).join("|") + ")";
   return joined;
 }
 
@@ -3501,6 +6219,15 @@ function startsWith(re, lexeme) {
   return match && match.index === 0;
 }
 
+// BACKREF_RE matches an open parenthesis or backreference. To avoid
+// an incorrect parse, it additionally matches the following:
+// - [...] elements, where the meaning of parentheses and escapes change
+// - other escape sequences, so we do not misparse escape sequences as
+//   interesting elements
+// - non-matching or lookahead parentheses, which do not capture. These
+//   follow the '(' with a '?'.
+const BACKREF_RE = /\[(?:[^\\\]]|\\.)*\]|\(\??|\\([1-9][0-9]*)|\\./;
+
 // join logically computes regexps.join(separator), but fixes the
 // backreferences so they continue to match.
 // it also places each individual regular expression into it's own
@@ -3512,49 +6239,39 @@ function startsWith(re, lexeme) {
  * @returns {string}
  */
 function join(regexps, separator = "|") {
-  // backreferenceRe matches an open parenthesis or backreference. To avoid
-  // an incorrect parse, it additionally matches the following:
-  // - [...] elements, where the meaning of parentheses and escapes change
-  // - other escape sequences, so we do not misparse escape sequences as
-  //   interesting elements
-  // - non-matching or lookahead parentheses, which do not capture. These
-  //   follow the '(' with a '?'.
-  const backreferenceRe = /\[(?:[^\\\]]|\\.)*\]|\(\??|\\([1-9][0-9]*)|\\./;
   let numCaptures = 0;
-  let ret = '';
-  for (let i = 0; i < regexps.length; i++) {
+
+  return regexps.map((regex) => {
     numCaptures += 1;
     const offset = numCaptures;
-    let re = source$z(regexps[i]);
-    if (i > 0) {
-      ret += separator;
-    }
-    ret += "(";
+    let re = source(regex);
+    let out = '';
+
     while (re.length > 0) {
-      const match = backreferenceRe.exec(re);
-      if (match == null) {
-        ret += re;
+      const match = BACKREF_RE.exec(re);
+      if (!match) {
+        out += re;
         break;
       }
-      ret += re.substring(0, match.index);
+      out += re.substring(0, match.index);
       re = re.substring(match.index + match[0].length);
       if (match[0][0] === '\\' && match[1]) {
         // Adjust the backreference.
-        ret += '\\' + String(Number(match[1]) + offset);
+        out += '\\' + String(Number(match[1]) + offset);
       } else {
-        ret += match[0];
+        out += match[0];
         if (match[0] === '(') {
           numCaptures++;
         }
       }
     }
-    ret += ")";
-  }
-  return ret;
+    return out;
+  }).map(re => `(${re})`).join(separator);
 }
 
 // Common regexps
-const IDENT_RE$2 = '[a-zA-Z]\\w*';
+const MATCH_NOTHING_RE = /\b\B/;
+const IDENT_RE = '[a-zA-Z]\\w*';
 const UNDERSCORE_IDENT_RE = '[a-zA-Z_]\\w*';
 const NUMBER_RE = '\\b\\d+(\\.\\d+)?';
 const C_NUMBER_RE = '(-?)(\\b0[xX][a-fA-F0-9]+|(\\b\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)'; // 0x..., 0..., decimal, float
@@ -3567,7 +6284,7 @@ const RE_STARTERS_RE = '!|!=|!==|%|%=|&|&&|&=|\\*|\\*=|\\+|\\+=|,|-|-=|/=|/|:|;|
 const SHEBANG = (opts = {}) => {
   const beginShebang = /^#![ ]*\//;
   if (opts.binary) {
-    opts.begin = concat$y(
+    opts.begin = concat(
       beginShebang,
       /.*\b/,
       opts.binary,
@@ -3689,7 +6406,7 @@ const REGEXP_MODE = {
 };
 const TITLE_MODE = {
   className: 'title',
-  begin: IDENT_RE$2,
+  begin: IDENT_RE,
   relevance: 0
 };
 const UNDERSCORE_TITLE_MODE = {
@@ -3722,7 +6439,8 @@ const END_SAME_AS_BEGIN = function(mode) {
 
 var MODES = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    IDENT_RE: IDENT_RE$2,
+    MATCH_NOTHING_RE: MATCH_NOTHING_RE,
+    IDENT_RE: IDENT_RE,
     UNDERSCORE_IDENT_RE: UNDERSCORE_IDENT_RE,
     NUMBER_RE: NUMBER_RE,
     C_NUMBER_RE: C_NUMBER_RE,
@@ -3797,6 +6515,11 @@ function beginKeywords(mode, parent) {
   mode.__beforeBegin = skipIfhasPrecedingDot;
   mode.keywords = mode.keywords || mode.beginKeywords;
   delete mode.beginKeywords;
+
+  // prevents double relevance, the keywords themselves provide
+  // relevance, the mode doesn't need to double it
+  // eslint-disable-next-line no-undefined
+  if (mode.relevance === undefined) mode.relevance = 0;
 }
 
 /**
@@ -3806,7 +6529,7 @@ function beginKeywords(mode, parent) {
 function compileIllegal(mode, _parent) {
   if (!Array.isArray(mode.illegal)) return;
 
-  mode.illegal = either$c(...mode.illegal);
+  mode.illegal = either(...mode.illegal);
 }
 
 /**
@@ -3845,21 +6568,31 @@ const COMMON_KEYWORDS = [
   'value' // common variable name
 ];
 
+const DEFAULT_KEYWORD_CLASSNAME = "keyword";
+
 /**
  * Given raw keywords from a language definition, compile them.
  *
- * @param {string | Record<string,string>} rawKeywords
+ * @param {string | Record<string,string|string[]> | Array<string>} rawKeywords
  * @param {boolean} caseInsensitive
  */
-function compileKeywords(rawKeywords, caseInsensitive) {
+function compileKeywords(rawKeywords, caseInsensitive, className = DEFAULT_KEYWORD_CLASSNAME) {
   /** @type KeywordDict */
   const compiledKeywords = {};
 
-  if (typeof rawKeywords === 'string') { // string
-    splitAndCompile('keyword', rawKeywords);
+  // input can be a string of keywords, an array of keywords, or a object with
+  // named keys representing className (which can then point to a string or array)
+  if (typeof rawKeywords === 'string') {
+    compileList(className, rawKeywords.split(" "));
+  } else if (Array.isArray(rawKeywords)) {
+    compileList(className, rawKeywords);
   } else {
     Object.keys(rawKeywords).forEach(function(className) {
-      splitAndCompile(className, rawKeywords[className]);
+      // collapse all our objects back into the parent object
+      Object.assign(
+        compiledKeywords,
+        compileKeywords(rawKeywords[className], caseInsensitive, className)
+      );
     });
   }
   return compiledKeywords;
@@ -3872,13 +6605,13 @@ function compileKeywords(rawKeywords, caseInsensitive) {
    * Ex: "for if when while|5"
    *
    * @param {string} className
-   * @param {string} keywordList
+   * @param {Array<string>} keywordList
    */
-  function splitAndCompile(className, keywordList) {
+  function compileList(className, keywordList) {
     if (caseInsensitive) {
-      keywordList = keywordList.toLowerCase();
+      keywordList = keywordList.map(x => x.toLowerCase());
     }
-    keywordList.split(' ').forEach(function(keyword) {
+    keywordList.forEach(function(keyword) {
       const pair = keyword.split('|');
       compiledKeywords[pair[0]] = [className, scoreForKeyword(pair[0], pair[1])];
     });
@@ -3931,7 +6664,7 @@ function compileLanguage(language, { plugins }) {
    */
   function langRe(value, global) {
     return new RegExp(
-      source$z(value),
+      source(value),
       'm' + (language.case_insensitive ? 'i' : '') + (global ? 'g' : '')
     );
   }
@@ -4184,7 +6917,7 @@ function compileLanguage(language, { plugins }) {
    */
   function compileMode(mode, parent) {
     const cmode = /** @type CompiledMode */ (mode);
-    if (mode.compiled) return cmode;
+    if (mode.isCompiled) return cmode;
 
     [
       // do this early so compiler extensions generally don't have to worry about
@@ -4206,7 +6939,7 @@ function compileLanguage(language, { plugins }) {
       compileRelevance
     ].forEach(ext => ext(mode, parent));
 
-    mode.compiled = true;
+    mode.isCompiled = true;
 
     let keywordPattern = null;
     if (typeof mode.keywords === "object") {
@@ -4234,7 +6967,7 @@ function compileLanguage(language, { plugins }) {
       if (mode.endSameAsBegin) mode.end = mode.begin;
       if (!mode.end && !mode.endsWithParent) mode.end = /\B|\b/;
       if (mode.end) cmode.endRe = langRe(mode.end);
-      cmode.terminatorEnd = source$z(mode.end) || '';
+      cmode.terminatorEnd = source(mode.end) || '';
       if (mode.endsWithParent && parent.terminatorEnd) {
         cmode.terminatorEnd += (mode.end ? '|' : '') + parent.terminatorEnd;
       }
@@ -4325,7 +7058,7 @@ function expandOrCloneMode(mode) {
   return mode;
 }
 
-var version = "10.5.0";
+var version = "10.7.3";
 
 // @ts-nocheck
 
@@ -4399,8 +7132,8 @@ function BuildVuePlugin(hljs) {
 
 /** @type {HLJSPlugin} */
 const mergeHTMLPlugin = {
-  "after:highlightBlock": ({ block, result, text }) => {
-    const originalStream = nodeStream(block);
+  "after:highlightElement": ({ el, result, text }) => {
+    const originalStream = nodeStream(el);
     if (!originalStream.length) return;
 
     const resultNode = document.createElement('div');
@@ -4558,6 +7291,11 @@ https://github.com/highlightjs/highlight.js/issues/2880#issuecomment-747275419
 */
 
 /**
+ * @type {Record<string, boolean>}
+ */
+const seenDeprecations = {};
+
+/**
  * @param {string} message
  */
 const error = (message) => {
@@ -4577,7 +7315,10 @@ const warn = (message, ...args) => {
  * @param {string} message
  */
 const deprecated = (version, message) => {
+  if (seenDeprecations[`${version}/${message}`]) return;
+
   console.log(`Deprecated as of ${version}. ${message}`);
+  seenDeprecations[`${version}/${message}`] = true;
 };
 
 /*
@@ -4662,8 +7403,14 @@ const HLJS = function(hljs) {
   /**
    * Core highlighting function.
    *
-   * @param {string} languageName - the language to use for highlighting
-   * @param {string} code - the code to highlight
+   * OLD API
+   * highlight(lang, code, ignoreIllegals, continuation)
+   *
+   * NEW API
+   * highlight(code, {lang, ignoreIllegals})
+   *
+   * @param {string} codeOrlanguageName - the language to use for highlighting
+   * @param {string | HighlightOptions} optionsOrCode - the code to highlight
    * @param {boolean} [ignoreIllegals] - whether to ignore illegal matches, default is to bail
    * @param {CompiledMode} [continuation] - current continuation mode, if any
    *
@@ -4675,7 +7422,24 @@ const HLJS = function(hljs) {
    * @property {CompiledMode} top - top of the current mode stack
    * @property {boolean} illegal - indicates whether any illegal matches were found
   */
-  function highlight(languageName, code, ignoreIllegals, continuation) {
+  function highlight(codeOrlanguageName, optionsOrCode, ignoreIllegals, continuation) {
+    let code = "";
+    let languageName = "";
+    if (typeof optionsOrCode === "object") {
+      code = codeOrlanguageName;
+      ignoreIllegals = optionsOrCode.ignoreIllegals;
+      languageName = optionsOrCode.language;
+      // continuation not supported at all via the new API
+      // eslint-disable-next-line no-undefined
+      continuation = undefined;
+    } else {
+      // old API
+      deprecated("10.7.0", "highlight(lang, code, ...args) has been deprecated.");
+      deprecated("10.7.0", "Please use highlight(code, options) instead.\nhttps://github.com/highlightjs/highlight.js/issues/2277");
+      languageName = codeOrlanguageName;
+      code = optionsOrCode;
+    }
+
     /** @type {BeforeHighlightContext} */
     const context = {
       code,
@@ -4687,9 +7451,9 @@ const HLJS = function(hljs) {
 
     // a before plugin can usurp the result completely by providing it's own
     // in which case we don't even need to call highlight
-    const result = context.result ?
-      context.result :
-      _highlight(context.language, context.code, ignoreIllegals, continuation);
+    const result = context.result
+      ? context.result
+      : _highlight(context.language, context.code, ignoreIllegals, continuation);
 
     result.code = context.code;
     // the plugin can change anything in result to suite it
@@ -4702,14 +7466,12 @@ const HLJS = function(hljs) {
    * private highlight that's used internally and does not fire callbacks
    *
    * @param {string} languageName - the language to use for highlighting
-   * @param {string} code - the code to highlight
-   * @param {boolean} [ignoreIllegals] - whether to ignore illegal matches, default is to bail
-   * @param {CompiledMode} [continuation] - current continuation mode, if any
+   * @param {string} codeToHighlight - the code to highlight
+   * @param {boolean?} [ignoreIllegals] - whether to ignore illegal matches, default is to bail
+   * @param {CompiledMode?} [continuation] - current continuation mode, if any
    * @returns {HighlightResult} - result of the highlight operation
   */
-  function _highlight(languageName, code, ignoreIllegals, continuation) {
-    const codeToHighlight = code;
-
+  function _highlight(languageName, codeToHighlight, ignoreIllegals, continuation) {
     /**
      * Return keyword data if a match is a keyword
      * @param {CompiledMode} mode - current mode
@@ -4741,8 +7503,14 @@ const HLJS = function(hljs) {
           buf = "";
 
           relevance += keywordRelevance;
-          const cssClass = language.classNameAliases[kind] || kind;
-          emitter.addKeyword(match[0], cssClass);
+          if (kind.startsWith("_")) {
+            // _ implied for relevance only, do not highlight
+            // by applying a class name
+            buf += match[0];
+          } else {
+            const cssClass = language.classNameAliases[kind] || kind;
+            emitter.addKeyword(match[0], cssClass);
+          }
         } else {
           buf += match[0];
         }
@@ -4812,7 +7580,7 @@ const HLJS = function(hljs) {
         if (mode["on:end"]) {
           const resp = new Response(mode);
           mode["on:end"](match, resp);
-          if (resp.ignore) matched = false;
+          if (resp.isMatchIgnored) matched = false;
         }
 
         if (matched) {
@@ -4864,7 +7632,7 @@ const HLJS = function(hljs) {
       for (const cb of beforeCallbacks) {
         if (!cb) continue;
         cb(match, resp);
-        if (resp.ignore) return doIgnore(lexeme);
+        if (resp.isMatchIgnored) return doIgnore(lexeme);
       }
 
       if (newMode && newMode.endSameAsBegin) {
@@ -5077,7 +7845,9 @@ const HLJS = function(hljs) {
       result = emitter.toHTML();
 
       return {
-        relevance: relevance,
+        // avoid possible breakage with v10 clients expecting
+        // this to always be an integer
+        relevance: Math.floor(relevance),
         value: result,
         language: languageName,
         illegal: false,
@@ -5226,12 +7996,12 @@ const HLJS = function(hljs) {
 
   /** @type {HLJSPlugin} */
   const brPlugin = {
-    "before:highlightBlock": ({ block }) => {
+    "before:highlightElement": ({ el }) => {
       if (options.useBR) {
-        block.innerHTML = block.innerHTML.replace(/\n/g, '').replace(/<br[ /]*>/g, '\n');
+        el.innerHTML = el.innerHTML.replace(/\n/g, '').replace(/<br[ /]*>/g, '\n');
       }
     },
-    "after:highlightBlock": ({ result }) => {
+    "after:highlightElement": ({ result }) => {
       if (options.useBR) {
         result.value = result.value.replace(/\n/g, "<br>");
       }
@@ -5241,7 +8011,7 @@ const HLJS = function(hljs) {
   const TAB_REPLACE_RE = /^(<[^>]+>|\t)+/gm;
   /** @type {HLJSPlugin} */
   const tabReplacePlugin = {
-    "after:highlightBlock": ({ result }) => {
+    "after:highlightElement": ({ result }) => {
       if (options.tabReplace) {
         result.value = result.value.replace(TAB_REPLACE_RE, (m) =>
           m.replace(/\t/g, options.tabReplace)
@@ -5256,21 +8026,23 @@ const HLJS = function(hljs) {
    *
    * @param {HighlightedHTMLElement} element - the HTML element to highlight
   */
-  function highlightBlock(element) {
+  function highlightElement(element) {
     /** @type HTMLElement */
     let node = null;
     const language = blockLanguage(element);
 
     if (shouldNotHighlight(language)) return;
 
-    fire("before:highlightBlock",
-      { block: element, language: language });
+    // support for v10 API
+    fire("before:highlightElement",
+      { el: element, language: language });
 
     node = element;
     const text = node.textContent;
-    const result = language ? highlight(language, text, true) : highlightAuto(text);
+    const result = language ? highlight(text, { language, ignoreIllegals: true }) : highlightAuto(text);
 
-    fire("after:highlightBlock", { block: element, result, text });
+    // support for v10 API
+    fire("after:highlightElement", { el: element, result, text });
 
     element.innerHTML = result.value;
     updateClassName(element, language, result.language);
@@ -5308,18 +8080,48 @@ const HLJS = function(hljs) {
    *
    * @type {Function & {called?: boolean}}
    */
+  // TODO: remove v12, deprecated
   const initHighlighting = () => {
     if (initHighlighting.called) return;
     initHighlighting.called = true;
 
+    deprecated("10.6.0", "initHighlighting() is deprecated.  Use highlightAll() instead.");
+
     const blocks = document.querySelectorAll('pre code');
-    blocks.forEach(highlightBlock);
+    blocks.forEach(highlightElement);
   };
 
   // Higlights all when DOMContentLoaded fires
+  // TODO: remove v12, deprecated
   function initHighlightingOnLoad() {
-    // @ts-ignore
-    window.addEventListener('DOMContentLoaded', initHighlighting, false);
+    deprecated("10.6.0", "initHighlightingOnLoad() is deprecated.  Use highlightAll() instead.");
+    wantsHighlight = true;
+  }
+
+  let wantsHighlight = false;
+
+  /**
+   * auto-highlights all pre>code elements on the page
+   */
+  function highlightAll() {
+    // if we are called too early in the loading process
+    if (document.readyState === "loading") {
+      wantsHighlight = true;
+      return;
+    }
+
+    const blocks = document.querySelectorAll('pre code');
+    blocks.forEach(highlightElement);
+  }
+
+  function boot() {
+    // if a highlight was requested before DOM was loaded, do now
+    if (wantsHighlight) highlightAll();
+  }
+
+  // make sure we are in the browser environment
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('DOMContentLoaded', boot, false);
   }
 
   /**
@@ -5349,6 +8151,20 @@ const HLJS = function(hljs) {
 
     if (lang.aliases) {
       registerAliases(lang.aliases, { languageName });
+    }
+  }
+
+  /**
+   * Remove a language grammar module
+   *
+   * @param {string} languageName
+   */
+  function unregisterLanguage(languageName) {
+    delete languages[languageName];
+    for (const alias of Object.keys(aliases)) {
+      if (aliases[alias] === languageName) {
+        delete aliases[alias];
+      }
     }
   }
 
@@ -5397,7 +8213,7 @@ const HLJS = function(hljs) {
     if (typeof aliasList === 'string') {
       aliasList = [aliasList];
     }
-    aliasList.forEach(alias => { aliases[alias] = languageName; });
+    aliasList.forEach(alias => { aliases[alias.toLowerCase()] = languageName; });
   }
 
   /**
@@ -5410,9 +8226,33 @@ const HLJS = function(hljs) {
   }
 
   /**
+   * Upgrades the old highlightBlock plugins to the new
+   * highlightElement API
+   * @param {HLJSPlugin} plugin
+   */
+  function upgradePluginAPI(plugin) {
+    // TODO: remove with v12
+    if (plugin["before:highlightBlock"] && !plugin["before:highlightElement"]) {
+      plugin["before:highlightElement"] = (data) => {
+        plugin["before:highlightBlock"](
+          Object.assign({ block: data.el }, data)
+        );
+      };
+    }
+    if (plugin["after:highlightBlock"] && !plugin["after:highlightElement"]) {
+      plugin["after:highlightElement"] = (data) => {
+        plugin["after:highlightBlock"](
+          Object.assign({ block: data.el }, data)
+        );
+      };
+    }
+  }
+
+  /**
    * @param {HLJSPlugin} plugin
    */
   function addPlugin(plugin) {
+    upgradePluginAPI(plugin);
     plugins.push(plugin);
   }
 
@@ -5443,16 +8283,31 @@ const HLJS = function(hljs) {
     return fixMarkup(arg);
   }
 
+  /**
+   *
+   * @param {HighlightedHTMLElement} el
+   */
+  function deprecateHighlightBlock(el) {
+    deprecated("10.7.0", "highlightBlock will be removed entirely in v12.0");
+    deprecated("10.7.0", "Please use highlightElement now.");
+
+    return highlightElement(el);
+  }
+
   /* Interface definition */
   Object.assign(hljs, {
     highlight,
     highlightAuto,
+    highlightAll,
     fixMarkup: deprecateFixMarkup,
-    highlightBlock,
+    highlightElement,
+    // TODO: Remove with v12 API
+    highlightBlock: deprecateHighlightBlock,
     configure,
     initHighlighting,
     initHighlightingOnLoad,
     registerLanguage,
+    unregisterLanguage,
     listLanguages,
     getLanguage,
     registerAliases,
@@ -6022,7 +8877,7 @@ var _1c_1 = _1c;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$y(re) {
+function source$1(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -6033,8 +8888,8 @@ function source$y(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$x(...args) {
-  const joined = args.map((x) => source$y(x)).join("");
+function concat$1(...args) {
+  const joined = args.map((x) => source$1(x)).join("");
   return joined;
 }
 
@@ -6095,13 +8950,13 @@ function abnf(hljs) {
 
   const ruleDeclarationMode = {
     className: "attribute",
-    begin: concat$x(regexes.ruleDeclaration, /(?=\s*=)/)
+    begin: concat$1(regexes.ruleDeclaration, /(?=\s*=)/)
   };
 
   return {
     name: 'Augmented Backus-Naur Form',
     illegal: regexes.unexpectedChars,
-    keywords: keywords.join(" "),
+    keywords: keywords,
     contains: [
       ruleDeclarationMode,
       commentMode,
@@ -6126,7 +8981,7 @@ var abnf_1 = abnf;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$x(re) {
+function source$2(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -6137,8 +8992,8 @@ function source$x(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$w(...args) {
-  const joined = args.map((x) => source$x(x)).join("");
+function concat$2(...args) {
+  const joined = args.map((x) => source$2(x)).join("");
   return joined;
 }
 
@@ -6149,8 +9004,8 @@ function concat$w(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$b(...args) {
-  const joined = '(' + args.map((x) => source$x(x)).join("|") + ")";
+function either$1(...args) {
+  const joined = '(' + args.map((x) => source$2(x)).join("|") + ")";
   return joined;
 }
 
@@ -6194,9 +9049,9 @@ function accesslog(_hljs) {
       // Requests
       {
         className: 'string',
-        begin: concat$w(/"/, either$b(...HTTP_VERBS)),
+        begin: concat$2(/"/, either$1(...HTTP_VERBS)),
         end: /"/,
-        keywords: HTTP_VERBS.join(" "),
+        keywords: HTTP_VERBS,
         illegal: /\n/,
         relevance: 5,
         contains: [
@@ -6254,7 +9109,7 @@ var accesslog_1 = accesslog;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$w(re) {
+function source$3(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -6265,8 +9120,8 @@ function source$w(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$v(...args) {
-  const joined = args.map((x) => source$w(x)).join("");
+function concat$3(...args) {
+  const joined = args.map((x) => source$3(x)).join("");
   return joined;
 }
 
@@ -6348,7 +9203,7 @@ function actionscript(hljs) {
               AS3_REST_ARG_MODE
             ]
           },
-          { begin: concat$v(/:\s*/, IDENT_FUNC_RETURN_TYPE_RE) }
+          { begin: concat$3(/:\s*/, IDENT_FUNC_RETURN_TYPE_RE) }
         ]
       },
       hljs.METHOD_GUARD
@@ -6777,7 +9632,7 @@ var apache_1 = apache;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$v(re) {
+function source$4(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -6788,8 +9643,8 @@ function source$v(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$u(...args) {
-  const joined = args.map((x) => source$v(x)).join("");
+function concat$4(...args) {
+  const joined = args.map((x) => source$4(x)).join("");
   return joined;
 }
 
@@ -6800,8 +9655,8 @@ function concat$u(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$a(...args) {
-  const joined = '(' + args.map((x) => source$v(x)).join("|") + ")";
+function either$2(...args) {
+  const joined = '(' + args.map((x) => source$4(x)).join("|") + ")";
   return joined;
 }
 
@@ -6919,9 +9774,9 @@ function applescript(hljs) {
       hljs.C_NUMBER_MODE,
       {
         className: 'built_in',
-        begin: concat$u(
+        begin: concat$4(
           /\b/,
-          either$a(...BUILT_IN_PATTERNS),
+          either$2(...BUILT_IN_PATTERNS),
           /\b/
         )
       },
@@ -6936,9 +9791,9 @@ function applescript(hljs) {
       },
       {
         className: 'keyword',
-        begin: concat$u(
+        begin: concat$4(
           /\b/,
-          either$a(...KEYWORD_PATTERNS),
+          either$2(...KEYWORD_PATTERNS),
           /\b/
         )
       },
@@ -7036,7 +9891,6 @@ function arcade(hljs) {
 
   return {
     name: 'ArcGIS Arcade',
-    aliases: ['arcade'],
     keywords: KEYWORDS,
     contains: [
       hljs.APOS_STRING_MODE,
@@ -7134,7 +9988,7 @@ var arcade_1 = arcade;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$u(re) {
+function source$5(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -7145,27 +9999,35 @@ function source$u(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$7(re) {
-  return concat$t('(', re, ')?');
+function lookahead(re) {
+  return concat$5('(?=', re, ')');
+}
+
+/**
+ * @param {RegExp | string } re
+ * @returns {string}
+ */
+function optional(re) {
+  return concat$5('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$t(...args) {
-  const joined = args.map((x) => source$u(x)).join("");
+function concat$5(...args) {
+  const joined = args.map((x) => source$5(x)).join("");
   return joined;
 }
 
 /*
-Language: C-like foundation grammar for C/C++ grammars
-Author: Ivan Sagalaev <maniac@softwaremaniacs.org>
-Contributors: Evgeny Stepanischev <imbolk@gmail.com>, Zaven Muradyan <megalivoithos@gmail.com>, Roel Deckers <admin@codingcat.nl>, Sam Wu <samsam2310@gmail.com>, Jordi Petit <jordi.petit@gmail.com>, Pieter Vantorre <pietervantorre@gmail.com>, Google Inc. (David Benjamin) <davidben@google.com>
+Language: C++
+Category: common, system
+Website: https://isocpp.org
 */
 
 /** @type LanguageFn */
-function cLike$3(hljs) {
+function cPlusPlus(hljs) {
   // added for historic reasons because `hljs.C_LINE_COMMENT_MODE` does
   // not include such support nor can we be sure all the grammars depending
   // on it would desire this behavior
@@ -7181,8 +10043,8 @@ function cLike$3(hljs) {
   const TEMPLATE_ARGUMENT_RE = '<[^<>]+>';
   const FUNCTION_TYPE_RE = '(' +
     DECLTYPE_AUTO_RE + '|' +
-    optional$7(NAMESPACE_RE) +
-    '[a-zA-Z_]\\w*' + optional$7(TEMPLATE_ARGUMENT_RE) +
+    optional(NAMESPACE_RE) +
+    '[a-zA-Z_]\\w*' + optional(TEMPLATE_ARGUMENT_RE) +
   ')';
   const CPP_PRIMITIVE_TYPES = {
     className: 'keyword',
@@ -7248,9 +10110,7 @@ function cLike$3(hljs) {
       }),
       {
         className: 'meta-string',
-        begin: /<.*?>/,
-        end: /$/,
-        illegal: '\\n'
+        begin: /<.*?>/
       },
       C_LINE_COMMENT_MODE,
       hljs.C_BLOCK_COMMENT_MODE
@@ -7259,11 +10119,127 @@ function cLike$3(hljs) {
 
   const TITLE_MODE = {
     className: 'title',
-    begin: optional$7(NAMESPACE_RE) + hljs.IDENT_RE,
+    begin: optional(NAMESPACE_RE) + hljs.IDENT_RE,
     relevance: 0
   };
 
-  const FUNCTION_TITLE = optional$7(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
+  const FUNCTION_TITLE = optional(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
+
+  const COMMON_CPP_HINTS = [
+    'asin',
+    'atan2',
+    'atan',
+    'calloc',
+    'ceil',
+    'cosh',
+    'cos',
+    'exit',
+    'exp',
+    'fabs',
+    'floor',
+    'fmod',
+    'fprintf',
+    'fputs',
+    'free',
+    'frexp',
+    'auto_ptr',
+    'deque',
+    'list',
+    'queue',
+    'stack',
+    'vector',
+    'map',
+    'set',
+    'pair',
+    'bitset',
+    'multiset',
+    'multimap',
+    'unordered_set',
+    'fscanf',
+    'future',
+    'isalnum',
+    'isalpha',
+    'iscntrl',
+    'isdigit',
+    'isgraph',
+    'islower',
+    'isprint',
+    'ispunct',
+    'isspace',
+    'isupper',
+    'isxdigit',
+    'tolower',
+    'toupper',
+    'labs',
+    'ldexp',
+    'log10',
+    'log',
+    'malloc',
+    'realloc',
+    'memchr',
+    'memcmp',
+    'memcpy',
+    'memset',
+    'modf',
+    'pow',
+    'printf',
+    'putchar',
+    'puts',
+    'scanf',
+    'sinh',
+    'sin',
+    'snprintf',
+    'sprintf',
+    'sqrt',
+    'sscanf',
+    'strcat',
+    'strchr',
+    'strcmp',
+    'strcpy',
+    'strcspn',
+    'strlen',
+    'strncat',
+    'strncmp',
+    'strncpy',
+    'strpbrk',
+    'strrchr',
+    'strspn',
+    'strstr',
+    'tanh',
+    'tan',
+    'unordered_map',
+    'unordered_multiset',
+    'unordered_multimap',
+    'priority_queue',
+    'make_pair',
+    'array',
+    'shared_ptr',
+    'abort',
+    'terminate',
+    'abs',
+    'acos',
+    'vfprintf',
+    'vprintf',
+    'vsprintf',
+    'endl',
+    'initializer_list',
+    'unique_ptr',
+    'complex',
+    'imaginary',
+    'std',
+    'string',
+    'wstring',
+    'cin',
+    'cout',
+    'cerr',
+    'clog',
+    'stdin',
+    'stdout',
+    'stderr',
+    'stringstream',
+    'istringstream',
+    'ostringstream'
+  ];
 
   const CPP_KEYWORDS = {
     keyword: 'int float while private char char8_t char16_t char32_t catch import module export virtual operator sizeof ' +
@@ -7278,19 +10254,27 @@ function cLike$3(hljs) {
       'atomic_uchar atomic_short atomic_ushort atomic_int atomic_uint atomic_long atomic_ulong atomic_llong ' +
       'atomic_ullong new throw return ' +
       'and and_eq bitand bitor compl not not_eq or or_eq xor xor_eq',
-    built_in: 'std string wstring cin cout cerr clog stdin stdout stderr stringstream istringstream ostringstream ' +
-      'auto_ptr deque list queue stack vector map set pair bitset multiset multimap unordered_set ' +
-      'unordered_map unordered_multiset unordered_multimap priority_queue make_pair array shared_ptr abort terminate abs acos ' +
-      'asin atan2 atan calloc ceil cosh cos exit exp fabs floor fmod fprintf fputs free frexp ' +
-      'fscanf future isalnum isalpha iscntrl isdigit isgraph islower isprint ispunct isspace isupper ' +
-      'isxdigit tolower toupper labs ldexp log10 log malloc realloc memchr memcmp memcpy memset modf pow ' +
-      'printf putchar puts scanf sinh sin snprintf sprintf sqrt sscanf strcat strchr strcmp ' +
-      'strcpy strcspn strlen strncat strncmp strncpy strpbrk strrchr strspn strstr tanh tan ' +
-      'vfprintf vprintf vsprintf endl initializer_list unique_ptr _Bool complex _Complex imaginary _Imaginary',
+    built_in: '_Bool _Complex _Imaginary',
+    _relevance_hints: COMMON_CPP_HINTS,
     literal: 'true false nullptr NULL'
   };
 
+  const FUNCTION_DISPATCH = {
+    className: "function.dispatch",
+    relevance: 0,
+    keywords: CPP_KEYWORDS,
+    begin: concat$5(
+      /\b/,
+      /(?!decltype)/,
+      /(?!if)/,
+      /(?!for)/,
+      /(?!while)/,
+      hljs.IDENT_RE,
+      lookahead(/\s*\(/))
+  };
+
   const EXPRESSION_CONTAINS = [
+    FUNCTION_DISPATCH,
     PREPROCESSOR,
     CPP_PRIMITIVE_TYPES,
     C_LINE_COMMENT_MODE,
@@ -7298,6 +10282,7 @@ function cLike$3(hljs) {
     NUMBERS,
     STRINGS
   ];
+
 
   const EXPRESSION_CONTEXT = {
     // This mode covers expression context where we can't expect a function
@@ -7350,6 +10335,21 @@ function cLike$3(hljs) {
         contains: [ TITLE_MODE ],
         relevance: 0
       },
+      // needed because we do not have look-behind on the below rule
+      // to prevent it from grabbing the final : in a :: pair
+      {
+        begin: /::/,
+        relevance: 0
+      },
+      // initializers
+      {
+        begin: /:/,
+        endsWithParent: true,
+        contains: [
+          STRINGS,
+          NUMBERS
+        ]
+      },
       {
         className: 'params',
         begin: /\(/,
@@ -7387,10 +10387,9 @@ function cLike$3(hljs) {
   };
 
   return {
+    name: 'C++',
     aliases: [
-      'c',
       'cc',
-      'h',
       'c++',
       'h++',
       'hpp',
@@ -7399,13 +10398,14 @@ function cLike$3(hljs) {
       'cxx'
     ],
     keywords: CPP_KEYWORDS,
-    // the base c-like language will NEVER be auto-detected, rather the
-    // derivitives: c, c++, arduino turn auto-detect back on for themselves
-    disableAutodetect: true,
     illegal: '</',
+    classNameAliases: {
+      "function.dispatch": "built_in"
+    },
     contains: [].concat(
       EXPRESSION_CONTEXT,
       FUNCTION_DECLARATION,
+      FUNCTION_DISPATCH,
       EXPRESSION_CONTAINS,
       [
         PREPROCESSOR,
@@ -7443,22 +10443,6 @@ function cLike$3(hljs) {
 }
 
 /*
-Language: C++
-Category: common, system
-Website: https://isocpp.org
-*/
-
-/** @type LanguageFn */
-function cPlusPlus(hljs) {
-  const lang = cLike$3(hljs);
-  // return auto-detection back on
-  lang.disableAutodetect = false;
-  lang.name = 'C++';
-  lang.aliases = ['cc', 'c++', 'h++', 'hpp', 'hh', 'hxx', 'cxx'];
-  return lang;
-}
-
-/*
 Language: Arduino
 Author: Stefania Mellai <s.mellai@arduino.cc>
 Description: The Arduino® Language is a superset of C++. This rules are designed to highlight the Arduino® source code. For info about language see http://www.arduino.cc.
@@ -7471,7 +10455,6 @@ function arduino(hljs) {
     keyword:
       'boolean byte word String',
     built_in:
-      'setup loop ' +
       'KeyboardController MouseController SoftwareSerial ' +
       'EthernetServer EthernetClient LiquidCrystal ' +
       'RobotControl GSMVoiceCall EthernetUDP EsploraTFT ' +
@@ -7482,7 +10465,9 @@ function arduino(hljs) {
       'WiFiUDP GSM_SMS Mailbox USBHost Firmata PImage ' +
       'Client Server GSMPIN FileIO Bridge Serial ' +
       'EEPROM Stream Mouse Audio Servo File Task ' +
-      'GPRS WiFi Wire TFT GSM SPI SD ' +
+      'GPRS WiFi Wire TFT GSM SPI SD ',
+    _:
+      'setup loop ' +
       'runShellCommandAsynchronously analogWriteResolution ' +
       'retrieveCallingNumber printFirmwareVersion ' +
       'analogReadResolution sendDigitalPortPair ' +
@@ -7560,6 +10545,7 @@ function arduino(hljs) {
   kws.keyword += ' ' + ARDUINO_KW.keyword;
   kws.literal += ' ' + ARDUINO_KW.literal;
   kws.built_in += ' ' + ARDUINO_KW.built_in;
+  kws._ += ' ' + ARDUINO_KW._;
 
   ARDUINO.name = 'Arduino';
   ARDUINO.aliases = ['ino'];
@@ -7711,7 +10697,7 @@ var armasm_1 = armasm;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$t(re) {
+function source$6(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -7722,24 +10708,24 @@ function source$t(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$7(re) {
-  return concat$s('(?=', re, ')');
+function lookahead$1(re) {
+  return concat$6('(?=', re, ')');
 }
 
 /**
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$6(re) {
-  return concat$s('(', re, ')?');
+function optional$1(re) {
+  return concat$6('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$s(...args) {
-  const joined = args.map((x) => source$t(x)).join("");
+function concat$6(...args) {
+  const joined = args.map((x) => source$6(x)).join("");
   return joined;
 }
 
@@ -7750,8 +10736,8 @@ function concat$s(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$9(...args) {
-  const joined = '(' + args.map((x) => source$t(x)).join("|") + ")";
+function either$3(...args) {
+  const joined = '(' + args.map((x) => source$6(x)).join("|") + ")";
   return joined;
 }
 
@@ -7765,7 +10751,7 @@ Audit: 2020
 /** @type LanguageFn */
 function xml(hljs) {
   // Element names can contain letters, digits, hyphens, underscores, and periods
-  const TAG_NAME_RE = concat$s(/[A-Z_]/, optional$6(/[A-Z0-9_.-]+:/), /[A-Z0-9_.-]*/);
+  const TAG_NAME_RE = concat$6(/[A-Z_]/, optional$1(/[A-Z0-9_.-]*:/), /[A-Z0-9_.-]*/);
   const XML_IDENT_RE = /[A-Za-z0-9._:-]+/;
   const XML_ENTITIES = {
     className: 'symbol',
@@ -7942,14 +10928,14 @@ function xml(hljs) {
       // open tag
       {
         className: 'tag',
-        begin: concat$s(
+        begin: concat$6(
           /</,
-          lookahead$7(concat$s(
+          lookahead$1(concat$6(
             TAG_NAME_RE,
             // <tag/>
             // <tag>
             // <tag ...
-            either$9(/\/>/, />/, /\s/)
+            either$3(/\/>/, />/, /\s/)
           ))
         ),
         end: /\/?>/,
@@ -7965,9 +10951,9 @@ function xml(hljs) {
       // close tag
       {
         className: 'tag',
-        begin: concat$s(
+        begin: concat$6(
           /<\//,
-          lookahead$7(concat$s(
+          lookahead$1(concat$6(
             TAG_NAME_RE, />/
           ))
         ),
@@ -7979,7 +10965,8 @@ function xml(hljs) {
           },
           {
             begin: />/,
-            relevance: 0
+            relevance: 0,
+            endsParent: true
           }
         ]
       }
@@ -7998,7 +10985,7 @@ var xml_1 = xml;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$s(re) {
+function source$7(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -8009,8 +10996,8 @@ function source$s(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$r(...args) {
-  const joined = args.map((x) => source$s(x)).join("");
+function concat$7(...args) {
+  const joined = args.map((x) => source$7(x)).join("");
   return joined;
 }
 
@@ -8061,7 +11048,7 @@ function asciidoc(hljs) {
     // inline unconstrained strong (multi-line)
     {
       className: 'strong',
-      begin: concat$r(
+      begin: concat$7(
         /\*\*/,
         /((\*(?!\*)|\\[^\n]|[^*\n\\])+\n)+/,
         /(\*(?!\*)|\\[^\n]|[^*\n\\])*/,
@@ -8091,7 +11078,7 @@ function asciidoc(hljs) {
     // inline unconstrained emphasis (multi-line)
     {
       className: 'emphasis',
-      begin: concat$r(
+      begin: concat$7(
         /__/,
         /((_(?!_)|\\[^\n]|[^_\n\\])+\n)+/,
         /(_(?!_)|\\[^\n]|[^_\n\\])*/,
@@ -8302,7 +11289,7 @@ var asciidoc_1 = asciidoc;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$r(re) {
+function source$8(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -8313,8 +11300,8 @@ function source$r(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$q(...args) {
-  const joined = args.map((x) => source$r(x)).join("");
+function concat$8(...args) {
+  const joined = args.map((x) => source$8(x)).join("");
   return joined;
 }
 
@@ -8408,7 +11395,7 @@ function aspectj(hljs) {
         illegal: /["\[\]]/,
         contains: [
           {
-            begin: concat$q(hljs.UNDERSCORE_IDENT_RE, /\s*\(/),
+            begin: concat$8(hljs.UNDERSCORE_IDENT_RE, /\s*\(/),
             returnBegin: true,
             contains: [ hljs.UNDERSCORE_TITLE_MODE ]
           }
@@ -8424,7 +11411,7 @@ function aspectj(hljs) {
         illegal: /["\[\]]/,
         contains: [
           {
-            begin: concat$q(hljs.UNDERSCORE_IDENT_RE, /\s*\(/),
+            begin: concat$8(hljs.UNDERSCORE_IDENT_RE, /\s*\(/),
             keywords: KEYWORDS + ' ' + SHORTKEYS,
             relevance: 0
           },
@@ -8446,7 +11433,7 @@ function aspectj(hljs) {
         excludeEnd: true,
         contains: [
           {
-            begin: concat$q(hljs.UNDERSCORE_IDENT_RE, /\s*\(/),
+            begin: concat$8(hljs.UNDERSCORE_IDENT_RE, /\s*\(/),
             returnBegin: true,
             relevance: 0,
             contains: [ hljs.UNDERSCORE_TITLE_MODE ]
@@ -8575,15 +11562,32 @@ Category: scripting
 /** @type LanguageFn */
 function autoit(hljs) {
   const KEYWORDS = 'ByRef Case Const ContinueCase ContinueLoop ' +
-        'Default Dim Do Else ElseIf EndFunc EndIf EndSelect ' +
+        'Dim Do Else ElseIf EndFunc EndIf EndSelect ' +
         'EndSwitch EndWith Enum Exit ExitLoop For Func ' +
         'Global If In Local Next ReDim Return Select Static ' +
         'Step Switch Then To Until Volatile WEnd While With';
 
-  const LITERAL = 'True False And Null Not Or';
+  const DIRECTIVES = [
+    "EndRegion",
+    "forcedef",
+    "forceref",
+    "ignorefunc",
+    "include",
+    "include-once",
+    "NoTrayIcon",
+    "OnAutoItStartRegister",
+    "pragma",
+    "Region",
+    "RequireAdmin",
+    "Tidy_Off",
+    "Tidy_On",
+    "Tidy_Parameters"
+  ];
+  
+  const LITERAL = 'True False And Null Not Or Default';
 
   const BUILT_IN
-          = 'Abs ACos AdlibRegister AdlibUnRegister Asc AscW ASin Assign ATan AutoItSetOption AutoItWinGetTitle AutoItWinSetTitle Beep Binary BinaryLen BinaryMid BinaryToString BitAND BitNOT BitOR BitRotate BitShift BitXOR BlockInput Break Call CDTray Ceiling Chr ChrW ClipGet ClipPut ConsoleRead ConsoleWrite ConsoleWriteError ControlClick ControlCommand ControlDisable ControlEnable ControlFocus ControlGetFocus ControlGetHandle ControlGetPos ControlGetText ControlHide ControlListView ControlMove ControlSend ControlSetText ControlShow ControlTreeView Cos Dec DirCopy DirCreate DirGetSize DirMove DirRemove DllCall DllCallAddress DllCallbackFree DllCallbackGetPtr DllCallbackRegister DllClose DllOpen DllStructCreate DllStructGetData DllStructGetPtr DllStructGetSize DllStructSetData DriveGetDrive DriveGetFileSystem DriveGetLabel DriveGetSerial DriveGetType DriveMapAdd DriveMapDel DriveMapGet DriveSetLabel DriveSpaceFree DriveSpaceTotal DriveStatus EnvGet EnvSet EnvUpdate Eval Execute Exp FileChangeDir FileClose FileCopy FileCreateNTFSLink FileCreateShortcut FileDelete FileExists FileFindFirstFile FileFindNextFile FileFlush FileGetAttrib FileGetEncoding FileGetLongName FileGetPos FileGetShortcut FileGetShortName FileGetSize FileGetTime FileGetVersion FileInstall FileMove FileOpen FileOpenDialog FileRead FileReadLine FileReadToArray FileRecycle FileRecycleEmpty FileSaveDialog FileSelectFolder FileSetAttrib FileSetEnd FileSetPos FileSetTime FileWrite FileWriteLine Floor FtpSetProxy FuncName GUICreate GUICtrlCreateAvi GUICtrlCreateButton GUICtrlCreateCheckbox GUICtrlCreateCombo GUICtrlCreateContextMenu GUICtrlCreateDate GUICtrlCreateDummy GUICtrlCreateEdit GUICtrlCreateGraphic GUICtrlCreateGroup GUICtrlCreateIcon GUICtrlCreateInput GUICtrlCreateLabel GUICtrlCreateList GUICtrlCreateListView GUICtrlCreateListViewItem GUICtrlCreateMenu GUICtrlCreateMenuItem GUICtrlCreateMonthCal GUICtrlCreateObj GUICtrlCreatePic GUICtrlCreateProgress GUICtrlCreateRadio GUICtrlCreateSlider GUICtrlCreateTab GUICtrlCreateTabItem GUICtrlCreateTreeView GUICtrlCreateTreeViewItem GUICtrlCreateUpdown GUICtrlDelete GUICtrlGetHandle GUICtrlGetState GUICtrlRead GUICtrlRecvMsg GUICtrlRegisterListViewSort GUICtrlSendMsg GUICtrlSendToDummy GUICtrlSetBkColor GUICtrlSetColor GUICtrlSetCursor GUICtrlSetData GUICtrlSetDefBkColor GUICtrlSetDefColor GUICtrlSetFont GUICtrlSetGraphic GUICtrlSetImage GUICtrlSetLimit GUICtrlSetOnEvent GUICtrlSetPos GUICtrlSetResizing GUICtrlSetState GUICtrlSetStyle GUICtrlSetTip GUIDelete GUIGetCursorInfo GUIGetMsg GUIGetStyle GUIRegisterMsg GUISetAccelerators GUISetBkColor GUISetCoord GUISetCursor GUISetFont GUISetHelp GUISetIcon GUISetOnEvent GUISetState GUISetStyle GUIStartGroup GUISwitch Hex HotKeySet HttpSetProxy HttpSetUserAgent HWnd InetClose InetGet InetGetInfo InetGetSize InetRead IniDelete IniRead IniReadSection IniReadSectionNames IniRenameSection IniWrite IniWriteSection InputBox Int IsAdmin IsArray IsBinary IsBool IsDeclared IsDllStruct IsFloat IsFunc IsHWnd IsInt IsKeyword IsNumber IsObj IsPtr IsString Log MemGetStats Mod MouseClick MouseClickDrag MouseDown MouseGetCursor MouseGetPos MouseMove MouseUp MouseWheel MsgBox Number ObjCreate ObjCreateInterface ObjEvent ObjGet ObjName OnAutoItExitRegister OnAutoItExitUnRegister Ping PixelChecksum PixelGetColor PixelSearch ProcessClose ProcessExists ProcessGetStats ProcessList ProcessSetPriority ProcessWait ProcessWaitClose ProgressOff ProgressOn ProgressSet Ptr Random RegDelete RegEnumKey RegEnumVal RegRead RegWrite Round Run RunAs RunAsWait RunWait Send SendKeepActive SetError SetExtended ShellExecute ShellExecuteWait Shutdown Sin Sleep SoundPlay SoundSetWaveVolume SplashImageOn SplashOff SplashTextOn Sqrt SRandom StatusbarGetText StderrRead StdinWrite StdioClose StdoutRead String StringAddCR StringCompare StringFormat StringFromASCIIArray StringInStr StringIsAlNum StringIsAlpha StringIsASCII StringIsDigit StringIsFloat StringIsInt StringIsLower StringIsSpace StringIsUpper StringIsXDigit StringLeft StringLen StringLower StringMid StringRegExp StringRegExpReplace StringReplace StringReverse StringRight StringSplit StringStripCR StringStripWS StringToASCIIArray StringToBinary StringTrimLeft StringTrimRight StringUpper Tan TCPAccept TCPCloseSocket TCPConnect TCPListen TCPNameToIP TCPRecv TCPSend TCPShutdown, UDPShutdown TCPStartup, UDPStartup TimerDiff TimerInit ToolTip TrayCreateItem TrayCreateMenu TrayGetMsg TrayItemDelete TrayItemGetHandle TrayItemGetState TrayItemGetText TrayItemSetOnEvent TrayItemSetState TrayItemSetText TraySetClick TraySetIcon TraySetOnEvent TraySetPauseIcon TraySetState TraySetToolTip TrayTip UBound UDPBind UDPCloseSocket UDPOpen UDPRecv UDPSend VarGetType WinActivate WinActive WinClose WinExists WinFlash WinGetCaretPos WinGetClassList WinGetClientSize WinGetHandle WinGetPos WinGetProcess WinGetState WinGetText WinGetTitle WinKill WinList WinMenuSelectItem WinMinimizeAll WinMinimizeAllUndo WinMove WinSetOnTop WinSetState WinSetTitle WinSetTrans WinWait';
+          = 'Abs ACos AdlibRegister AdlibUnRegister Asc AscW ASin Assign ATan AutoItSetOption AutoItWinGetTitle AutoItWinSetTitle Beep Binary BinaryLen BinaryMid BinaryToString BitAND BitNOT BitOR BitRotate BitShift BitXOR BlockInput Break Call CDTray Ceiling Chr ChrW ClipGet ClipPut ConsoleRead ConsoleWrite ConsoleWriteError ControlClick ControlCommand ControlDisable ControlEnable ControlFocus ControlGetFocus ControlGetHandle ControlGetPos ControlGetText ControlHide ControlListView ControlMove ControlSend ControlSetText ControlShow ControlTreeView Cos Dec DirCopy DirCreate DirGetSize DirMove DirRemove DllCall DllCallAddress DllCallbackFree DllCallbackGetPtr DllCallbackRegister DllClose DllOpen DllStructCreate DllStructGetData DllStructGetPtr DllStructGetSize DllStructSetData DriveGetDrive DriveGetFileSystem DriveGetLabel DriveGetSerial DriveGetType DriveMapAdd DriveMapDel DriveMapGet DriveSetLabel DriveSpaceFree DriveSpaceTotal DriveStatus EnvGet EnvSet EnvUpdate Eval Execute Exp FileChangeDir FileClose FileCopy FileCreateNTFSLink FileCreateShortcut FileDelete FileExists FileFindFirstFile FileFindNextFile FileFlush FileGetAttrib FileGetEncoding FileGetLongName FileGetPos FileGetShortcut FileGetShortName FileGetSize FileGetTime FileGetVersion FileInstall FileMove FileOpen FileOpenDialog FileRead FileReadLine FileReadToArray FileRecycle FileRecycleEmpty FileSaveDialog FileSelectFolder FileSetAttrib FileSetEnd FileSetPos FileSetTime FileWrite FileWriteLine Floor FtpSetProxy FuncName GUICreate GUICtrlCreateAvi GUICtrlCreateButton GUICtrlCreateCheckbox GUICtrlCreateCombo GUICtrlCreateContextMenu GUICtrlCreateDate GUICtrlCreateDummy GUICtrlCreateEdit GUICtrlCreateGraphic GUICtrlCreateGroup GUICtrlCreateIcon GUICtrlCreateInput GUICtrlCreateLabel GUICtrlCreateList GUICtrlCreateListView GUICtrlCreateListViewItem GUICtrlCreateMenu GUICtrlCreateMenuItem GUICtrlCreateMonthCal GUICtrlCreateObj GUICtrlCreatePic GUICtrlCreateProgress GUICtrlCreateRadio GUICtrlCreateSlider GUICtrlCreateTab GUICtrlCreateTabItem GUICtrlCreateTreeView GUICtrlCreateTreeViewItem GUICtrlCreateUpdown GUICtrlDelete GUICtrlGetHandle GUICtrlGetState GUICtrlRead GUICtrlRecvMsg GUICtrlRegisterListViewSort GUICtrlSendMsg GUICtrlSendToDummy GUICtrlSetBkColor GUICtrlSetColor GUICtrlSetCursor GUICtrlSetData GUICtrlSetDefBkColor GUICtrlSetDefColor GUICtrlSetFont GUICtrlSetGraphic GUICtrlSetImage GUICtrlSetLimit GUICtrlSetOnEvent GUICtrlSetPos GUICtrlSetResizing GUICtrlSetState GUICtrlSetStyle GUICtrlSetTip GUIDelete GUIGetCursorInfo GUIGetMsg GUIGetStyle GUIRegisterMsg GUISetAccelerators GUISetBkColor GUISetCoord GUISetCursor GUISetFont GUISetHelp GUISetIcon GUISetOnEvent GUISetState GUISetStyle GUIStartGroup GUISwitch Hex HotKeySet HttpSetProxy HttpSetUserAgent HWnd InetClose InetGet InetGetInfo InetGetSize InetRead IniDelete IniRead IniReadSection IniReadSectionNames IniRenameSection IniWrite IniWriteSection InputBox Int IsAdmin IsArray IsBinary IsBool IsDeclared IsDllStruct IsFloat IsFunc IsHWnd IsInt IsKeyword IsNumber IsObj IsPtr IsString Log MemGetStats Mod MouseClick MouseClickDrag MouseDown MouseGetCursor MouseGetPos MouseMove MouseUp MouseWheel MsgBox Number ObjCreate ObjCreateInterface ObjEvent ObjGet ObjName OnAutoItExitRegister OnAutoItExitUnRegister Ping PixelChecksum PixelGetColor PixelSearch ProcessClose ProcessExists ProcessGetStats ProcessList ProcessSetPriority ProcessWait ProcessWaitClose ProgressOff ProgressOn ProgressSet Ptr Random RegDelete RegEnumKey RegEnumVal RegRead RegWrite Round Run RunAs RunAsWait RunWait Send SendKeepActive SetError SetExtended ShellExecute ShellExecuteWait Shutdown Sin Sleep SoundPlay SoundSetWaveVolume SplashImageOn SplashOff SplashTextOn Sqrt SRandom StatusbarGetText StderrRead StdinWrite StdioClose StdoutRead String StringAddCR StringCompare StringFormat StringFromASCIIArray StringInStr StringIsAlNum StringIsAlpha StringIsASCII StringIsDigit StringIsFloat StringIsInt StringIsLower StringIsSpace StringIsUpper StringIsXDigit StringLeft StringLen StringLower StringMid StringRegExp StringRegExpReplace StringReplace StringReverse StringRight StringSplit StringStripCR StringStripWS StringToASCIIArray StringToBinary StringTrimLeft StringTrimRight StringUpper Tan TCPAccept TCPCloseSocket TCPConnect TCPListen TCPNameToIP TCPRecv TCPSend TCPShutdown, UDPShutdown TCPStartup, UDPStartup TimerDiff TimerInit ToolTip TrayCreateItem TrayCreateMenu TrayGetMsg TrayItemDelete TrayItemGetHandle TrayItemGetState TrayItemGetText TrayItemSetOnEvent TrayItemSetState TrayItemSetText TraySetClick TraySetIcon TraySetOnEvent TraySetPauseIcon TraySetState TraySetToolTip TrayTip UBound UDPBind UDPCloseSocket UDPOpen UDPRecv UDPSend VarGetType WinActivate WinActive WinClose WinExists WinFlash WinGetCaretPos WinGetClassList WinGetClientSize WinGetHandle WinGetPos WinGetProcess WinGetState WinGetText WinGetTitle WinKill WinList WinMenuSelectItem WinMinimizeAll WinMinimizeAllUndo WinMove WinSetOnTop WinSetState WinSetTitle WinSetTrans WinWait WinWaitActive WinWaitClose WinWaitNotActive';
 
   const COMMENT = {
     variants: [
@@ -8633,7 +11637,7 @@ function autoit(hljs) {
     begin: '#',
     end: '$',
     keywords: {
-      'meta-keyword': 'comments include include-once NoTrayIcon OnAutoItStartRegister pragma compile RequireAdmin'
+      'meta-keyword': DIRECTIVES
     },
     contains: [
       {
@@ -9028,9 +12032,9 @@ function axapta(hljs) {
   ];
 
   const KEYWORDS = {
-    keyword: NORMAL_KEYWORDS.join(' '),
-    built_in: BUILT_IN_KEYWORDS.join(' '),
-    literal: LITERAL_KEYWORDS.join(' ')
+    keyword: NORMAL_KEYWORDS,
+    built_in: BUILT_IN_KEYWORDS,
+    literal: LITERAL_KEYWORDS
   };
 
   return {
@@ -9076,7 +12080,7 @@ var axapta_1 = axapta;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$q(re) {
+function source$9(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -9087,8 +12091,8 @@ function source$q(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$p(...args) {
-  const joined = args.map((x) => source$q(x)).join("");
+function concat$9(...args) {
+  const joined = args.map((x) => source$9(x)).join("");
   return joined;
 }
 
@@ -9117,7 +12121,7 @@ function bash(hljs) {
   Object.assign(VAR,{
     className: 'variable',
     variants: [
-      {begin: concat$p(/\$[\w\d#@][\w\d_]*/,
+      {begin: concat$9(/\$[\w\d#@][\w\d_]*/,
         // negative look-ahead tries to avoid matching patterns that are not
         // Perl at all like $ident$, @ident@, etc.
         `(?![\\w\\d])(?![$])`) },
@@ -9398,7 +12402,7 @@ var brainfuck_1 = brainfuck;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$p(re) {
+function source$a(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -9409,27 +12413,35 @@ function source$p(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$5(re) {
-  return concat$o('(', re, ')?');
+function lookahead$2(re) {
+  return concat$a('(?=', re, ')');
+}
+
+/**
+ * @param {RegExp | string } re
+ * @returns {string}
+ */
+function optional$2(re) {
+  return concat$a('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$o(...args) {
-  const joined = args.map((x) => source$p(x)).join("");
+function concat$a(...args) {
+  const joined = args.map((x) => source$a(x)).join("");
   return joined;
 }
 
 /*
-Language: C-like foundation grammar for C/C++ grammars
-Author: Ivan Sagalaev <maniac@softwaremaniacs.org>
-Contributors: Evgeny Stepanischev <imbolk@gmail.com>, Zaven Muradyan <megalivoithos@gmail.com>, Roel Deckers <admin@codingcat.nl>, Sam Wu <samsam2310@gmail.com>, Jordi Petit <jordi.petit@gmail.com>, Pieter Vantorre <pietervantorre@gmail.com>, Google Inc. (David Benjamin) <davidben@google.com>
+Language: C++
+Category: common, system
+Website: https://isocpp.org
 */
 
 /** @type LanguageFn */
-function cLike$2(hljs) {
+function cPlusPlus$1(hljs) {
   // added for historic reasons because `hljs.C_LINE_COMMENT_MODE` does
   // not include such support nor can we be sure all the grammars depending
   // on it would desire this behavior
@@ -9445,8 +12457,8 @@ function cLike$2(hljs) {
   const TEMPLATE_ARGUMENT_RE = '<[^<>]+>';
   const FUNCTION_TYPE_RE = '(' +
     DECLTYPE_AUTO_RE + '|' +
-    optional$5(NAMESPACE_RE) +
-    '[a-zA-Z_]\\w*' + optional$5(TEMPLATE_ARGUMENT_RE) +
+    optional$2(NAMESPACE_RE) +
+    '[a-zA-Z_]\\w*' + optional$2(TEMPLATE_ARGUMENT_RE) +
   ')';
   const CPP_PRIMITIVE_TYPES = {
     className: 'keyword',
@@ -9512,9 +12524,7 @@ function cLike$2(hljs) {
       }),
       {
         className: 'meta-string',
-        begin: /<.*?>/,
-        end: /$/,
-        illegal: '\\n'
+        begin: /<.*?>/
       },
       C_LINE_COMMENT_MODE,
       hljs.C_BLOCK_COMMENT_MODE
@@ -9523,11 +12533,127 @@ function cLike$2(hljs) {
 
   const TITLE_MODE = {
     className: 'title',
-    begin: optional$5(NAMESPACE_RE) + hljs.IDENT_RE,
+    begin: optional$2(NAMESPACE_RE) + hljs.IDENT_RE,
     relevance: 0
   };
 
-  const FUNCTION_TITLE = optional$5(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
+  const FUNCTION_TITLE = optional$2(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
+
+  const COMMON_CPP_HINTS = [
+    'asin',
+    'atan2',
+    'atan',
+    'calloc',
+    'ceil',
+    'cosh',
+    'cos',
+    'exit',
+    'exp',
+    'fabs',
+    'floor',
+    'fmod',
+    'fprintf',
+    'fputs',
+    'free',
+    'frexp',
+    'auto_ptr',
+    'deque',
+    'list',
+    'queue',
+    'stack',
+    'vector',
+    'map',
+    'set',
+    'pair',
+    'bitset',
+    'multiset',
+    'multimap',
+    'unordered_set',
+    'fscanf',
+    'future',
+    'isalnum',
+    'isalpha',
+    'iscntrl',
+    'isdigit',
+    'isgraph',
+    'islower',
+    'isprint',
+    'ispunct',
+    'isspace',
+    'isupper',
+    'isxdigit',
+    'tolower',
+    'toupper',
+    'labs',
+    'ldexp',
+    'log10',
+    'log',
+    'malloc',
+    'realloc',
+    'memchr',
+    'memcmp',
+    'memcpy',
+    'memset',
+    'modf',
+    'pow',
+    'printf',
+    'putchar',
+    'puts',
+    'scanf',
+    'sinh',
+    'sin',
+    'snprintf',
+    'sprintf',
+    'sqrt',
+    'sscanf',
+    'strcat',
+    'strchr',
+    'strcmp',
+    'strcpy',
+    'strcspn',
+    'strlen',
+    'strncat',
+    'strncmp',
+    'strncpy',
+    'strpbrk',
+    'strrchr',
+    'strspn',
+    'strstr',
+    'tanh',
+    'tan',
+    'unordered_map',
+    'unordered_multiset',
+    'unordered_multimap',
+    'priority_queue',
+    'make_pair',
+    'array',
+    'shared_ptr',
+    'abort',
+    'terminate',
+    'abs',
+    'acos',
+    'vfprintf',
+    'vprintf',
+    'vsprintf',
+    'endl',
+    'initializer_list',
+    'unique_ptr',
+    'complex',
+    'imaginary',
+    'std',
+    'string',
+    'wstring',
+    'cin',
+    'cout',
+    'cerr',
+    'clog',
+    'stdin',
+    'stdout',
+    'stderr',
+    'stringstream',
+    'istringstream',
+    'ostringstream'
+  ];
 
   const CPP_KEYWORDS = {
     keyword: 'int float while private char char8_t char16_t char32_t catch import module export virtual operator sizeof ' +
@@ -9542,19 +12668,27 @@ function cLike$2(hljs) {
       'atomic_uchar atomic_short atomic_ushort atomic_int atomic_uint atomic_long atomic_ulong atomic_llong ' +
       'atomic_ullong new throw return ' +
       'and and_eq bitand bitor compl not not_eq or or_eq xor xor_eq',
-    built_in: 'std string wstring cin cout cerr clog stdin stdout stderr stringstream istringstream ostringstream ' +
-      'auto_ptr deque list queue stack vector map set pair bitset multiset multimap unordered_set ' +
-      'unordered_map unordered_multiset unordered_multimap priority_queue make_pair array shared_ptr abort terminate abs acos ' +
-      'asin atan2 atan calloc ceil cosh cos exit exp fabs floor fmod fprintf fputs free frexp ' +
-      'fscanf future isalnum isalpha iscntrl isdigit isgraph islower isprint ispunct isspace isupper ' +
-      'isxdigit tolower toupper labs ldexp log10 log malloc realloc memchr memcmp memcpy memset modf pow ' +
-      'printf putchar puts scanf sinh sin snprintf sprintf sqrt sscanf strcat strchr strcmp ' +
-      'strcpy strcspn strlen strncat strncmp strncpy strpbrk strrchr strspn strstr tanh tan ' +
-      'vfprintf vprintf vsprintf endl initializer_list unique_ptr _Bool complex _Complex imaginary _Imaginary',
+    built_in: '_Bool _Complex _Imaginary',
+    _relevance_hints: COMMON_CPP_HINTS,
     literal: 'true false nullptr NULL'
   };
 
+  const FUNCTION_DISPATCH = {
+    className: "function.dispatch",
+    relevance: 0,
+    keywords: CPP_KEYWORDS,
+    begin: concat$a(
+      /\b/,
+      /(?!decltype)/,
+      /(?!if)/,
+      /(?!for)/,
+      /(?!while)/,
+      hljs.IDENT_RE,
+      lookahead$2(/\s*\(/))
+  };
+
   const EXPRESSION_CONTAINS = [
+    FUNCTION_DISPATCH,
     PREPROCESSOR,
     CPP_PRIMITIVE_TYPES,
     C_LINE_COMMENT_MODE,
@@ -9562,6 +12696,7 @@ function cLike$2(hljs) {
     NUMBERS,
     STRINGS
   ];
+
 
   const EXPRESSION_CONTEXT = {
     // This mode covers expression context where we can't expect a function
@@ -9614,6 +12749,21 @@ function cLike$2(hljs) {
         contains: [ TITLE_MODE ],
         relevance: 0
       },
+      // needed because we do not have look-behind on the below rule
+      // to prevent it from grabbing the final : in a :: pair
+      {
+        begin: /::/,
+        relevance: 0
+      },
+      // initializers
+      {
+        begin: /:/,
+        endsWithParent: true,
+        contains: [
+          STRINGS,
+          NUMBERS
+        ]
+      },
       {
         className: 'params',
         begin: /\(/,
@@ -9651,10 +12801,9 @@ function cLike$2(hljs) {
   };
 
   return {
+    name: 'C++',
     aliases: [
-      'c',
       'cc',
-      'h',
       'c++',
       'h++',
       'hpp',
@@ -9663,13 +12812,14 @@ function cLike$2(hljs) {
       'cxx'
     ],
     keywords: CPP_KEYWORDS,
-    // the base c-like language will NEVER be auto-detected, rather the
-    // derivitives: c, c++, arduino turn auto-detect back on for themselves
-    disableAutodetect: true,
     illegal: '</',
+    classNameAliases: {
+      "function.dispatch": "built_in"
+    },
     contains: [].concat(
       EXPRESSION_CONTEXT,
       FUNCTION_DECLARATION,
+      FUNCTION_DISPATCH,
       EXPRESSION_CONTAINS,
       [
         PREPROCESSOR,
@@ -9706,7 +12856,44 @@ function cLike$2(hljs) {
   };
 }
 
-var cLike_1 = cLike$2;
+/*
+Language: C-like (deprecated, use C and C++ instead)
+Author: Ivan Sagalaev <maniac@softwaremaniacs.org>
+Contributors: Evgeny Stepanischev <imbolk@gmail.com>, Zaven Muradyan <megalivoithos@gmail.com>, Roel Deckers <admin@codingcat.nl>, Sam Wu <samsam2310@gmail.com>, Jordi Petit <jordi.petit@gmail.com>, Pieter Vantorre <pietervantorre@gmail.com>, Google Inc. (David Benjamin) <davidben@google.com>
+*/
+
+/** @type LanguageFn */
+function cLike(hljs) {
+  const lang = cPlusPlus$1(hljs);
+
+  const C_ALIASES = [
+    "c",
+    "h"
+  ];
+
+  const CPP_ALIASES = [
+    'cc',
+    'c++',
+    'h++',
+    'hpp',
+    'hh',
+    'hxx',
+    'cxx'
+  ];
+
+  lang.disableAutodetect = true;
+  lang.aliases = [];
+  // support users only loading c-like (legacy)
+  if (!hljs.getLanguage("c")) lang.aliases.push(...C_ALIASES);
+  if (!hljs.getLanguage("cpp")) lang.aliases.push(...CPP_ALIASES);
+
+  // if c and cpp are loaded after then they will reclaim these
+  // aliases for themselves
+
+  return lang;
+}
+
+var cLike_1 = cLike;
 
 /**
  * @param {string} value
@@ -9717,7 +12904,7 @@ var cLike_1 = cLike$2;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$o(re) {
+function source$b(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -9728,27 +12915,27 @@ function source$o(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$4(re) {
-  return concat$n('(', re, ')?');
+function optional$3(re) {
+  return concat$b('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$n(...args) {
-  const joined = args.map((x) => source$o(x)).join("");
+function concat$b(...args) {
+  const joined = args.map((x) => source$b(x)).join("");
   return joined;
 }
 
 /*
-Language: C-like foundation grammar for C/C++ grammars
-Author: Ivan Sagalaev <maniac@softwaremaniacs.org>
-Contributors: Evgeny Stepanischev <imbolk@gmail.com>, Zaven Muradyan <megalivoithos@gmail.com>, Roel Deckers <admin@codingcat.nl>, Sam Wu <samsam2310@gmail.com>, Jordi Petit <jordi.petit@gmail.com>, Pieter Vantorre <pietervantorre@gmail.com>, Google Inc. (David Benjamin) <davidben@google.com>
+Language: C
+Category: common, system
+Website: https://en.wikipedia.org/wiki/C_(programming_language)
 */
 
 /** @type LanguageFn */
-function cLike$1(hljs) {
+function c(hljs) {
   // added for historic reasons because `hljs.C_LINE_COMMENT_MODE` does
   // not include such support nor can we be sure all the grammars depending
   // on it would desire this behavior
@@ -9764,8 +12951,8 @@ function cLike$1(hljs) {
   const TEMPLATE_ARGUMENT_RE = '<[^<>]+>';
   const FUNCTION_TYPE_RE = '(' +
     DECLTYPE_AUTO_RE + '|' +
-    optional$4(NAMESPACE_RE) +
-    '[a-zA-Z_]\\w*' + optional$4(TEMPLATE_ARGUMENT_RE) +
+    optional$3(NAMESPACE_RE) +
+    '[a-zA-Z_]\\w*' + optional$3(TEMPLATE_ARGUMENT_RE) +
   ')';
   const CPP_PRIMITIVE_TYPES = {
     className: 'keyword',
@@ -9831,9 +13018,7 @@ function cLike$1(hljs) {
       }),
       {
         className: 'meta-string',
-        begin: /<.*?>/,
-        end: /$/,
-        illegal: '\\n'
+        begin: /<.*?>/
       },
       C_LINE_COMMENT_MODE,
       hljs.C_BLOCK_COMMENT_MODE
@@ -9842,11 +13027,11 @@ function cLike$1(hljs) {
 
   const TITLE_MODE = {
     className: 'title',
-    begin: optional$4(NAMESPACE_RE) + hljs.IDENT_RE,
+    begin: optional$3(NAMESPACE_RE) + hljs.IDENT_RE,
     relevance: 0
   };
 
-  const FUNCTION_TITLE = optional$4(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
+  const FUNCTION_TITLE = optional$3(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
 
   const CPP_KEYWORDS = {
     keyword: 'int float while private char char8_t char16_t char32_t catch import module export virtual operator sizeof ' +
@@ -9970,20 +13155,13 @@ function cLike$1(hljs) {
   };
 
   return {
+    name: "C",
     aliases: [
-      'c',
-      'cc',
-      'h',
-      'c++',
-      'h++',
-      'hpp',
-      'hh',
-      'hxx',
-      'cxx'
+      'h'
     ],
     keywords: CPP_KEYWORDS,
-    // the base c-like language will NEVER be auto-detected, rather the
-    // derivitives: c, c++, arduino turn auto-detect back on for themselves
+    // Until differentiations are added between `c` and `cpp`, `c` will
+    // not be auto-detected to avoid auto-detect conflicts between C and C++
     disableAutodetect: true,
     illegal: '</',
     contains: [].concat(
@@ -10023,27 +13201,6 @@ function cLike$1(hljs) {
       keywords: CPP_KEYWORDS
     }
   };
-}
-
-/*
-Language: C
-Category: common, system
-Website: https://en.wikipedia.org/wiki/C_(programming_language)
-*/
-
-/** @type LanguageFn */
-function c(hljs) {
-  const lang = cLike$1(hljs);
-  // Until C is actually different than C++ there is no reason to auto-detect C
-  // as it's own language since it would just fail auto-detect testing or
-  // simply match with C++.
-  //
-  // See further comments in c-like.js.
-
-  // lang.disableAutodetect = false;
-  lang.name = 'C';
-  lang.aliases = ['c', 'h'];
-  return lang;
 }
 
 var c_1 = c;
@@ -10313,7 +13470,6 @@ function clean(hljs) {
   return {
     name: 'Clean',
     aliases: [
-      'clean',
       'icl',
       'dcl'
     ],
@@ -10353,10 +13509,10 @@ Category: lisp
 
 /** @type LanguageFn */
 function clojure(hljs) {
-  var SYMBOLSTART = 'a-zA-Z_\\-!.?+*=<>&#\'';
-  var SYMBOL_RE = '[' + SYMBOLSTART + '][' + SYMBOLSTART + '0-9/;:]*';
-  var globals = 'def defonce defprotocol defstruct defmulti defmethod defn- defn defmacro deftype defrecord';
-  var keywords = {
+  const SYMBOLSTART = 'a-zA-Z_\\-!.?+*=<>&#\'';
+  const SYMBOL_RE = '[' + SYMBOLSTART + '][' + SYMBOLSTART + '0-9/;:]*';
+  const globals = 'def defonce defprotocol defstruct defmulti defmethod defn- defn defmacro deftype defrecord';
+  const keywords = {
     $pattern: SYMBOL_RE,
     'builtin-name':
       // Clojure keywords
@@ -10390,57 +13546,73 @@ function clojure(hljs) {
       'lazy-seq spread list* str find-keyword keyword symbol gensym force rationalize'
   };
 
-  var SIMPLE_NUMBER_RE = '[-+]?\\d+(\\.\\d+)?';
+  const SIMPLE_NUMBER_RE = '[-+]?\\d+(\\.\\d+)?';
 
-  var SYMBOL = {
+  const SYMBOL = {
     begin: SYMBOL_RE,
     relevance: 0
   };
-  var NUMBER = {
-    className: 'number', begin: SIMPLE_NUMBER_RE,
+  const NUMBER = {
+    className: 'number',
+    begin: SIMPLE_NUMBER_RE,
     relevance: 0
   };
-  var STRING = hljs.inherit(hljs.QUOTE_STRING_MODE, {illegal: null});
-  var COMMENT = hljs.COMMENT(
+  const STRING = hljs.inherit(hljs.QUOTE_STRING_MODE, {
+    illegal: null
+  });
+  const COMMENT = hljs.COMMENT(
     ';',
     '$',
     {
       relevance: 0
     }
   );
-  var LITERAL = {
+  const LITERAL = {
     className: 'literal',
     begin: /\b(true|false|nil)\b/
   };
-  var COLLECTION = {
-    begin: '[\\[\\{]', end: '[\\]\\}]'
+  const COLLECTION = {
+    begin: '[\\[\\{]',
+    end: '[\\]\\}]'
   };
-  var HINT = {
+  const HINT = {
     className: 'comment',
     begin: '\\^' + SYMBOL_RE
   };
-  var HINT_COL = hljs.COMMENT('\\^\\{', '\\}');
-  var KEY = {
+  const HINT_COL = hljs.COMMENT('\\^\\{', '\\}');
+  const KEY = {
     className: 'symbol',
     begin: '[:]{1,2}' + SYMBOL_RE
   };
-  var LIST = {
-    begin: '\\(', end: '\\)'
+  const LIST = {
+    begin: '\\(',
+    end: '\\)'
   };
-  var BODY = {
+  const BODY = {
     endsWithParent: true,
     relevance: 0
   };
-  var NAME = {
+  const NAME = {
     keywords: keywords,
     className: 'name',
     begin: SYMBOL_RE,
     relevance: 0,
     starts: BODY
   };
-  var DEFAULT_CONTAINS = [LIST, STRING, HINT, HINT_COL, COMMENT, KEY, COLLECTION, NUMBER, LITERAL, SYMBOL];
+  const DEFAULT_CONTAINS = [
+    LIST,
+    STRING,
+    HINT,
+    HINT_COL,
+    COMMENT,
+    KEY,
+    COLLECTION,
+    NUMBER,
+    LITERAL,
+    SYMBOL
+  ];
 
-  var GLOBAL = {
+  const GLOBAL = {
     beginKeywords: globals,
     lexemes: SYMBOL_RE,
     end: '(\\[|#|\\d|"|:|\\{|\\)|\\(|$)',
@@ -10452,20 +13624,35 @@ function clojure(hljs) {
         excludeEnd: true,
         // we can only have a single title
         endsParent: true
-      },
+      }
     ].concat(DEFAULT_CONTAINS)
   };
 
-  LIST.contains = [hljs.COMMENT('comment', ''), GLOBAL, NAME, BODY];
+  LIST.contains = [
+    hljs.COMMENT('comment', ''),
+    GLOBAL,
+    NAME,
+    BODY
+  ];
   BODY.contains = DEFAULT_CONTAINS;
   COLLECTION.contains = DEFAULT_CONTAINS;
-  HINT_COL.contains = [COLLECTION];
+  HINT_COL.contains = [ COLLECTION ];
 
   return {
     name: 'Clojure',
-    aliases: ['clj'],
+    aliases: [ 'clj' ],
     illegal: /\S/,
-    contains: [LIST, STRING, HINT, HINT_COL, COMMENT, KEY, COLLECTION, NUMBER, LITERAL]
+    contains: [
+      LIST,
+      STRING,
+      HINT,
+      HINT_COL,
+      COMMENT,
+      KEY,
+      COLLECTION,
+      NUMBER,
+      LITERAL
+    ]
   };
 }
 
@@ -10484,14 +13671,16 @@ Category: lisp
 function clojureRepl(hljs) {
   return {
     name: 'Clojure REPL',
-    contains: [{
-      className: 'meta',
-      begin: /^([\w.-]+|\s*#_)?=>/,
-      starts: {
-        end: /$/,
-        subLanguage: 'clojure'
+    contains: [
+      {
+        className: 'meta',
+        begin: /^([\w.-]+|\s*#_)?=>/,
+        starts: {
+          end: /$/,
+          subLanguage: 'clojure'
+        }
       }
-    }]
+    ]
   };
 }
 
@@ -10562,7 +13751,7 @@ function cmake(hljs) {
 
 var cmake_1 = cmake;
 
-const KEYWORDS$3 = [
+const KEYWORDS = [
   "as", // for exports
   "in",
   "of",
@@ -10605,7 +13794,7 @@ const KEYWORDS$3 = [
   "export",
   "extends"
 ];
-const LITERALS$3 = [
+const LITERALS = [
   "true",
   "false",
   "null",
@@ -10614,7 +13803,7 @@ const LITERALS$3 = [
   "Infinity"
 ];
 
-const TYPES$3 = [
+const TYPES = [
   "Intl",
   "DataView",
   "Number",
@@ -10645,10 +13834,13 @@ const TYPES$3 = [
   "Array",
   "Uint8Array",
   "Uint8ClampedArray",
-  "ArrayBuffer"
+  "ArrayBuffer",
+  "BigInt64Array",
+  "BigUint64Array",
+  "BigInt"
 ];
 
-const ERROR_TYPES$3 = [
+const ERROR_TYPES = [
   "EvalError",
   "InternalError",
   "RangeError",
@@ -10658,7 +13850,7 @@ const ERROR_TYPES$3 = [
   "URIError"
 ];
 
-const BUILT_IN_GLOBALS$3 = [
+const BUILT_IN_GLOBALS = [
   "setInterval",
   "setTimeout",
   "clearInterval",
@@ -10680,7 +13872,7 @@ const BUILT_IN_GLOBALS$3 = [
   "unescape"
 ];
 
-const BUILT_IN_VARIABLES$3 = [
+const BUILT_IN_VARIABLES = [
   "arguments",
   "this",
   "super",
@@ -10692,11 +13884,11 @@ const BUILT_IN_VARIABLES$3 = [
   "global" // Node.js
 ];
 
-const BUILT_INS$3 = [].concat(
-  BUILT_IN_GLOBALS$3,
-  BUILT_IN_VARIABLES$3,
-  TYPES$3,
-  ERROR_TYPES$3
+const BUILT_INS = [].concat(
+  BUILT_IN_GLOBALS,
+  BUILT_IN_VARIABLES,
+  TYPES,
+  ERROR_TYPES
 );
 
 /*
@@ -10743,9 +13935,9 @@ function coffeescript(hljs) {
   const excluding = (list) =>
     (kw) => !list.includes(kw);
   const KEYWORDS$1 = {
-    keyword: KEYWORDS$3.concat(COFFEE_KEYWORDS).filter(excluding(NOT_VALID_KEYWORDS)).join(" "),
-    literal: LITERALS$3.concat(COFFEE_LITERALS).join(" "),
-    built_in: BUILT_INS$3.concat(COFFEE_BUILT_INS).join(" ")
+    keyword: KEYWORDS.concat(COFFEE_KEYWORDS).filter(excluding(NOT_VALID_KEYWORDS)),
+    literal: LITERALS.concat(COFFEE_LITERALS),
+    built_in: BUILT_INS.concat(COFFEE_BUILT_INS)
   };
   const JS_IDENT_RE = '[A-Za-z$_][0-9A-Za-z$_]*';
   const SUBST = {
@@ -11073,7 +14265,6 @@ function cos(hljs) {
     name: 'Caché Object Script',
     case_insensitive: true,
     aliases: [
-      "cos",
       "cls"
     ],
     keywords: COS_KEYWORDS,
@@ -11145,7 +14336,7 @@ var cos_1 = cos;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$n(re) {
+function source$c(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -11156,27 +14347,35 @@ function source$n(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$3(re) {
-  return concat$m('(', re, ')?');
+function lookahead$3(re) {
+  return concat$c('(?=', re, ')');
+}
+
+/**
+ * @param {RegExp | string } re
+ * @returns {string}
+ */
+function optional$4(re) {
+  return concat$c('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$m(...args) {
-  const joined = args.map((x) => source$n(x)).join("");
+function concat$c(...args) {
+  const joined = args.map((x) => source$c(x)).join("");
   return joined;
 }
 
 /*
-Language: C-like foundation grammar for C/C++ grammars
-Author: Ivan Sagalaev <maniac@softwaremaniacs.org>
-Contributors: Evgeny Stepanischev <imbolk@gmail.com>, Zaven Muradyan <megalivoithos@gmail.com>, Roel Deckers <admin@codingcat.nl>, Sam Wu <samsam2310@gmail.com>, Jordi Petit <jordi.petit@gmail.com>, Pieter Vantorre <pietervantorre@gmail.com>, Google Inc. (David Benjamin) <davidben@google.com>
+Language: C++
+Category: common, system
+Website: https://isocpp.org
 */
 
 /** @type LanguageFn */
-function cLike(hljs) {
+function cpp(hljs) {
   // added for historic reasons because `hljs.C_LINE_COMMENT_MODE` does
   // not include such support nor can we be sure all the grammars depending
   // on it would desire this behavior
@@ -11192,8 +14391,8 @@ function cLike(hljs) {
   const TEMPLATE_ARGUMENT_RE = '<[^<>]+>';
   const FUNCTION_TYPE_RE = '(' +
     DECLTYPE_AUTO_RE + '|' +
-    optional$3(NAMESPACE_RE) +
-    '[a-zA-Z_]\\w*' + optional$3(TEMPLATE_ARGUMENT_RE) +
+    optional$4(NAMESPACE_RE) +
+    '[a-zA-Z_]\\w*' + optional$4(TEMPLATE_ARGUMENT_RE) +
   ')';
   const CPP_PRIMITIVE_TYPES = {
     className: 'keyword',
@@ -11259,9 +14458,7 @@ function cLike(hljs) {
       }),
       {
         className: 'meta-string',
-        begin: /<.*?>/,
-        end: /$/,
-        illegal: '\\n'
+        begin: /<.*?>/
       },
       C_LINE_COMMENT_MODE,
       hljs.C_BLOCK_COMMENT_MODE
@@ -11270,11 +14467,127 @@ function cLike(hljs) {
 
   const TITLE_MODE = {
     className: 'title',
-    begin: optional$3(NAMESPACE_RE) + hljs.IDENT_RE,
+    begin: optional$4(NAMESPACE_RE) + hljs.IDENT_RE,
     relevance: 0
   };
 
-  const FUNCTION_TITLE = optional$3(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
+  const FUNCTION_TITLE = optional$4(NAMESPACE_RE) + hljs.IDENT_RE + '\\s*\\(';
+
+  const COMMON_CPP_HINTS = [
+    'asin',
+    'atan2',
+    'atan',
+    'calloc',
+    'ceil',
+    'cosh',
+    'cos',
+    'exit',
+    'exp',
+    'fabs',
+    'floor',
+    'fmod',
+    'fprintf',
+    'fputs',
+    'free',
+    'frexp',
+    'auto_ptr',
+    'deque',
+    'list',
+    'queue',
+    'stack',
+    'vector',
+    'map',
+    'set',
+    'pair',
+    'bitset',
+    'multiset',
+    'multimap',
+    'unordered_set',
+    'fscanf',
+    'future',
+    'isalnum',
+    'isalpha',
+    'iscntrl',
+    'isdigit',
+    'isgraph',
+    'islower',
+    'isprint',
+    'ispunct',
+    'isspace',
+    'isupper',
+    'isxdigit',
+    'tolower',
+    'toupper',
+    'labs',
+    'ldexp',
+    'log10',
+    'log',
+    'malloc',
+    'realloc',
+    'memchr',
+    'memcmp',
+    'memcpy',
+    'memset',
+    'modf',
+    'pow',
+    'printf',
+    'putchar',
+    'puts',
+    'scanf',
+    'sinh',
+    'sin',
+    'snprintf',
+    'sprintf',
+    'sqrt',
+    'sscanf',
+    'strcat',
+    'strchr',
+    'strcmp',
+    'strcpy',
+    'strcspn',
+    'strlen',
+    'strncat',
+    'strncmp',
+    'strncpy',
+    'strpbrk',
+    'strrchr',
+    'strspn',
+    'strstr',
+    'tanh',
+    'tan',
+    'unordered_map',
+    'unordered_multiset',
+    'unordered_multimap',
+    'priority_queue',
+    'make_pair',
+    'array',
+    'shared_ptr',
+    'abort',
+    'terminate',
+    'abs',
+    'acos',
+    'vfprintf',
+    'vprintf',
+    'vsprintf',
+    'endl',
+    'initializer_list',
+    'unique_ptr',
+    'complex',
+    'imaginary',
+    'std',
+    'string',
+    'wstring',
+    'cin',
+    'cout',
+    'cerr',
+    'clog',
+    'stdin',
+    'stdout',
+    'stderr',
+    'stringstream',
+    'istringstream',
+    'ostringstream'
+  ];
 
   const CPP_KEYWORDS = {
     keyword: 'int float while private char char8_t char16_t char32_t catch import module export virtual operator sizeof ' +
@@ -11289,19 +14602,27 @@ function cLike(hljs) {
       'atomic_uchar atomic_short atomic_ushort atomic_int atomic_uint atomic_long atomic_ulong atomic_llong ' +
       'atomic_ullong new throw return ' +
       'and and_eq bitand bitor compl not not_eq or or_eq xor xor_eq',
-    built_in: 'std string wstring cin cout cerr clog stdin stdout stderr stringstream istringstream ostringstream ' +
-      'auto_ptr deque list queue stack vector map set pair bitset multiset multimap unordered_set ' +
-      'unordered_map unordered_multiset unordered_multimap priority_queue make_pair array shared_ptr abort terminate abs acos ' +
-      'asin atan2 atan calloc ceil cosh cos exit exp fabs floor fmod fprintf fputs free frexp ' +
-      'fscanf future isalnum isalpha iscntrl isdigit isgraph islower isprint ispunct isspace isupper ' +
-      'isxdigit tolower toupper labs ldexp log10 log malloc realloc memchr memcmp memcpy memset modf pow ' +
-      'printf putchar puts scanf sinh sin snprintf sprintf sqrt sscanf strcat strchr strcmp ' +
-      'strcpy strcspn strlen strncat strncmp strncpy strpbrk strrchr strspn strstr tanh tan ' +
-      'vfprintf vprintf vsprintf endl initializer_list unique_ptr _Bool complex _Complex imaginary _Imaginary',
+    built_in: '_Bool _Complex _Imaginary',
+    _relevance_hints: COMMON_CPP_HINTS,
     literal: 'true false nullptr NULL'
   };
 
+  const FUNCTION_DISPATCH = {
+    className: "function.dispatch",
+    relevance: 0,
+    keywords: CPP_KEYWORDS,
+    begin: concat$c(
+      /\b/,
+      /(?!decltype)/,
+      /(?!if)/,
+      /(?!for)/,
+      /(?!while)/,
+      hljs.IDENT_RE,
+      lookahead$3(/\s*\(/))
+  };
+
   const EXPRESSION_CONTAINS = [
+    FUNCTION_DISPATCH,
     PREPROCESSOR,
     CPP_PRIMITIVE_TYPES,
     C_LINE_COMMENT_MODE,
@@ -11309,6 +14630,7 @@ function cLike(hljs) {
     NUMBERS,
     STRINGS
   ];
+
 
   const EXPRESSION_CONTEXT = {
     // This mode covers expression context where we can't expect a function
@@ -11361,6 +14683,21 @@ function cLike(hljs) {
         contains: [ TITLE_MODE ],
         relevance: 0
       },
+      // needed because we do not have look-behind on the below rule
+      // to prevent it from grabbing the final : in a :: pair
+      {
+        begin: /::/,
+        relevance: 0
+      },
+      // initializers
+      {
+        begin: /:/,
+        endsWithParent: true,
+        contains: [
+          STRINGS,
+          NUMBERS
+        ]
+      },
       {
         className: 'params',
         begin: /\(/,
@@ -11398,10 +14735,9 @@ function cLike(hljs) {
   };
 
   return {
+    name: 'C++',
     aliases: [
-      'c',
       'cc',
-      'h',
       'c++',
       'h++',
       'hpp',
@@ -11410,13 +14746,14 @@ function cLike(hljs) {
       'cxx'
     ],
     keywords: CPP_KEYWORDS,
-    // the base c-like language will NEVER be auto-detected, rather the
-    // derivitives: c, c++, arduino turn auto-detect back on for themselves
-    disableAutodetect: true,
     illegal: '</',
+    classNameAliases: {
+      "function.dispatch": "built_in"
+    },
     contains: [].concat(
       EXPRESSION_CONTEXT,
       FUNCTION_DECLARATION,
+      FUNCTION_DISPATCH,
       EXPRESSION_CONTAINS,
       [
         PREPROCESSOR,
@@ -11451,22 +14788,6 @@ function cLike(hljs) {
       keywords: CPP_KEYWORDS
     }
   };
-}
-
-/*
-Language: C++
-Category: common, system
-Website: https://isocpp.org
-*/
-
-/** @type LanguageFn */
-function cpp(hljs) {
-  const lang = cLike(hljs);
-  // return auto-detection back on
-  lang.disableAutodetect = false;
-  lang.name = 'C++';
-  lang.aliases = ['cc', 'c++', 'h++', 'hpp', 'hh', 'hxx', 'cxx'];
-  return lang;
 }
 
 var cpp_1 = cpp;
@@ -11911,29 +15232,29 @@ Category: common
 
 /** @type LanguageFn */
 function csharp(hljs) {
-  var BUILT_IN_KEYWORDS = [
-      'bool',
-      'byte',
-      'char',
-      'decimal',
-      'delegate',
-      'double',
-      'dynamic',
-      'enum',
-      'float',
-      'int',
-      'long',
-      'nint',
-      'nuint',
-      'object',
-      'sbyte',
-      'short',
-      'string',
-      'ulong',
-      'unit',
-      'ushort'
+  const BUILT_IN_KEYWORDS = [
+    'bool',
+    'byte',
+    'char',
+    'decimal',
+    'delegate',
+    'double',
+    'dynamic',
+    'enum',
+    'float',
+    'int',
+    'long',
+    'nint',
+    'nuint',
+    'object',
+    'sbyte',
+    'short',
+    'string',
+    'ulong',
+    'uint',
+    'ushort'
   ];
-  var FUNCTION_MODIFIERS = [
+  const FUNCTION_MODIFIERS = [
     'public',
     'private',
     'protected',
@@ -11950,13 +15271,13 @@ function csharp(hljs) {
     'sealed',
     'partial'
   ];
-  var LITERAL_KEYWORDS = [
-      'default',
-      'false',
-      'null',
-      'true'
+  const LITERAL_KEYWORDS = [
+    'default',
+    'false',
+    'null',
+    'true'
   ];
-  var NORMAL_KEYWORDS = [
+  const NORMAL_KEYWORDS = [
     'abstract',
     'as',
     'base',
@@ -12013,7 +15334,7 @@ function csharp(hljs) {
     'volatile',
     'while'
   ];
-  var CONTEXTUAL_KEYWORDS = [
+  const CONTEXTUAL_KEYWORDS = [
     'add',
     'alias',
     'and',
@@ -12050,47 +15371,98 @@ function csharp(hljs) {
     'yield'
   ];
 
-  var KEYWORDS = {
-    keyword: NORMAL_KEYWORDS.concat(CONTEXTUAL_KEYWORDS).join(' '),
-    built_in: BUILT_IN_KEYWORDS.join(' '),
-    literal: LITERAL_KEYWORDS.join(' ')
+  const KEYWORDS = {
+    keyword: NORMAL_KEYWORDS.concat(CONTEXTUAL_KEYWORDS),
+    built_in: BUILT_IN_KEYWORDS,
+    literal: LITERAL_KEYWORDS
   };
-  var TITLE_MODE = hljs.inherit(hljs.TITLE_MODE, {begin: '[a-zA-Z](\\.?\\w)*'});
-  var NUMBERS = {
+  const TITLE_MODE = hljs.inherit(hljs.TITLE_MODE, {
+    begin: '[a-zA-Z](\\.?\\w)*'
+  });
+  const NUMBERS = {
     className: 'number',
     variants: [
-      { begin: '\\b(0b[01\']+)' },
-      { begin: '(-?)\\b([\\d\']+(\\.[\\d\']*)?|\\.[\\d\']+)(u|U|l|L|ul|UL|f|F|b|B)' },
-      { begin: '(-?)(\\b0[xX][a-fA-F0-9\']+|(\\b[\\d\']+(\\.[\\d\']*)?|\\.[\\d\']+)([eE][-+]?[\\d\']+)?)' }
+      {
+        begin: '\\b(0b[01\']+)'
+      },
+      {
+        begin: '(-?)\\b([\\d\']+(\\.[\\d\']*)?|\\.[\\d\']+)(u|U|l|L|ul|UL|f|F|b|B)'
+      },
+      {
+        begin: '(-?)(\\b0[xX][a-fA-F0-9\']+|(\\b[\\d\']+(\\.[\\d\']*)?|\\.[\\d\']+)([eE][-+]?[\\d\']+)?)'
+      }
     ],
     relevance: 0
   };
-  var VERBATIM_STRING = {
+  const VERBATIM_STRING = {
     className: 'string',
-    begin: '@"', end: '"',
-    contains: [{begin: '""'}]
+    begin: '@"',
+    end: '"',
+    contains: [
+      {
+        begin: '""'
+      }
+    ]
   };
-  var VERBATIM_STRING_NO_LF = hljs.inherit(VERBATIM_STRING, {illegal: /\n/});
-  var SUBST = {
+  const VERBATIM_STRING_NO_LF = hljs.inherit(VERBATIM_STRING, {
+    illegal: /\n/
+  });
+  const SUBST = {
     className: 'subst',
-    begin: /\{/, end: /\}/,
+    begin: /\{/,
+    end: /\}/,
     keywords: KEYWORDS
   };
-  var SUBST_NO_LF = hljs.inherit(SUBST, {illegal: /\n/});
-  var INTERPOLATED_STRING = {
+  const SUBST_NO_LF = hljs.inherit(SUBST, {
+    illegal: /\n/
+  });
+  const INTERPOLATED_STRING = {
     className: 'string',
-    begin: /\$"/, end: '"',
+    begin: /\$"/,
+    end: '"',
     illegal: /\n/,
-    contains: [{begin: /\{\{/}, {begin: /\}\}/}, hljs.BACKSLASH_ESCAPE, SUBST_NO_LF]
+    contains: [
+      {
+        begin: /\{\{/
+      },
+      {
+        begin: /\}\}/
+      },
+      hljs.BACKSLASH_ESCAPE,
+      SUBST_NO_LF
+    ]
   };
-  var INTERPOLATED_VERBATIM_STRING = {
+  const INTERPOLATED_VERBATIM_STRING = {
     className: 'string',
-    begin: /\$@"/, end: '"',
-    contains: [{begin: /\{\{/}, {begin: /\}\}/}, {begin: '""'}, SUBST]
+    begin: /\$@"/,
+    end: '"',
+    contains: [
+      {
+        begin: /\{\{/
+      },
+      {
+        begin: /\}\}/
+      },
+      {
+        begin: '""'
+      },
+      SUBST
+    ]
   };
-  var INTERPOLATED_VERBATIM_STRING_NO_LF = hljs.inherit(INTERPOLATED_VERBATIM_STRING, {
+  const INTERPOLATED_VERBATIM_STRING_NO_LF = hljs.inherit(INTERPOLATED_VERBATIM_STRING, {
     illegal: /\n/,
-    contains: [{begin: /\{\{/}, {begin: /\}\}/}, {begin: '""'}, SUBST_NO_LF]
+    contains: [
+      {
+        begin: /\{\{/
+      },
+      {
+        begin: /\}\}/
+      },
+      {
+        begin: '""'
+      },
+      SUBST_NO_LF
+    ]
   });
   SUBST.contains = [
     INTERPOLATED_VERBATIM_STRING,
@@ -12108,9 +15480,11 @@ function csharp(hljs) {
     hljs.APOS_STRING_MODE,
     hljs.QUOTE_STRING_MODE,
     NUMBERS,
-    hljs.inherit(hljs.C_BLOCK_COMMENT_MODE, {illegal: /\n/})
+    hljs.inherit(hljs.C_BLOCK_COMMENT_MODE, {
+      illegal: /\n/
+    })
   ];
-  var STRING = {
+  const STRING = {
     variants: [
       INTERPOLATED_VERBATIM_STRING,
       INTERPOLATED_STRING,
@@ -12120,16 +15494,18 @@ function csharp(hljs) {
     ]
   };
 
-  var GENERIC_MODIFIER = {
+  const GENERIC_MODIFIER = {
     begin: "<",
     end: ">",
     contains: [
-      { beginKeywords: "in out"},
+      {
+        beginKeywords: "in out"
+      },
       TITLE_MODE
     ]
   };
-  var TYPE_IDENT_RE = hljs.IDENT_RE + '(<' + hljs.IDENT_RE + '(\\s*,\\s*' + hljs.IDENT_RE + ')*>)?(\\[\\])?';
-  var AT_IDENTIFIER = {
+  const TYPE_IDENT_RE = hljs.IDENT_RE + '(<' + hljs.IDENT_RE + '(\\s*,\\s*' + hljs.IDENT_RE + ')*>)?(\\[\\])?';
+  const AT_IDENTIFIER = {
     // prevents expressions like `@class` from incorrect flagging
     // `class` as a keyword
     begin: "@" + hljs.IDENT_RE,
@@ -12138,7 +15514,10 @@ function csharp(hljs) {
 
   return {
     name: 'C#',
-    aliases: ['cs', 'c#'],
+    aliases: [
+      'cs',
+      'c#'
+    ],
     keywords: KEYWORDS,
     illegal: /::/,
     contains: [
@@ -12152,13 +15531,15 @@ function csharp(hljs) {
               className: 'doctag',
               variants: [
                 {
-                  begin: '///', relevance: 0
+                  begin: '///',
+                  relevance: 0
                 },
                 {
                   begin: '<!--|-->'
                 },
                 {
-                  begin: '</?', end: '>'
+                  begin: '</?',
+                  end: '>'
                 }
               ]
             }
@@ -12169,7 +15550,8 @@ function csharp(hljs) {
       hljs.C_BLOCK_COMMENT_MODE,
       {
         className: 'meta',
-        begin: '#', end: '$',
+        begin: '#',
+        end: '$',
         keywords: {
           'meta-keyword': 'if else elif endif define undef warning error line region endregion pragma checksum'
         }
@@ -12182,7 +15564,9 @@ function csharp(hljs) {
         end: /[{;=]/,
         illegal: /[^\s:,]/,
         contains: [
-          { beginKeywords: "where class" },
+          {
+            beginKeywords: "where class"
+          },
           TITLE_MODE,
           GENERIC_MODIFIER,
           hljs.C_LINE_COMMENT_MODE,
@@ -12215,9 +15599,16 @@ function csharp(hljs) {
       {
         // [Attributes("")]
         className: 'meta',
-        begin: '^\\s*\\[', excludeBegin: true, end: '\\]', excludeEnd: true,
+        begin: '^\\s*\\[',
+        excludeBegin: true,
+        end: '\\]',
+        excludeEnd: true,
         contains: [
-          {className: 'meta-string', begin: /"/, end: /"/}
+          {
+            className: 'meta-string',
+            begin: /"/,
+            end: /"/
+          }
         ]
       },
       {
@@ -12228,8 +15619,10 @@ function csharp(hljs) {
       },
       {
         className: 'function',
-        begin: '(' + TYPE_IDENT_RE + '\\s+)+' + hljs.IDENT_RE + '\\s*(<.+>\\s*)?\\(', returnBegin: true,
-        end: /\s*[{;=]/, excludeEnd: true,
+        begin: '(' + TYPE_IDENT_RE + '\\s+)+' + hljs.IDENT_RE + '\\s*(<.+>\\s*)?\\(',
+        returnBegin: true,
+        end: /\s*[{;=]/,
+        excludeEnd: true,
         keywords: KEYWORDS,
         contains: [
           // prevents these from being highlighted `title`
@@ -12238,7 +15631,8 @@ function csharp(hljs) {
             relevance: 0
           },
           {
-            begin: hljs.IDENT_RE + '\\s*(<.+>\\s*)?\\(', returnBegin: true,
+            begin: hljs.IDENT_RE + '\\s*(<.+>\\s*)?\\(',
+            returnBegin: true,
             contains: [
               hljs.TITLE_MODE,
               GENERIC_MODIFIER
@@ -12247,7 +15641,8 @@ function csharp(hljs) {
           },
           {
             className: 'params',
-            begin: /\(/, end: /\)/,
+            begin: /\(/,
+            end: /\)/,
             excludeBegin: true,
             excludeEnd: true,
             keywords: KEYWORDS,
@@ -12307,6 +15702,467 @@ function csp(hljs) {
 
 var csp_1 = csp;
 
+const MODES$1 = (hljs) => {
+  return {
+    IMPORTANT: {
+      className: 'meta',
+      begin: '!important'
+    },
+    HEXCOLOR: {
+      className: 'number',
+      begin: '#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})'
+    },
+    ATTRIBUTE_SELECTOR_MODE: {
+      className: 'selector-attr',
+      begin: /\[/,
+      end: /\]/,
+      illegal: '$',
+      contains: [
+        hljs.APOS_STRING_MODE,
+        hljs.QUOTE_STRING_MODE
+      ]
+    }
+  };
+};
+
+const TAGS = [
+  'a',
+  'abbr',
+  'address',
+  'article',
+  'aside',
+  'audio',
+  'b',
+  'blockquote',
+  'body',
+  'button',
+  'canvas',
+  'caption',
+  'cite',
+  'code',
+  'dd',
+  'del',
+  'details',
+  'dfn',
+  'div',
+  'dl',
+  'dt',
+  'em',
+  'fieldset',
+  'figcaption',
+  'figure',
+  'footer',
+  'form',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'header',
+  'hgroup',
+  'html',
+  'i',
+  'iframe',
+  'img',
+  'input',
+  'ins',
+  'kbd',
+  'label',
+  'legend',
+  'li',
+  'main',
+  'mark',
+  'menu',
+  'nav',
+  'object',
+  'ol',
+  'p',
+  'q',
+  'quote',
+  'samp',
+  'section',
+  'span',
+  'strong',
+  'summary',
+  'sup',
+  'table',
+  'tbody',
+  'td',
+  'textarea',
+  'tfoot',
+  'th',
+  'thead',
+  'time',
+  'tr',
+  'ul',
+  'var',
+  'video'
+];
+
+const MEDIA_FEATURES = [
+  'any-hover',
+  'any-pointer',
+  'aspect-ratio',
+  'color',
+  'color-gamut',
+  'color-index',
+  'device-aspect-ratio',
+  'device-height',
+  'device-width',
+  'display-mode',
+  'forced-colors',
+  'grid',
+  'height',
+  'hover',
+  'inverted-colors',
+  'monochrome',
+  'orientation',
+  'overflow-block',
+  'overflow-inline',
+  'pointer',
+  'prefers-color-scheme',
+  'prefers-contrast',
+  'prefers-reduced-motion',
+  'prefers-reduced-transparency',
+  'resolution',
+  'scan',
+  'scripting',
+  'update',
+  'width',
+  // TODO: find a better solution?
+  'min-width',
+  'max-width',
+  'min-height',
+  'max-height'
+];
+
+// https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-classes
+const PSEUDO_CLASSES = [
+  'active',
+  'any-link',
+  'blank',
+  'checked',
+  'current',
+  'default',
+  'defined',
+  'dir', // dir()
+  'disabled',
+  'drop',
+  'empty',
+  'enabled',
+  'first',
+  'first-child',
+  'first-of-type',
+  'fullscreen',
+  'future',
+  'focus',
+  'focus-visible',
+  'focus-within',
+  'has', // has()
+  'host', // host or host()
+  'host-context', // host-context()
+  'hover',
+  'indeterminate',
+  'in-range',
+  'invalid',
+  'is', // is()
+  'lang', // lang()
+  'last-child',
+  'last-of-type',
+  'left',
+  'link',
+  'local-link',
+  'not', // not()
+  'nth-child', // nth-child()
+  'nth-col', // nth-col()
+  'nth-last-child', // nth-last-child()
+  'nth-last-col', // nth-last-col()
+  'nth-last-of-type', //nth-last-of-type()
+  'nth-of-type', //nth-of-type()
+  'only-child',
+  'only-of-type',
+  'optional',
+  'out-of-range',
+  'past',
+  'placeholder-shown',
+  'read-only',
+  'read-write',
+  'required',
+  'right',
+  'root',
+  'scope',
+  'target',
+  'target-within',
+  'user-invalid',
+  'valid',
+  'visited',
+  'where' // where()
+];
+
+// https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-elements
+const PSEUDO_ELEMENTS = [
+  'after',
+  'backdrop',
+  'before',
+  'cue',
+  'cue-region',
+  'first-letter',
+  'first-line',
+  'grammar-error',
+  'marker',
+  'part',
+  'placeholder',
+  'selection',
+  'slotted',
+  'spelling-error'
+];
+
+const ATTRIBUTES = [
+  'align-content',
+  'align-items',
+  'align-self',
+  'animation',
+  'animation-delay',
+  'animation-direction',
+  'animation-duration',
+  'animation-fill-mode',
+  'animation-iteration-count',
+  'animation-name',
+  'animation-play-state',
+  'animation-timing-function',
+  'auto',
+  'backface-visibility',
+  'background',
+  'background-attachment',
+  'background-clip',
+  'background-color',
+  'background-image',
+  'background-origin',
+  'background-position',
+  'background-repeat',
+  'background-size',
+  'border',
+  'border-bottom',
+  'border-bottom-color',
+  'border-bottom-left-radius',
+  'border-bottom-right-radius',
+  'border-bottom-style',
+  'border-bottom-width',
+  'border-collapse',
+  'border-color',
+  'border-image',
+  'border-image-outset',
+  'border-image-repeat',
+  'border-image-slice',
+  'border-image-source',
+  'border-image-width',
+  'border-left',
+  'border-left-color',
+  'border-left-style',
+  'border-left-width',
+  'border-radius',
+  'border-right',
+  'border-right-color',
+  'border-right-style',
+  'border-right-width',
+  'border-spacing',
+  'border-style',
+  'border-top',
+  'border-top-color',
+  'border-top-left-radius',
+  'border-top-right-radius',
+  'border-top-style',
+  'border-top-width',
+  'border-width',
+  'bottom',
+  'box-decoration-break',
+  'box-shadow',
+  'box-sizing',
+  'break-after',
+  'break-before',
+  'break-inside',
+  'caption-side',
+  'clear',
+  'clip',
+  'clip-path',
+  'color',
+  'column-count',
+  'column-fill',
+  'column-gap',
+  'column-rule',
+  'column-rule-color',
+  'column-rule-style',
+  'column-rule-width',
+  'column-span',
+  'column-width',
+  'columns',
+  'content',
+  'counter-increment',
+  'counter-reset',
+  'cursor',
+  'direction',
+  'display',
+  'empty-cells',
+  'filter',
+  'flex',
+  'flex-basis',
+  'flex-direction',
+  'flex-flow',
+  'flex-grow',
+  'flex-shrink',
+  'flex-wrap',
+  'float',
+  'font',
+  'font-display',
+  'font-family',
+  'font-feature-settings',
+  'font-kerning',
+  'font-language-override',
+  'font-size',
+  'font-size-adjust',
+  'font-smoothing',
+  'font-stretch',
+  'font-style',
+  'font-variant',
+  'font-variant-ligatures',
+  'font-variation-settings',
+  'font-weight',
+  'height',
+  'hyphens',
+  'icon',
+  'image-orientation',
+  'image-rendering',
+  'image-resolution',
+  'ime-mode',
+  'inherit',
+  'initial',
+  'justify-content',
+  'left',
+  'letter-spacing',
+  'line-height',
+  'list-style',
+  'list-style-image',
+  'list-style-position',
+  'list-style-type',
+  'margin',
+  'margin-bottom',
+  'margin-left',
+  'margin-right',
+  'margin-top',
+  'marks',
+  'mask',
+  'max-height',
+  'max-width',
+  'min-height',
+  'min-width',
+  'nav-down',
+  'nav-index',
+  'nav-left',
+  'nav-right',
+  'nav-up',
+  'none',
+  'normal',
+  'object-fit',
+  'object-position',
+  'opacity',
+  'order',
+  'orphans',
+  'outline',
+  'outline-color',
+  'outline-offset',
+  'outline-style',
+  'outline-width',
+  'overflow',
+  'overflow-wrap',
+  'overflow-x',
+  'overflow-y',
+  'padding',
+  'padding-bottom',
+  'padding-left',
+  'padding-right',
+  'padding-top',
+  'page-break-after',
+  'page-break-before',
+  'page-break-inside',
+  'perspective',
+  'perspective-origin',
+  'pointer-events',
+  'position',
+  'quotes',
+  'resize',
+  'right',
+  'src', // @font-face
+  'tab-size',
+  'table-layout',
+  'text-align',
+  'text-align-last',
+  'text-decoration',
+  'text-decoration-color',
+  'text-decoration-line',
+  'text-decoration-style',
+  'text-indent',
+  'text-overflow',
+  'text-rendering',
+  'text-shadow',
+  'text-transform',
+  'text-underline-position',
+  'top',
+  'transform',
+  'transform-origin',
+  'transform-style',
+  'transition',
+  'transition-delay',
+  'transition-duration',
+  'transition-property',
+  'transition-timing-function',
+  'unicode-bidi',
+  'vertical-align',
+  'visibility',
+  'white-space',
+  'widows',
+  'width',
+  'word-break',
+  'word-spacing',
+  'word-wrap',
+  'z-index'
+  // reverse makes sure longer attributes `font-weight` are matched fully
+  // instead of getting false positives on say `font`
+].reverse();
+
+/**
+ * @param {string} value
+ * @returns {RegExp}
+ * */
+
+/**
+ * @param {RegExp | string } re
+ * @returns {string}
+ */
+function source$d(re) {
+  if (!re) return null;
+  if (typeof re === "string") return re;
+
+  return re.source;
+}
+
+/**
+ * @param {RegExp | string } re
+ * @returns {string}
+ */
+function lookahead$4(re) {
+  return concat$d('(?=', re, ')');
+}
+
+/**
+ * @param {...(RegExp | string) } args
+ * @returns {string}
+ */
+function concat$d(...args) {
+  const joined = args.map((x) => source$d(x)).join("");
+  return joined;
+}
+
 /*
 Language: CSS
 Category: common, css
@@ -12314,134 +16170,146 @@ Website: https://developer.mozilla.org/en-US/docs/Web/CSS
 */
 
 /** @type LanguageFn */
-function css(hljs) {
-  var FUNCTION_LIKE = {
-    begin: /[\w-]+\(/, returnBegin: true,
-    contains: [
-      {
-        className: 'built_in',
-        begin: /[\w-]+/
-      },
-      {
-        begin: /\(/, end: /\)/,
-        contains: [
-          hljs.APOS_STRING_MODE,
-          hljs.QUOTE_STRING_MODE,
-          hljs.CSS_NUMBER_MODE,
-        ]
-      }
-    ]
+function css$1(hljs) {
+  const modes = MODES$1(hljs);
+  const FUNCTION_DISPATCH = {
+    className: "built_in",
+    begin: /[\w-]+(?=\()/
   };
-  var ATTRIBUTE = {
-    className: 'attribute',
-    begin: /\S/, end: ':', excludeEnd: true,
-    starts: {
-      endsWithParent: true, excludeEnd: true,
-      contains: [
-        FUNCTION_LIKE,
-        hljs.CSS_NUMBER_MODE,
-        hljs.QUOTE_STRING_MODE,
-        hljs.APOS_STRING_MODE,
-        hljs.C_BLOCK_COMMENT_MODE,
-        {
-          className: 'number', begin: '#[0-9A-Fa-f]+'
-        },
-        {
-          className: 'meta', begin: '!important'
-        }
-      ]
-    }
+  const VENDOR_PREFIX = {
+    begin: /-(webkit|moz|ms|o)-(?=[a-z])/
   };
-  var AT_IDENTIFIER = '@[a-z-]+'; // @font-face
-  var AT_MODIFIERS = "and or not only";
-  var AT_PROPERTY_RE = /@-?\w[\w]*(-\w+)*/; // @-webkit-keyframes
-  var IDENT_RE = '[a-zA-Z-][a-zA-Z0-9_-]*';
-  var RULE = {
-    begin: /([*]\s?)?(?:[A-Z_.\-\\]+|--[a-zA-Z0-9_-]+)\s*(\/\*\*\/)?:/, returnBegin: true, end: ';', endsWithParent: true,
-    contains: [
-      ATTRIBUTE
-    ]
-  };
+  const AT_MODIFIERS = "and or not only";
+  const AT_PROPERTY_RE = /@-?\w[\w]*(-\w+)*/; // @-webkit-keyframes
+  const IDENT_RE = '[a-zA-Z-][a-zA-Z0-9_-]*';
+  const STRINGS = [
+    hljs.APOS_STRING_MODE,
+    hljs.QUOTE_STRING_MODE
+  ];
 
   return {
     name: 'CSS',
     case_insensitive: true,
     illegal: /[=|'\$]/,
+    keywords: {
+      keyframePosition: "from to"
+    },
+    classNameAliases: {
+      // for visual continuity with `tag {}` and because we
+      // don't have a great class for this?
+      keyframePosition: "selector-tag"
+    },
     contains: [
       hljs.C_BLOCK_COMMENT_MODE,
+      VENDOR_PREFIX,
+      // to recognize keyframe 40% etc which are outside the scope of our
+      // attribute value mode
+      hljs.CSS_NUMBER_MODE,
       {
-        className: 'selector-id', begin: /#[A-Za-z0-9_-]+/
+        className: 'selector-id',
+        begin: /#[A-Za-z0-9_-]+/,
+        relevance: 0
       },
       {
-        className: 'selector-class', begin: '\\.' + IDENT_RE
+        className: 'selector-class',
+        begin: '\\.' + IDENT_RE,
+        relevance: 0
       },
+      modes.ATTRIBUTE_SELECTOR_MODE,
       {
-        className: 'selector-attr',
-        begin: /\[/, end: /\]/,
-        illegal: '$',
+        className: 'selector-pseudo',
+        variants: [
+          {
+            begin: ':(' + PSEUDO_CLASSES.join('|') + ')'
+          },
+          {
+            begin: '::(' + PSEUDO_ELEMENTS.join('|') + ')'
+          }
+        ]
+      },
+      // we may actually need this (12/2020)
+      // { // pseudo-selector params
+      //   begin: /\(/,
+      //   end: /\)/,
+      //   contains: [ hljs.CSS_NUMBER_MODE ]
+      // },
+      {
+        className: 'attribute',
+        begin: '\\b(' + ATTRIBUTES.join('|') + ')\\b'
+      },
+      // attribute values
+      {
+        begin: ':',
+        end: '[;}]',
         contains: [
-          hljs.APOS_STRING_MODE,
-          hljs.QUOTE_STRING_MODE,
+          modes.HEXCOLOR,
+          modes.IMPORTANT,
+          hljs.CSS_NUMBER_MODE,
+          ...STRINGS,
+          // needed to highlight these as strings and to avoid issues with
+          // illegal characters that might be inside urls that would tigger the
+          // languages illegal stack
+          {
+            begin: /(url|data-uri)\(/,
+            end: /\)/,
+            relevance: 0, // from keywords
+            keywords: {
+              built_in: "url data-uri"
+            },
+            contains: [
+              {
+                className: "string",
+                // any character other than `)` as in `url()` will be the start
+                // of a string, which ends with `)` (from the parent mode)
+                begin: /[^)]/,
+                endsWithParent: true,
+                excludeEnd: true
+              }
+            ]
+          },
+          FUNCTION_DISPATCH
         ]
       },
       {
-        className: 'selector-pseudo',
-        begin: /:(:)?[a-zA-Z0-9_+()"'.-]+/
-      },
-      // matching these here allows us to treat them more like regular CSS
-      // rules so everything between the {} gets regular rule highlighting,
-      // which is what we want for page and font-face
-      {
-        begin: '@(page|font-face)',
-        lexemes: AT_IDENTIFIER,
-        keywords: '@page @font-face'
-      },
-      {
-        begin: '@', end: '[{;]', // at_rule eating first "{" is a good thing
-                                 // because it doesn’t let it to be parsed as
-                                 // a rule set but instead drops parser into
-                                 // the default mode which is how it should be.
+        begin: lookahead$4(/@/),
+        end: '[{;]',
+        relevance: 0,
         illegal: /:/, // break on Less variables @var: ...
-        returnBegin: true,
         contains: [
           {
             className: 'keyword',
             begin: AT_PROPERTY_RE
           },
           {
-            begin: /\s/, endsWithParent: true, excludeEnd: true,
+            begin: /\s/,
+            endsWithParent: true,
+            excludeEnd: true,
             relevance: 0,
-            keywords: AT_MODIFIERS,
+            keywords: {
+              $pattern: /[a-z-]+/,
+              keyword: AT_MODIFIERS,
+              attribute: MEDIA_FEATURES.join(" ")
+            },
             contains: [
               {
-                begin: /[a-z-]+:/,
-                className:"attribute"
+                begin: /[a-z-]+(?=:)/,
+                className: "attribute"
               },
-              hljs.APOS_STRING_MODE,
-              hljs.QUOTE_STRING_MODE,
+              ...STRINGS,
               hljs.CSS_NUMBER_MODE
             ]
           }
         ]
       },
       {
-        className: 'selector-tag', begin: IDENT_RE,
-        relevance: 0
-      },
-      {
-        begin: /\{/, end: /\}/,
-        illegal: /\S/,
-        contains: [
-          hljs.C_BLOCK_COMMENT_MODE,
-          { begin: /;/ }, // empty ; rule
-          RULE,
-        ]
+        className: 'selector-tag',
+        begin: '\\b(' + TAGS.join('|') + ')\\b'
       }
     ]
   };
 }
 
-var css_1 = css;
+var css_1 = css$1;
 
 /*
 Language: D
@@ -12724,7 +16592,7 @@ var d_1 = d;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$m(re) {
+function source$e(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -12735,8 +16603,8 @@ function source$m(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$l(...args) {
-  const joined = args.map((x) => source$m(x)).join("");
+function concat$e(...args) {
+  const joined = args.map((x) => source$e(x)).join("");
   return joined;
 }
 
@@ -12835,7 +16703,7 @@ function markdown(hljs) {
         relevance: 2
       },
       {
-        begin: concat$l(/\[.+?\]\(/, URL_SCHEME, /:\/\/.*?\)/),
+        begin: concat$e(/\[.+?\]\(/, URL_SCHEME, /:\/\/.*?\)/),
         relevance: 2
       },
       // relative urls
@@ -12879,7 +16747,7 @@ function markdown(hljs) {
   };
   const BOLD = {
     className: 'strong',
-    contains: [],
+    contains: [], // defined later
     variants: [
       {
         begin: /_{2}/,
@@ -12893,7 +16761,7 @@ function markdown(hljs) {
   };
   const ITALIC = {
     className: 'emphasis',
-    contains: [],
+    contains: [], // defined later
     variants: [
       {
         begin: /\*(?!\*)/,
@@ -13118,7 +16986,7 @@ function dart(hljs) {
           'querySelector',
           'querySelectorAll',
           'window'
-        ]).join(' '),
+        ]),
     $pattern: /[A-Za-z][A-Za-z0-9_]*\??/
   };
 
@@ -14078,22 +17946,22 @@ function elixir(hljs) {
       {
         begin: /~S"""/,
         end: /"""/,
-        contains: []
+        contains: [] // override default
       },
       {
         begin: /~S"/,
         end: /"/,
-        contains: []
+        contains: [] // override default
       },
       {
         begin: /~S'''/,
         end: /'''/,
-        contains: []
+        contains: [] // override default
       },
       {
         begin: /~S'/,
         end: /'/,
-        contains: []
+        contains: [] // override default
       },
       {
         begin: /'/,
@@ -14338,7 +18206,7 @@ var elm_1 = elm;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$l(re) {
+function source$f(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -14349,16 +18217,16 @@ function source$l(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$6(re) {
-  return concat$k('(?=', re, ')');
+function lookahead$5(re) {
+  return concat$f('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$k(...args) {
-  const joined = args.map((x) => source$l(x)).join("");
+function concat$f(...args) {
+  const joined = args.map((x) => source$f(x)).join("");
   return joined;
 }
 
@@ -14372,8 +18240,8 @@ Category: common
 */
 
 function ruby(hljs) {
-  var RUBY_METHOD_RE = '([a-zA-Z_]\\w*[!?=]?|[-+~]@|<<|>>|=~|===?|<=>|[<>]=?|\\*\\*|[-/+%^&*~`|]|\\[\\]=?)';
-  var RUBY_KEYWORDS = {
+  const RUBY_METHOD_RE = '([a-zA-Z_]\\w*[!?=]?|[-+~]@|<<|>>|=~|===?|<=>|[<>]=?|\\*\\*|[-/+%^&*~`|]|\\[\\]=?)';
+  const RUBY_KEYWORDS = {
     keyword:
       'and then defined module in return redo if BEGIN retry end for self when ' +
       'next until do begin unless END rescue else break undef not super class case ' +
@@ -14383,64 +18251,123 @@ function ruby(hljs) {
     literal:
       'true false nil'
   };
-  var YARDOCTAG = {
+  const YARDOCTAG = {
     className: 'doctag',
     begin: '@[A-Za-z]+'
   };
-  var IRB_OBJECT = {
-    begin: '#<', end: '>'
+  const IRB_OBJECT = {
+    begin: '#<',
+    end: '>'
   };
-  var COMMENT_MODES = [
+  const COMMENT_MODES = [
     hljs.COMMENT(
       '#',
       '$',
       {
-        contains: [YARDOCTAG]
+        contains: [ YARDOCTAG ]
       }
     ),
     hljs.COMMENT(
       '^=begin',
       '^=end',
       {
-        contains: [YARDOCTAG],
+        contains: [ YARDOCTAG ],
         relevance: 10
       }
     ),
     hljs.COMMENT('^__END__', '\\n$')
   ];
-  var SUBST = {
+  const SUBST = {
     className: 'subst',
-    begin: /#\{/, end: /\}/,
+    begin: /#\{/,
+    end: /\}/,
     keywords: RUBY_KEYWORDS
   };
-  var STRING = {
+  const STRING = {
     className: 'string',
-    contains: [hljs.BACKSLASH_ESCAPE, SUBST],
+    contains: [
+      hljs.BACKSLASH_ESCAPE,
+      SUBST
+    ],
     variants: [
-      {begin: /'/, end: /'/},
-      {begin: /"/, end: /"/},
-      {begin: /`/, end: /`/},
-      {begin: /%[qQwWx]?\(/, end: /\)/},
-      {begin: /%[qQwWx]?\[/, end: /\]/},
-      {begin: /%[qQwWx]?\{/, end: /\}/},
-      {begin: /%[qQwWx]?</, end: />/},
-      {begin: /%[qQwWx]?\//, end: /\//},
-      {begin: /%[qQwWx]?%/, end: /%/},
-      {begin: /%[qQwWx]?-/, end: /-/},
-      {begin: /%[qQwWx]?\|/, end: /\|/},
       {
-        // \B in the beginning suppresses recognition of ?-sequences where ?
-        // is the last character of a preceding identifier, as in: `func?4`
-        begin: /\B\?(\\\d{1,3}|\\x[A-Fa-f0-9]{1,2}|\\u[A-Fa-f0-9]{4}|\\?\S)\b/
+        begin: /'/,
+        end: /'/
+      },
+      {
+        begin: /"/,
+        end: /"/
+      },
+      {
+        begin: /`/,
+        end: /`/
+      },
+      {
+        begin: /%[qQwWx]?\(/,
+        end: /\)/
+      },
+      {
+        begin: /%[qQwWx]?\[/,
+        end: /\]/
+      },
+      {
+        begin: /%[qQwWx]?\{/,
+        end: /\}/
+      },
+      {
+        begin: /%[qQwWx]?</,
+        end: />/
+      },
+      {
+        begin: /%[qQwWx]?\//,
+        end: /\//
+      },
+      {
+        begin: /%[qQwWx]?%/,
+        end: /%/
+      },
+      {
+        begin: /%[qQwWx]?-/,
+        end: /-/
+      },
+      {
+        begin: /%[qQwWx]?\|/,
+        end: /\|/
+      },
+      // in the following expressions, \B in the beginning suppresses recognition of ?-sequences
+      // where ? is the last character of a preceding identifier, as in: `func?4`
+      {
+        begin: /\B\?(\\\d{1,3})/
+      },
+      {
+        begin: /\B\?(\\x[A-Fa-f0-9]{1,2})/
+      },
+      {
+        begin: /\B\?(\\u\{?[A-Fa-f0-9]{1,6}\}?)/
+      },
+      {
+        begin: /\B\?(\\M-\\C-|\\M-\\c|\\c\\M-|\\M-|\\C-\\M-)[\x20-\x7e]/
+      },
+      {
+        begin: /\B\?\\(c|C-)[\x20-\x7e]/
+      },
+      {
+        begin: /\B\?\\?\S/
       },
       { // heredocs
         begin: /<<[-~]?'?(\w+)\n(?:[^\n]*\n)*?\s*\1\b/,
         returnBegin: true,
         contains: [
-          { begin: /<<[-~]?'?/ },
+          {
+            begin: /<<[-~]?'?/
+          },
           hljs.END_SAME_AS_BEGIN({
-            begin: /(\w+)/, end: /(\w+)/,
-            contains: [hljs.BACKSLASH_ESCAPE, SUBST],
+            begin: /(\w+)/,
+            end: /(\w+)/,
+            contains: [
+              hljs.BACKSLASH_ESCAPE,
+              SUBST
+            ]
           })
         ]
       }
@@ -14450,45 +18377,68 @@ function ruby(hljs) {
   // Ruby syntax is underdocumented, but this grammar seems to be accurate
   // as of version 2.7.2 (confirmed with (irb and `Ripper.sexp(...)`)
   // https://docs.ruby-lang.org/en/2.7.0/doc/syntax/literals_rdoc.html#label-Numbers
-  var decimal = '[1-9](_?[0-9])*|0';
-  var digits = '[0-9](_?[0-9])*';
-  var NUMBER = {
-    className: 'number', relevance: 0,
+  const decimal = '[1-9](_?[0-9])*|0';
+  const digits = '[0-9](_?[0-9])*';
+  const NUMBER = {
+    className: 'number',
+    relevance: 0,
     variants: [
       // decimal integer/float, optionally exponential or rational, optionally imaginary
-      { begin: `\\b(${decimal})(\\.(${digits}))?([eE][+-]?(${digits})|r)?i?\\b` },
+      {
+        begin: `\\b(${decimal})(\\.(${digits}))?([eE][+-]?(${digits})|r)?i?\\b`
+      },
 
       // explicit decimal/binary/octal/hexadecimal integer,
       // optionally rational and/or imaginary
-      { begin: "\\b0[dD][0-9](_?[0-9])*r?i?\\b" },
-      { begin: "\\b0[bB][0-1](_?[0-1])*r?i?\\b" },
-      { begin: "\\b0[oO][0-7](_?[0-7])*r?i?\\b" },
-      { begin: "\\b0[xX][0-9a-fA-F](_?[0-9a-fA-F])*r?i?\\b" },
+      {
+        begin: "\\b0[dD][0-9](_?[0-9])*r?i?\\b"
+      },
+      {
+        begin: "\\b0[bB][0-1](_?[0-1])*r?i?\\b"
+      },
+      {
+        begin: "\\b0[oO][0-7](_?[0-7])*r?i?\\b"
+      },
+      {
+        begin: "\\b0[xX][0-9a-fA-F](_?[0-9a-fA-F])*r?i?\\b"
+      },
 
       // 0-prefixed implicit octal integer, optionally rational and/or imaginary
-      { begin: "\\b0(_?[0-7])+r?i?\\b" },
+      {
+        begin: "\\b0(_?[0-7])+r?i?\\b"
+      }
     ]
   };
 
-  var PARAMS = {
+  const PARAMS = {
     className: 'params',
-    begin: '\\(', end: '\\)', endsParent: true,
+    begin: '\\(',
+    end: '\\)',
+    endsParent: true,
     keywords: RUBY_KEYWORDS
   };
 
-  var RUBY_DEFAULT_CONTAINS = [
+  const RUBY_DEFAULT_CONTAINS = [
     STRING,
     {
       className: 'class',
-      beginKeywords: 'class module', end: '$|;',
+      beginKeywords: 'class module',
+      end: '$|;',
       illegal: /=/,
       contains: [
-        hljs.inherit(hljs.TITLE_MODE, {begin: '[A-Za-z_]\\w*(::\\w+)*(\\?|!)?'}),
+        hljs.inherit(hljs.TITLE_MODE, {
+          begin: '[A-Za-z_]\\w*(::\\w+)*(\\?|!)?'
+        }),
         {
           begin: '<\\s*',
-          contains: [{
-            begin: '(' + hljs.IDENT_RE + '::)?' + hljs.IDENT_RE
-          }]
+          contains: [
+            {
+              begin: '(' + hljs.IDENT_RE + '::)?' + hljs.IDENT_RE,
+              // we already get points for <, we don't need poitns
+              // for the name also
+              relevance: 0
+            }
+          ]
         }
       ].concat(COMMENT_MODES)
     },
@@ -14497,11 +18447,14 @@ function ruby(hljs) {
       // def method_name(
       // def method_name;
       // def method_name (end of line)
-      begin: concat$k(/def\s*/, lookahead$6(RUBY_METHOD_RE + "\\s*(\\(|;|$)")),
+      begin: concat$f(/def\s+/, lookahead$5(RUBY_METHOD_RE + "\\s*(\\(|;|$)")),
+      relevance: 0, // relevance comes from kewords
       keywords: "def",
       end: '$|;',
       contains: [
-        hljs.inherit(hljs.TITLE_MODE, {begin: RUBY_METHOD_RE}),
+        hljs.inherit(hljs.TITLE_MODE, {
+          begin: RUBY_METHOD_RE
+        }),
         PARAMS
       ].concat(COMMENT_MODES)
     },
@@ -14517,7 +18470,12 @@ function ruby(hljs) {
     {
       className: 'symbol',
       begin: ':(?!\\s)',
-      contains: [STRING, {begin: RUBY_METHOD_RE}],
+      contains: [
+        STRING,
+        {
+          begin: RUBY_METHOD_RE
+        }
+      ],
       relevance: 0
     },
     NUMBER,
@@ -14531,7 +18489,7 @@ function ruby(hljs) {
       className: 'params',
       begin: /\|/,
       end: /\|/,
-      relevance:0, // this could be a lot of things (in other languages) other than params
+      relevance: 0, // this could be a lot of things (in other languages) other than params
       keywords: RUBY_KEYWORDS
     },
     { // regexp container
@@ -14540,14 +18498,32 @@ function ruby(hljs) {
       contains: [
         {
           className: 'regexp',
-          contains: [hljs.BACKSLASH_ESCAPE, SUBST],
+          contains: [
+            hljs.BACKSLASH_ESCAPE,
+            SUBST
+          ],
           illegal: /\n/,
           variants: [
-            {begin: '/', end: '/[a-z]*'},
-            {begin: /%r\{/, end: /\}[a-z]*/},
-            {begin: '%r\\(', end: '\\)[a-z]*'},
-            {begin: '%r!', end: '![a-z]*'},
-            {begin: '%r\\[', end: '\\][a-z]*'}
+            {
+              begin: '/',
+              end: '/[a-z]*'
+            },
+            {
+              begin: /%r\{/,
+              end: /\}[a-z]*/
+            },
+            {
+              begin: '%r\\(',
+              end: '\\)[a-z]*'
+            },
+            {
+              begin: '%r!',
+              end: '![a-z]*'
+            },
+            {
+              begin: '%r\\[',
+              end: '\\][a-z]*'
+            }
           ]
         }
       ].concat(IRB_OBJECT, COMMENT_MODES),
@@ -14560,23 +18536,25 @@ function ruby(hljs) {
 
   // >>
   // ?>
-  var SIMPLE_PROMPT = "[>?]>";
+  const SIMPLE_PROMPT = "[>?]>";
   // irb(main):001:0>
-  var DEFAULT_PROMPT = "[\\w#]+\\(\\w+\\):\\d+:\\d+>";
-  var RVM_PROMPT = "(\\w+-)?\\d+\\.\\d+\\.\\d+(p\\d+)?[^\\d][^>]+>";
+  const DEFAULT_PROMPT = "[\\w#]+\\(\\w+\\):\\d+:\\d+>";
+  const RVM_PROMPT = "(\\w+-)?\\d+\\.\\d+\\.\\d+(p\\d+)?[^\\d][^>]+>";
 
-  var IRB_DEFAULT = [
+  const IRB_DEFAULT = [
     {
       begin: /^\s*=>/,
       starts: {
-        end: '$', contains: RUBY_DEFAULT_CONTAINS
+        end: '$',
+        contains: RUBY_DEFAULT_CONTAINS
       }
     },
     {
       className: 'meta',
-      begin: '^('+SIMPLE_PROMPT+"|"+DEFAULT_PROMPT+'|'+RVM_PROMPT+')(?=[ ])',
+      begin: '^(' + SIMPLE_PROMPT + "|" + DEFAULT_PROMPT + '|' + RVM_PROMPT + ')(?=[ ])',
       starts: {
-        end: '$', contains: RUBY_DEFAULT_CONTAINS
+        end: '$',
+        contains: RUBY_DEFAULT_CONTAINS
       }
     }
   ];
@@ -14585,12 +18563,20 @@ function ruby(hljs) {
 
   return {
     name: 'Ruby',
-    aliases: ['rb', 'gemspec', 'podspec', 'thor', 'irb'],
+    aliases: [
+      'rb',
+      'gemspec',
+      'podspec',
+      'thor',
+      'irb'
+    ],
     keywords: RUBY_KEYWORDS,
     illegal: /\/\*/,
     contains: [
-        hljs.SHEBANG({binary:"ruby"}),
-      ]
+      hljs.SHEBANG({
+        binary: "ruby"
+      })
+    ]
       .concat(IRB_DEFAULT)
       .concat(COMMENT_MODES)
       .concat(RUBY_DEFAULT_CONTAINS)
@@ -14638,7 +18624,7 @@ var erb_1 = erb;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$k(re) {
+function source$g(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -14649,8 +18635,8 @@ function source$k(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$j(...args) {
-  const joined = args.map((x) => source$k(x)).join("");
+function concat$g(...args) {
+  const joined = args.map((x) => source$g(x)).join("");
   return joined;
 }
 
@@ -14687,7 +18673,7 @@ function erlangRepl(hljs) {
       hljs.APOS_STRING_MODE,
       hljs.QUOTE_STRING_MODE,
       {
-        begin: concat$j(
+        begin: concat$g(
           /\?(::)?/,
           /([A-Z]\w*)/, // at least one identifier
           /((::)[A-Z]\w*)*/ // perhaps more
@@ -14834,6 +18820,30 @@ function erlang(hljs) {
   TUPLE.contains = BASIC_MODES;
   RECORD_ACCESS.contains[1].contains = BASIC_MODES;
 
+  const DIRECTIVES = [
+    "-module",
+    "-record",
+    "-undef",
+    "-export",
+    "-ifdef",
+    "-ifndef",
+    "-author",
+    "-copyright",
+    "-doc",
+    "-vsn",
+    "-import",
+    "-include",
+    "-include_lib",
+    "-compile",
+    "-define",
+    "-else",
+    "-endif",
+    "-file",
+    "-behaviour",
+    "-behavior",
+    "-spec"
+  ];
+
   const PARAMS = {
     className: 'params',
     begin: '\\(',
@@ -14873,9 +18883,7 @@ function erlang(hljs) {
         returnBegin: true,
         keywords: {
           $pattern: '-' + hljs.IDENT_RE,
-          keyword: '-module -record -undef -export -ifdef -ifndef -author -copyright -doc -vsn ' +
-          '-import -include -include_lib -compile -define -else -endif -file -behaviour ' +
-          '-behavior -spec'
+          keyword: DIRECTIVES.map(x => `${x}|1.5`).join(" ")
         },
         contains: [PARAMS]
       },
@@ -15021,6 +19029,7 @@ function flix(hljs) {
 
   const NAME = {
     className: 'title',
+    relevance: 0,
     begin: /[^0-9\n\t "'(),.`{}\[\]:;][^\n\t "'(),.`{}\[\]:;]+|[^0-9\n\t "'(),.`{}\[\]:;=]/
   };
 
@@ -15060,7 +19069,7 @@ var flix_1 = flix;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$j(re) {
+function source$h(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -15071,8 +19080,8 @@ function source$j(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$i(...args) {
-  const joined = args.map((x) => source$j(x)).join("");
+function concat$h(...args) {
+  const joined = args.map((x) => source$h(x)).join("");
   return joined;
 }
 
@@ -15113,13 +19122,13 @@ function fortran(hljs) {
     className: 'number',
     variants: [
       {
-        begin: concat$i(/\b\d+/, /\.(\d*)/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
+        begin: concat$h(/\b\d+/, /\.(\d*)/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
       },
       {
-        begin: concat$i(/\b\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
+        begin: concat$h(/\b\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
       },
       {
-        begin: concat$i(/\.\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
+        begin: concat$h(/\.\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
       }
     ],
     relevance: 0
@@ -15318,15 +19327,15 @@ function source$i(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function anyNumberOfTimes$2(re) {
-  return concat$h('(', re, ')*');
+function anyNumberOfTimes(re) {
+  return concat$i('(', re, ')*');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$h(...args) {
+function concat$i(...args) {
   const joined = args.map((x) => source$i(x)).join("");
   return joined;
 }
@@ -15416,10 +19425,10 @@ function gams(hljs) {
       {
         className: 'comment',
         // one comment word, then possibly more
-        begin: concat$h(
+        begin: concat$i(
           COMMENT_WORD,
           // [ ] because \s would be too broad (matching newlines)
-          anyNumberOfTimes$2(concat$h(/[ ]+/, COMMENT_WORD))
+          anyNumberOfTimes(concat$i(/[ ]+/, COMMENT_WORD))
         ),
         relevance: 0
       }
@@ -16104,14 +20113,17 @@ function gml(hljs) {
   const GML_KEYWORDS = {
     keyword: 'begin end if then else while do for break continue with until ' +
       'repeat exit and or xor not return mod div switch case default var ' +
-      'globalvar enum #macro #region #endregion',
-    built_in: 'is_real is_string is_array is_undefined is_int32 is_int64 ' +
-      'is_ptr is_vec3 is_vec4 is_matrix is_bool typeof ' +
-      'variable_global_exists variable_global_get variable_global_set ' +
+      'globalvar enum function constructor delete #macro #region #endregion',
+    built_in: 'is_real is_string is_array is_undefined is_int32 is_int64 is_ptr ' +
+      'is_vec3 is_vec4 is_matrix is_bool is_method is_struct is_infinity is_nan ' +
+      'is_numeric typeof variable_global_exists variable_global_get variable_global_set ' +
       'variable_instance_exists variable_instance_get variable_instance_set ' +
-      'variable_instance_get_names array_length_1d array_length_2d ' +
-      'array_height_2d array_equals array_create array_copy random ' +
-      'random_range irandom irandom_range random_set_seed random_get_seed ' +
+      'variable_instance_get_names variable_struct_exists variable_struct_get ' +
+      'variable_struct_get_names variable_struct_names_count variable_struct_remove ' +
+      'variable_struct_set array_delete array_insert array_length array_length_1d ' +
+      'array_length_2d array_height_2d array_equals array_create ' +
+      'array_copy array_pop array_push array_resize array_sort ' +
+      'random random_range irandom irandom_range random_set_seed random_get_seed ' +
       'randomize randomise choose abs round floor ceil sign frac sqrt sqr ' +
       'exp ln log2 log10 sin cos tan arcsin arccos arctan arctan2 dsin dcos ' +
       'dtan darcsin darccos darctan darctan2 degtorad radtodeg power logn ' +
@@ -16919,7 +20931,7 @@ function gml(hljs) {
     symbol: 'argument_relative argument argument0 argument1 argument2 ' +
       'argument3 argument4 argument5 argument6 argument7 argument8 ' +
       'argument9 argument10 argument11 argument12 argument13 argument14 ' +
-      'argument15 argument_count x y xprevious yprevious xstart ystart ' +
+      'argument15 argument_count x|0 y|0 xprevious yprevious xstart ystart ' +
       'hspeed vspeed direction speed friction gravity gravity_direction ' +
       'path_index path_position path_positionprevious path_speed ' +
       'path_scale path_orientation path_endaction object_index id solid ' +
@@ -16960,10 +20972,6 @@ function gml(hljs) {
 
   return {
     name: 'GML',
-    aliases: [
-      'gml',
-      'GML'
-    ],
     case_insensitive: false, // language is case-insensitive
     keywords: GML_KEYWORDS,
 
@@ -17142,7 +21150,7 @@ var gradle_1 = gradle;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$h(re) {
+function source$j(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -17153,16 +21161,16 @@ function source$h(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$5(re) {
-  return concat$g('(?=', re, ')');
+function lookahead$6(re) {
+  return concat$j('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$g(...args) {
-  const joined = args.map((x) => source$h(x)).join("");
+function concat$j(...args) {
+  const joined = args.map((x) => source$j(x)).join("");
   return joined;
 }
 
@@ -17187,14 +21195,16 @@ function groovy(hljs) {
       '/\\*\\*',
       '\\*/',
       {
-        relevance : 0,
-        contains : [
+        relevance: 0,
+        contains: [
           {
             // eat up @'s in emails to prevent them to be recognized as doctags
-            begin: /\w+@/, relevance: 0
-          }, {
-            className : 'doctag',
-            begin : '@[A-Za-z]+'
+            begin: /\w+@/,
+            relevance: 0
+          },
+          {
+            className: 'doctag',
+            begin: '@[A-Za-z]+'
           }
         ]
       }
@@ -17203,38 +21213,40 @@ function groovy(hljs) {
   const REGEXP = {
     className: 'regexp',
     begin: /~?\/[^\/\n]+\//,
-    contains: [
-      hljs.BACKSLASH_ESCAPE
-    ]
+    contains: [ hljs.BACKSLASH_ESCAPE ]
   };
   const NUMBER = variants([
     hljs.BINARY_NUMBER_MODE,
-    hljs.C_NUMBER_MODE,
+    hljs.C_NUMBER_MODE
   ]);
   const STRING = variants([
     {
       begin: /"""/,
       end: /"""/
-    }, {
+    },
+    {
       begin: /'''/,
       end: /'''/
-    }, {
+    },
+    {
       begin: "\\$/",
       end: "/\\$",
       relevance: 10
     },
     hljs.APOS_STRING_MODE,
-    hljs.QUOTE_STRING_MODE,
-    ],
-    { className: "string" }
+    hljs.QUOTE_STRING_MODE
+  ],
+  {
+    className: "string"
+  }
   );
 
-    return {
-        name: 'Groovy',
-        keywords: {
-            built_in: 'this super',
-            literal: 'true false null',
-            keyword:
+  return {
+    name: 'Groovy',
+    keywords: {
+      built_in: 'this super',
+      literal: 'true false null',
+      keyword:
             'byte short char int long boolean float double void ' +
             // groovy specific keywords
             'def as in assert trait ' +
@@ -17242,59 +21254,64 @@ function groovy(hljs) {
             'abstract static volatile transient public private protected synchronized final ' +
             'class interface enum if else for while switch case break default continue ' +
             'throw throws try catch finally implements extends new import package return instanceof'
-        },
+    },
+    contains: [
+      hljs.SHEBANG({
+        binary: "groovy",
+        relevance: 10
+      }),
+      COMMENT,
+      STRING,
+      REGEXP,
+      NUMBER,
+      {
+        className: 'class',
+        beginKeywords: 'class interface trait enum',
+        end: /\{/,
+        illegal: ':',
         contains: [
-            hljs.SHEBANG({
-              binary: "groovy",
-              relevance: 10
-            }),
-            COMMENT,
-            STRING,
-            REGEXP,
-            NUMBER,
-            {
-                className: 'class',
-                beginKeywords: 'class interface trait enum', end: /\{/,
-                illegal: ':',
-                contains: [
-                    {beginKeywords: 'extends implements'},
-                    hljs.UNDERSCORE_TITLE_MODE
-                ]
-            },
-            {
-                className: 'meta',
-                begin: '@[A-Za-z]+',
-                relevance: 0
-            },
-            {
-              // highlight map keys and named parameters as attrs
-              className: 'attr', begin: IDENT_RE + '[ \t]*:'
-            },
-            {
-              // catch middle element of the ternary operator
-              // to avoid highlight it as a label, named parameter, or map key
-              begin: /\?/,
-              end: /:/,
-              relevance: 0,
-              contains: [
-                COMMENT,
-                STRING,
-                REGEXP,
-                NUMBER,
-                'self'
-              ]
-            },
-            {
-                // highlight labeled statements
-                className: 'symbol',
-                begin: '^[ \t]*' + lookahead$5(IDENT_RE + ':'),
-                excludeBegin: true,
-                end: IDENT_RE + ':',
-                relevance: 0
-            }
-        ],
-        illegal: /#|<\//
-    };
+          {
+            beginKeywords: 'extends implements'
+          },
+          hljs.UNDERSCORE_TITLE_MODE
+        ]
+      },
+      {
+        className: 'meta',
+        begin: '@[A-Za-z]+',
+        relevance: 0
+      },
+      {
+        // highlight map keys and named parameters as attrs
+        className: 'attr',
+        begin: IDENT_RE + '[ \t]*:',
+        relevance: 0
+      },
+      {
+        // catch middle element of the ternary operator
+        // to avoid highlight it as a label, named parameter, or map key
+        begin: /\?/,
+        end: /:/,
+        relevance: 0,
+        contains: [
+          COMMENT,
+          STRING,
+          REGEXP,
+          NUMBER,
+          'self'
+        ]
+      },
+      {
+        // highlight labeled statements
+        className: 'symbol',
+        begin: '^[ \t]*' + lookahead$6(IDENT_RE + ':'),
+        excludeBegin: true,
+        end: IDENT_RE + ':',
+        relevance: 0
+      }
+    ],
+    illegal: /#|<\//
+  };
 }
 
 var groovy_1 = groovy;
@@ -17426,7 +21443,7 @@ var haml_1 = haml;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$g(re) {
+function source$k(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -17438,23 +21455,23 @@ function source$g(re) {
  * @returns {string}
  */
 function anyNumberOfTimes$1(re) {
-  return concat$f('(', re, ')*');
+  return concat$k('(', re, ')*');
 }
 
 /**
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$2(re) {
-  return concat$f('(', re, ')?');
+function optional$5(re) {
+  return concat$k('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$f(...args) {
-  const joined = args.map((x) => source$g(x)).join("");
+function concat$k(...args) {
+  const joined = args.map((x) => source$k(x)).join("");
   return joined;
 }
 
@@ -17465,8 +21482,8 @@ function concat$f(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$8(...args) {
-  const joined = '(' + args.map((x) => source$g(x)).join("|") + ")";
+function either$4(...args) {
+  const joined = '(' + args.map((x) => source$k(x)).join("|") + ")";
   return joined;
 }
 
@@ -17479,7 +21496,7 @@ Website: https://handlebarsjs.com
 Category: template
 */
 
-function handlebars$1(hljs) {
+function handlebars(hljs) {
   const BUILT_INS = {
     'builtin-name': [
       'action',
@@ -17511,7 +21528,7 @@ function handlebars$1(hljs) {
       'view',
       'with',
       'yield'
-    ].join(" ")
+    ]
   };
 
   const LITERALS = {
@@ -17520,7 +21537,7 @@ function handlebars$1(hljs) {
       'false',
       'undefined',
       'null'
-    ].join(" ")
+    ]
   };
 
   // as defined in https://handlebarsjs.com/guide/expressions.html#literal-segments
@@ -17532,24 +21549,24 @@ function handlebars$1(hljs) {
   const BRACKET_QUOTED_ID_REGEX = /\[\]|\[[^\]]+\]/;
   const PLAIN_ID_REGEX = /[^\s!"#%&'()*+,.\/;<=>@\[\\\]^`{|}~]+/;
   const PATH_DELIMITER_REGEX = /(\.|\/)/;
-  const ANY_ID = either$8(
+  const ANY_ID = either$4(
     DOUBLE_QUOTED_ID_REGEX,
     SINGLE_QUOTED_ID_REGEX,
     BRACKET_QUOTED_ID_REGEX,
     PLAIN_ID_REGEX
     );
 
-  const IDENTIFIER_REGEX = concat$f(
-    optional$2(/\.|\.\/|\//), // relative or absolute path
+  const IDENTIFIER_REGEX = concat$k(
+    optional$5(/\.|\.\/|\//), // relative or absolute path
     ANY_ID,
-    anyNumberOfTimes$1(concat$f(
+    anyNumberOfTimes$1(concat$k(
       PATH_DELIMITER_REGEX,
       ANY_ID
     ))
   );
 
   // identifier followed by a equal-sign (without the equal sign)
-  const HASH_PARAM_REGEX = concat$f(
+  const HASH_PARAM_REGEX = concat$k(
     '(',
     BRACKET_QUOTED_ID_REGEX, '|',
     PLAIN_ID_REGEX,
@@ -17740,7 +21757,7 @@ function handlebars$1(hljs) {
   };
 }
 
-var handlebars_1 = handlebars$1;
+var handlebars_1 = handlebars;
 
 /*
 Language: Haskell
@@ -18149,7 +22166,7 @@ var hsp_1 = hsp;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$f(re) {
+function source$l(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -18160,24 +22177,24 @@ function source$f(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function anyNumberOfTimes(re) {
-  return concat$e('(', re, ')*');
+function anyNumberOfTimes$2(re) {
+  return concat$l('(', re, ')*');
 }
 
 /**
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional$1(re) {
-  return concat$e('(', re, ')?');
+function optional$6(re) {
+  return concat$l('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$e(...args) {
-  const joined = args.map((x) => source$f(x)).join("");
+function concat$l(...args) {
+  const joined = args.map((x) => source$l(x)).join("");
   return joined;
 }
 
@@ -18188,8 +22205,8 @@ function concat$e(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$7(...args) {
-  const joined = '(' + args.map((x) => source$f(x)).join("|") + ")";
+function either$5(...args) {
+  const joined = '(' + args.map((x) => source$l(x)).join("|") + ")";
   return joined;
 }
 
@@ -18202,7 +22219,7 @@ Website: https://handlebarsjs.com
 Category: template
 */
 
-function handlebars(hljs) {
+function handlebars$1(hljs) {
   const BUILT_INS = {
     'builtin-name': [
       'action',
@@ -18234,7 +22251,7 @@ function handlebars(hljs) {
       'view',
       'with',
       'yield'
-    ].join(" ")
+    ]
   };
 
   const LITERALS = {
@@ -18243,7 +22260,7 @@ function handlebars(hljs) {
       'false',
       'undefined',
       'null'
-    ].join(" ")
+    ]
   };
 
   // as defined in https://handlebarsjs.com/guide/expressions.html#literal-segments
@@ -18255,24 +22272,24 @@ function handlebars(hljs) {
   const BRACKET_QUOTED_ID_REGEX = /\[\]|\[[^\]]+\]/;
   const PLAIN_ID_REGEX = /[^\s!"#%&'()*+,.\/;<=>@\[\\\]^`{|}~]+/;
   const PATH_DELIMITER_REGEX = /(\.|\/)/;
-  const ANY_ID = either$7(
+  const ANY_ID = either$5(
     DOUBLE_QUOTED_ID_REGEX,
     SINGLE_QUOTED_ID_REGEX,
     BRACKET_QUOTED_ID_REGEX,
     PLAIN_ID_REGEX
     );
 
-  const IDENTIFIER_REGEX = concat$e(
-    optional$1(/\.|\.\/|\//), // relative or absolute path
+  const IDENTIFIER_REGEX = concat$l(
+    optional$6(/\.|\.\/|\//), // relative or absolute path
     ANY_ID,
-    anyNumberOfTimes(concat$e(
+    anyNumberOfTimes$2(concat$l(
       PATH_DELIMITER_REGEX,
       ANY_ID
     ))
   );
 
   // identifier followed by a equal-sign (without the equal sign)
-  const HASH_PARAM_REGEX = concat$e(
+  const HASH_PARAM_REGEX = concat$l(
     '(',
     BRACKET_QUOTED_ID_REGEX, '|',
     PLAIN_ID_REGEX,
@@ -18472,7 +22489,7 @@ function handlebars(hljs) {
  */
 
 function htmlbars(hljs) {
-  const definition = handlebars(hljs);
+  const definition = handlebars$1(hljs);
 
   definition.name = "HTMLbars";
 
@@ -18502,7 +22519,7 @@ var htmlbars_1 = htmlbars;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$e(re) {
+function source$m(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -18513,8 +22530,8 @@ function source$e(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$d(...args) {
-  const joined = args.map((x) => source$e(x)).join("");
+function concat$m(...args) {
+  const joined = args.map((x) => source$m(x)).join("");
   return joined;
 }
 
@@ -18529,24 +22546,25 @@ Website: https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview
 function http(hljs) {
   const VERSION = 'HTTP/(2|1\\.[01])';
   const HEADER_NAME = /[A-Za-z][A-Za-z0-9-]*/;
-  const HEADERS_AND_BODY = [
-    {
-      className: 'attribute',
-      begin: concat$d('^', HEADER_NAME, '(?=\\:\\s)'),
-      starts: {
-        contains: [
-          {
-            className: "punctuation",
-            begin: /: /,
-            relevance: 0,
-            starts: {
-              end: '$',
-              relevance: 0
-            }
+  const HEADER = {
+    className: 'attribute',
+    begin: concat$m('^', HEADER_NAME, '(?=\\:\\s)'),
+    starts: {
+      contains: [
+        {
+          className: "punctuation",
+          begin: /: /,
+          relevance: 0,
+          starts: {
+            end: '$',
+            relevance: 0
           }
-        ]
-      }
-    },
+        }
+      ]
+    }
+  };
+  const HEADERS_AND_BODY = [
+    HEADER,
     {
       begin: '\\n\\n',
       starts: { subLanguage: [], endsWithParent: true }
@@ -18603,7 +22621,11 @@ function http(hljs) {
           illegal: /\S/,
           contains: HEADERS_AND_BODY
         }
-      }
+      },
+      // to allow headers to work even without a preamble
+      hljs.inherit(HEADER, {
+        relevance: 0
+      })
     ]
   };
 }
@@ -18800,7 +22822,7 @@ var inform7_1 = inform7;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$d(re) {
+function source$n(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -18811,16 +22833,16 @@ function source$d(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$4(re) {
-  return concat$c('(?=', re, ')');
+function lookahead$7(re) {
+  return concat$n('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$c(...args) {
-  const joined = args.map((x) => source$d(x)).join("");
+function concat$n(...args) {
+  const joined = args.map((x) => source$n(x)).join("");
   return joined;
 }
 
@@ -18832,7 +22854,7 @@ function concat$c(...args) {
  * @returns {string}
  */
 function either$6(...args) {
-  const joined = '(' + args.map((x) => source$d(x)).join("|") + ")";
+  const joined = '(' + args.map((x) => source$n(x)).join("|") + ")";
   return joined;
 }
 
@@ -18927,9 +22949,9 @@ function ini(hljs) {
   const ANY_KEY = either$6(
     BARE_KEY, QUOTED_KEY_DOUBLE_QUOTE, QUOTED_KEY_SINGLE_QUOTE
   );
-  const DOTTED_KEY = concat$c(
+  const DOTTED_KEY = concat$n(
     ANY_KEY, '(\\s*\\.\\s*', ANY_KEY, ')*',
-    lookahead$4(/\s*=\s*[^#\s]/)
+    lookahead$7(/\s*=\s*[^#\s]/)
   );
 
   return {
@@ -18974,7 +22996,7 @@ var ini_1 = ini;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$c(re) {
+function source$o(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -18985,8 +23007,8 @@ function source$c(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$b(...args) {
-  const joined = args.map((x) => source$c(x)).join("");
+function concat$o(...args) {
+  const joined = args.map((x) => source$o(x)).join("");
   return joined;
 }
 
@@ -19013,13 +23035,13 @@ function irpf90(hljs) {
     className: 'number',
     variants: [
       {
-        begin: concat$b(/\b\d+/, /\.(\d*)/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
+        begin: concat$o(/\b\d+/, /\.(\d*)/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
       },
       {
-        begin: concat$b(/\b\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
+        begin: concat$o(/\b\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
       },
       {
-        begin: concat$b(/\.\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
+        begin: concat$o(/\.\d+/, OPTIONAL_NUMBER_EXP, OPTIONAL_NUMBER_SUFFIX)
       }
     ],
     relevance: 0
@@ -22298,7 +26320,6 @@ function isbl(hljs) {
 
   return {
     name: 'ISBL',
-    aliases: ["isbl"],
     case_insensitive: true,
     keywords: KEYWORDS,
     illegal: "\\$|\\?|%|,|;$|~|#|@|</",
@@ -22317,30 +26338,30 @@ function isbl(hljs) {
 var isbl_1 = isbl;
 
 // https://docs.oracle.com/javase/specs/jls/se15/html/jls-3.html#jls-3.10
-var decimalDigits$1 = '[0-9](_*[0-9])*';
-var frac$1 = `\\.(${decimalDigits$1})`;
-var hexDigits$1 = '[0-9a-fA-F](_*[0-9a-fA-F])*';
-var NUMERIC$1 = {
+var decimalDigits = '[0-9](_*[0-9])*';
+var frac = `\\.(${decimalDigits})`;
+var hexDigits = '[0-9a-fA-F](_*[0-9a-fA-F])*';
+var NUMERIC = {
   className: 'number',
   variants: [
     // DecimalFloatingPointLiteral
     // including ExponentPart
-    { begin: `(\\b(${decimalDigits$1})((${frac$1})|\\.)?|(${frac$1}))` +
-      `[eE][+-]?(${decimalDigits$1})[fFdD]?\\b` },
+    { begin: `(\\b(${decimalDigits})((${frac})|\\.)?|(${frac}))` +
+      `[eE][+-]?(${decimalDigits})[fFdD]?\\b` },
     // excluding ExponentPart
-    { begin: `\\b(${decimalDigits$1})((${frac$1})[fFdD]?\\b|\\.([fFdD]\\b)?)` },
-    { begin: `(${frac$1})[fFdD]?\\b` },
-    { begin: `\\b(${decimalDigits$1})[fFdD]\\b` },
+    { begin: `\\b(${decimalDigits})((${frac})[fFdD]?\\b|\\.([fFdD]\\b)?)` },
+    { begin: `(${frac})[fFdD]?\\b` },
+    { begin: `\\b(${decimalDigits})[fFdD]\\b` },
 
     // HexadecimalFloatingPointLiteral
-    { begin: `\\b0[xX]((${hexDigits$1})\\.?|(${hexDigits$1})?\\.(${hexDigits$1}))` +
-      `[pP][+-]?(${decimalDigits$1})[fFdD]?\\b` },
+    { begin: `\\b0[xX]((${hexDigits})\\.?|(${hexDigits})?\\.(${hexDigits}))` +
+      `[pP][+-]?(${decimalDigits})[fFdD]?\\b` },
 
     // DecimalIntegerLiteral
     { begin: '\\b(0|[1-9](_*[0-9])*)[lL]?\\b' },
 
     // HexIntegerLiteral
-    { begin: `\\b0[xX](${hexDigits$1})[lL]?\\b` },
+    { begin: `\\b0[xX](${hexDigits})[lL]?\\b` },
 
     // OctalIntegerLiteral
     { begin: '\\b0(_*[0-7])*[lL]?\\b' },
@@ -22378,7 +26399,7 @@ function java(hljs) {
       },
     ]
   };
-  const NUMBER = NUMERIC$1;
+  const NUMBER = NUMERIC;
 
   return {
     name: 'Java',
@@ -22416,6 +26437,11 @@ function java(hljs) {
       {
         className: 'class',
         beginKeywords: 'class interface enum', end: /[{;=]/, excludeEnd: true,
+        // TODO: can this be removed somehow?
+        // an extra boost because Java is more popular than other languages with
+        // this same syntax feature (this is just to preserve our tests passing
+        // for now)
+        relevance: 1,
         keywords: 'class interface enum',
         illegal: /[:"\[\]]/,
         contains: [
@@ -22494,7 +26520,7 @@ function java(hljs) {
 var java_1 = java;
 
 const IDENT_RE$1 = '[A-Za-z$_][0-9A-Za-z$_]*';
-const KEYWORDS$2 = [
+const KEYWORDS$1 = [
   "as", // for exports
   "in",
   "of",
@@ -22537,7 +26563,7 @@ const KEYWORDS$2 = [
   "export",
   "extends"
 ];
-const LITERALS$2 = [
+const LITERALS$1 = [
   "true",
   "false",
   "null",
@@ -22546,7 +26572,7 @@ const LITERALS$2 = [
   "Infinity"
 ];
 
-const TYPES$2 = [
+const TYPES$1 = [
   "Intl",
   "DataView",
   "Number",
@@ -22577,10 +26603,13 @@ const TYPES$2 = [
   "Array",
   "Uint8Array",
   "Uint8ClampedArray",
-  "ArrayBuffer"
+  "ArrayBuffer",
+  "BigInt64Array",
+  "BigUint64Array",
+  "BigInt"
 ];
 
-const ERROR_TYPES$2 = [
+const ERROR_TYPES$1 = [
   "EvalError",
   "InternalError",
   "RangeError",
@@ -22590,7 +26619,7 @@ const ERROR_TYPES$2 = [
   "URIError"
 ];
 
-const BUILT_IN_GLOBALS$2 = [
+const BUILT_IN_GLOBALS$1 = [
   "setInterval",
   "setTimeout",
   "clearInterval",
@@ -22612,7 +26641,7 @@ const BUILT_IN_GLOBALS$2 = [
   "unescape"
 ];
 
-const BUILT_IN_VARIABLES$2 = [
+const BUILT_IN_VARIABLES$1 = [
   "arguments",
   "this",
   "super",
@@ -22624,11 +26653,11 @@ const BUILT_IN_VARIABLES$2 = [
   "global" // Node.js
 ];
 
-const BUILT_INS$2 = [].concat(
-  BUILT_IN_GLOBALS$2,
-  BUILT_IN_VARIABLES$2,
-  TYPES$2,
-  ERROR_TYPES$2
+const BUILT_INS$1 = [].concat(
+  BUILT_IN_GLOBALS$1,
+  BUILT_IN_VARIABLES$1,
+  TYPES$1,
+  ERROR_TYPES$1
 );
 
 /**
@@ -22640,7 +26669,7 @@ const BUILT_INS$2 = [].concat(
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$b(re) {
+function source$p(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -22651,16 +26680,16 @@ function source$b(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$3(re) {
-  return concat$a('(?=', re, ')');
+function lookahead$8(re) {
+  return concat$p('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$a(...args) {
-  const joined = args.map((x) => source$b(x)).join("");
+function concat$p(...args) {
+  const joined = args.map((x) => source$p(x)).join("");
   return joined;
 }
 
@@ -22672,7 +26701,7 @@ Website: https://developer.mozilla.org/en-US/docs/Web/JavaScript
 */
 
 /** @type LanguageFn */
-function javascript$1(hljs) {
+function javascript(hljs) {
   /**
    * Takes a string like "<Booger" and checks to see
    * if we can find a matching "</Booger" later in the
@@ -22719,11 +26748,11 @@ function javascript$1(hljs) {
       }
     }
   };
-  const KEYWORDS$1 = {
+  const KEYWORDS$1$1 = {
     $pattern: IDENT_RE$1,
-    keyword: KEYWORDS$2.join(" "),
-    literal: LITERALS$2.join(" "),
-    built_in: BUILT_INS$2.join(" ")
+    keyword: KEYWORDS$1,
+    literal: LITERALS$1,
+    built_in: BUILT_INS$1
   };
 
   // https://tc39.es/ecma262/#sec-literals-numeric-literals
@@ -22759,7 +26788,7 @@ function javascript$1(hljs) {
     className: 'subst',
     begin: '\\$\\{',
     end: '\\}',
-    keywords: KEYWORDS$1,
+    keywords: KEYWORDS$1$1,
     contains: [] // defined later
   };
   const HTML_TEMPLATE = {
@@ -22853,7 +26882,7 @@ function javascript$1(hljs) {
       // it from ending too early by matching another }
       begin: /\{/,
       end: /\}/,
-      keywords: KEYWORDS$1,
+      keywords: KEYWORDS$1$1,
       contains: [
         "self"
       ].concat(SUBST_INTERNALS)
@@ -22864,7 +26893,7 @@ function javascript$1(hljs) {
     {
       begin: /\(/,
       end: /\)/,
-      keywords: KEYWORDS$1,
+      keywords: KEYWORDS$1$1,
       contains: ["self"].concat(SUBST_AND_COMMENTS)
     }
   ]);
@@ -22874,14 +26903,14 @@ function javascript$1(hljs) {
     end: /\)/,
     excludeBegin: true,
     excludeEnd: true,
-    keywords: KEYWORDS$1,
+    keywords: KEYWORDS$1$1,
     contains: PARAMS_CONTAINS
   };
 
   return {
     name: 'Javascript',
     aliases: ['js', 'jsx', 'mjs', 'cjs'],
-    keywords: KEYWORDS$1,
+    keywords: KEYWORDS$1$1,
     // this will be extended by TypeScript
     exports: { PARAMS_CONTAINS },
     illegal: /#(?![$_A-z])/,
@@ -22905,7 +26934,7 @@ function javascript$1(hljs) {
       COMMENT,
       NUMBER,
       { // object attr container
-        begin: concat$a(/[{,\n]\s*/,
+        begin: concat$p(/[{,\n]\s*/,
           // we need to look ahead to make sure that we actually have an
           // attribute coming up so we don't steal a comma from a potential
           // "value" container
@@ -22916,7 +26945,7 @@ function javascript$1(hljs) {
           // fails to find any actual attrs. But this still does the job because
           // it prevents the value contain rule from grabbing this instead and
           // prevening this rule from firing when we actually DO have keys.
-          lookahead$3(concat$a(
+          lookahead$8(concat$p(
             // we also need to allow for multiple possible comments inbetween
             // the first key:value pairing
             /(((\/\/.*$)|(\/\*(\*[^/]|[^*])*\*\/))\s*)*/,
@@ -22925,7 +26954,7 @@ function javascript$1(hljs) {
         contains: [
           {
             className: 'attr',
-            begin: IDENT_RE$1$1 + lookahead$3('\\s*:'),
+            begin: IDENT_RE$1$1 + lookahead$8('\\s*:'),
             relevance: 0
           }
         ]
@@ -22968,7 +26997,7 @@ function javascript$1(hljs) {
                     end: /\)/,
                     excludeBegin: true,
                     excludeEnd: true,
-                    keywords: KEYWORDS$1,
+                    keywords: KEYWORDS$1$1,
                     contains: PARAMS_CONTAINS
                   }
                 ]
@@ -23013,7 +27042,7 @@ function javascript$1(hljs) {
         beginKeywords: 'function',
         end: /[{;]/,
         excludeEnd: true,
-        keywords: KEYWORDS$1,
+        keywords: KEYWORDS$1$1,
         contains: [
           'self',
           hljs.inherit(hljs.TITLE_MODE, { begin: IDENT_RE$1$1 }),
@@ -23093,7 +27122,7 @@ function javascript$1(hljs) {
   };
 }
 
-var javascript_1 = javascript$1;
+var javascript_1 = javascript;
 
 /*
  Language: JBoss CLI
@@ -23548,9 +27577,9 @@ function julia(hljs) {
 
   var KEYWORDS = {
     $pattern: VARIABLE_NAME_RE,
-    keyword: KEYWORD_LIST.join(" "),
-    literal: LITERAL_LIST.join(" "),
-    built_in: BUILT_IN_LIST.join(" "),
+    keyword: KEYWORD_LIST,
+    literal: LITERAL_LIST,
+    built_in: BUILT_IN_LIST,
   };
 
   // placeholder for recursive self-reference
@@ -23692,30 +27721,30 @@ function juliaRepl(hljs) {
 var juliaRepl_1 = juliaRepl;
 
 // https://docs.oracle.com/javase/specs/jls/se15/html/jls-3.html#jls-3.10
-var decimalDigits = '[0-9](_*[0-9])*';
-var frac = `\\.(${decimalDigits})`;
-var hexDigits = '[0-9a-fA-F](_*[0-9a-fA-F])*';
-var NUMERIC = {
+var decimalDigits$1 = '[0-9](_*[0-9])*';
+var frac$1 = `\\.(${decimalDigits$1})`;
+var hexDigits$1 = '[0-9a-fA-F](_*[0-9a-fA-F])*';
+var NUMERIC$1 = {
   className: 'number',
   variants: [
     // DecimalFloatingPointLiteral
     // including ExponentPart
-    { begin: `(\\b(${decimalDigits})((${frac})|\\.)?|(${frac}))` +
-      `[eE][+-]?(${decimalDigits})[fFdD]?\\b` },
+    { begin: `(\\b(${decimalDigits$1})((${frac$1})|\\.)?|(${frac$1}))` +
+      `[eE][+-]?(${decimalDigits$1})[fFdD]?\\b` },
     // excluding ExponentPart
-    { begin: `\\b(${decimalDigits})((${frac})[fFdD]?\\b|\\.([fFdD]\\b)?)` },
-    { begin: `(${frac})[fFdD]?\\b` },
-    { begin: `\\b(${decimalDigits})[fFdD]\\b` },
+    { begin: `\\b(${decimalDigits$1})((${frac$1})[fFdD]?\\b|\\.([fFdD]\\b)?)` },
+    { begin: `(${frac$1})[fFdD]?\\b` },
+    { begin: `\\b(${decimalDigits$1})[fFdD]\\b` },
 
     // HexadecimalFloatingPointLiteral
-    { begin: `\\b0[xX]((${hexDigits})\\.?|(${hexDigits})?\\.(${hexDigits}))` +
-      `[pP][+-]?(${decimalDigits})[fFdD]?\\b` },
+    { begin: `\\b0[xX]((${hexDigits$1})\\.?|(${hexDigits$1})?\\.(${hexDigits$1}))` +
+      `[pP][+-]?(${decimalDigits$1})[fFdD]?\\b` },
 
     // DecimalIntegerLiteral
     { begin: '\\b(0|[1-9](_*[0-9])*)[lL]?\\b' },
 
     // HexIntegerLiteral
-    { begin: `\\b0[xX](${hexDigits})[lL]?\\b` },
+    { begin: `\\b0[xX](${hexDigits$1})[lL]?\\b` },
 
     // OctalIntegerLiteral
     { begin: '\\b0(_*[0-7])*[lL]?\\b' },
@@ -23832,7 +27861,7 @@ function kotlin(hljs) {
   // https://kotlinlang.org/docs/reference/whatsnew11.html#underscores-in-numeric-literals
   // According to the doc above, the number mode of kotlin is the same as java 8,
   // so the code below is copied from java.js
-  const KOTLIN_NUMBER_MODE = NUMERIC;
+  const KOTLIN_NUMBER_MODE = NUMERIC$1;
   const KOTLIN_NESTED_COMMENT = hljs.COMMENT(
     '/\\*', '\\*/',
     {
@@ -23858,7 +27887,7 @@ function kotlin(hljs) {
 
   return {
     name: 'Kotlin',
-    aliases: [ 'kt' ],
+    aliases: [ 'kt', 'kts' ],
     keywords: KEYWORDS,
     contains: [
       hljs.COMMENT(
@@ -24173,7 +28202,7 @@ var lasso_1 = lasso;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$a(re) {
+function source$q(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -24187,8 +28216,8 @@ function source$a(re) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$5(...args) {
-  const joined = '(' + args.map((x) => source$a(x)).join("|") + ")";
+function either$7(...args) {
+  const joined = '(' + args.map((x) => source$q(x)).join("|") + ")";
   return joined;
 }
 
@@ -24201,7 +28230,7 @@ Category: markup
 
 /** @type LanguageFn */
 function latex(hljs) {
-  const KNOWN_CONTROL_WORDS = either$5(...[
+  const KNOWN_CONTROL_WORDS = either$7(...[
       '(?:NeedsTeXFormat|RequirePackage|GetIdInfo)',
       'Provides(?:Expl)?(?:Package|Class|File)',
       '(?:DeclareOption|ProcessOptions)',
@@ -24431,7 +28460,7 @@ function latex(hljs) {
 
   return {
     name: 'LaTeX',
-    aliases: ['TeX'],
+    aliases: ['tex'],
     contains: [
       ...VERBATIM,
       ...EVERYTHING_BUT_VERBATIM
@@ -24534,6 +28563,437 @@ function leaf(hljs) {
 
 var leaf_1 = leaf;
 
+const MODES$2 = (hljs) => {
+  return {
+    IMPORTANT: {
+      className: 'meta',
+      begin: '!important'
+    },
+    HEXCOLOR: {
+      className: 'number',
+      begin: '#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})'
+    },
+    ATTRIBUTE_SELECTOR_MODE: {
+      className: 'selector-attr',
+      begin: /\[/,
+      end: /\]/,
+      illegal: '$',
+      contains: [
+        hljs.APOS_STRING_MODE,
+        hljs.QUOTE_STRING_MODE
+      ]
+    }
+  };
+};
+
+const TAGS$1 = [
+  'a',
+  'abbr',
+  'address',
+  'article',
+  'aside',
+  'audio',
+  'b',
+  'blockquote',
+  'body',
+  'button',
+  'canvas',
+  'caption',
+  'cite',
+  'code',
+  'dd',
+  'del',
+  'details',
+  'dfn',
+  'div',
+  'dl',
+  'dt',
+  'em',
+  'fieldset',
+  'figcaption',
+  'figure',
+  'footer',
+  'form',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'header',
+  'hgroup',
+  'html',
+  'i',
+  'iframe',
+  'img',
+  'input',
+  'ins',
+  'kbd',
+  'label',
+  'legend',
+  'li',
+  'main',
+  'mark',
+  'menu',
+  'nav',
+  'object',
+  'ol',
+  'p',
+  'q',
+  'quote',
+  'samp',
+  'section',
+  'span',
+  'strong',
+  'summary',
+  'sup',
+  'table',
+  'tbody',
+  'td',
+  'textarea',
+  'tfoot',
+  'th',
+  'thead',
+  'time',
+  'tr',
+  'ul',
+  'var',
+  'video'
+];
+
+const MEDIA_FEATURES$1 = [
+  'any-hover',
+  'any-pointer',
+  'aspect-ratio',
+  'color',
+  'color-gamut',
+  'color-index',
+  'device-aspect-ratio',
+  'device-height',
+  'device-width',
+  'display-mode',
+  'forced-colors',
+  'grid',
+  'height',
+  'hover',
+  'inverted-colors',
+  'monochrome',
+  'orientation',
+  'overflow-block',
+  'overflow-inline',
+  'pointer',
+  'prefers-color-scheme',
+  'prefers-contrast',
+  'prefers-reduced-motion',
+  'prefers-reduced-transparency',
+  'resolution',
+  'scan',
+  'scripting',
+  'update',
+  'width',
+  // TODO: find a better solution?
+  'min-width',
+  'max-width',
+  'min-height',
+  'max-height'
+];
+
+// https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-classes
+const PSEUDO_CLASSES$1 = [
+  'active',
+  'any-link',
+  'blank',
+  'checked',
+  'current',
+  'default',
+  'defined',
+  'dir', // dir()
+  'disabled',
+  'drop',
+  'empty',
+  'enabled',
+  'first',
+  'first-child',
+  'first-of-type',
+  'fullscreen',
+  'future',
+  'focus',
+  'focus-visible',
+  'focus-within',
+  'has', // has()
+  'host', // host or host()
+  'host-context', // host-context()
+  'hover',
+  'indeterminate',
+  'in-range',
+  'invalid',
+  'is', // is()
+  'lang', // lang()
+  'last-child',
+  'last-of-type',
+  'left',
+  'link',
+  'local-link',
+  'not', // not()
+  'nth-child', // nth-child()
+  'nth-col', // nth-col()
+  'nth-last-child', // nth-last-child()
+  'nth-last-col', // nth-last-col()
+  'nth-last-of-type', //nth-last-of-type()
+  'nth-of-type', //nth-of-type()
+  'only-child',
+  'only-of-type',
+  'optional',
+  'out-of-range',
+  'past',
+  'placeholder-shown',
+  'read-only',
+  'read-write',
+  'required',
+  'right',
+  'root',
+  'scope',
+  'target',
+  'target-within',
+  'user-invalid',
+  'valid',
+  'visited',
+  'where' // where()
+];
+
+// https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-elements
+const PSEUDO_ELEMENTS$1 = [
+  'after',
+  'backdrop',
+  'before',
+  'cue',
+  'cue-region',
+  'first-letter',
+  'first-line',
+  'grammar-error',
+  'marker',
+  'part',
+  'placeholder',
+  'selection',
+  'slotted',
+  'spelling-error'
+];
+
+const ATTRIBUTES$1 = [
+  'align-content',
+  'align-items',
+  'align-self',
+  'animation',
+  'animation-delay',
+  'animation-direction',
+  'animation-duration',
+  'animation-fill-mode',
+  'animation-iteration-count',
+  'animation-name',
+  'animation-play-state',
+  'animation-timing-function',
+  'auto',
+  'backface-visibility',
+  'background',
+  'background-attachment',
+  'background-clip',
+  'background-color',
+  'background-image',
+  'background-origin',
+  'background-position',
+  'background-repeat',
+  'background-size',
+  'border',
+  'border-bottom',
+  'border-bottom-color',
+  'border-bottom-left-radius',
+  'border-bottom-right-radius',
+  'border-bottom-style',
+  'border-bottom-width',
+  'border-collapse',
+  'border-color',
+  'border-image',
+  'border-image-outset',
+  'border-image-repeat',
+  'border-image-slice',
+  'border-image-source',
+  'border-image-width',
+  'border-left',
+  'border-left-color',
+  'border-left-style',
+  'border-left-width',
+  'border-radius',
+  'border-right',
+  'border-right-color',
+  'border-right-style',
+  'border-right-width',
+  'border-spacing',
+  'border-style',
+  'border-top',
+  'border-top-color',
+  'border-top-left-radius',
+  'border-top-right-radius',
+  'border-top-style',
+  'border-top-width',
+  'border-width',
+  'bottom',
+  'box-decoration-break',
+  'box-shadow',
+  'box-sizing',
+  'break-after',
+  'break-before',
+  'break-inside',
+  'caption-side',
+  'clear',
+  'clip',
+  'clip-path',
+  'color',
+  'column-count',
+  'column-fill',
+  'column-gap',
+  'column-rule',
+  'column-rule-color',
+  'column-rule-style',
+  'column-rule-width',
+  'column-span',
+  'column-width',
+  'columns',
+  'content',
+  'counter-increment',
+  'counter-reset',
+  'cursor',
+  'direction',
+  'display',
+  'empty-cells',
+  'filter',
+  'flex',
+  'flex-basis',
+  'flex-direction',
+  'flex-flow',
+  'flex-grow',
+  'flex-shrink',
+  'flex-wrap',
+  'float',
+  'font',
+  'font-display',
+  'font-family',
+  'font-feature-settings',
+  'font-kerning',
+  'font-language-override',
+  'font-size',
+  'font-size-adjust',
+  'font-smoothing',
+  'font-stretch',
+  'font-style',
+  'font-variant',
+  'font-variant-ligatures',
+  'font-variation-settings',
+  'font-weight',
+  'height',
+  'hyphens',
+  'icon',
+  'image-orientation',
+  'image-rendering',
+  'image-resolution',
+  'ime-mode',
+  'inherit',
+  'initial',
+  'justify-content',
+  'left',
+  'letter-spacing',
+  'line-height',
+  'list-style',
+  'list-style-image',
+  'list-style-position',
+  'list-style-type',
+  'margin',
+  'margin-bottom',
+  'margin-left',
+  'margin-right',
+  'margin-top',
+  'marks',
+  'mask',
+  'max-height',
+  'max-width',
+  'min-height',
+  'min-width',
+  'nav-down',
+  'nav-index',
+  'nav-left',
+  'nav-right',
+  'nav-up',
+  'none',
+  'normal',
+  'object-fit',
+  'object-position',
+  'opacity',
+  'order',
+  'orphans',
+  'outline',
+  'outline-color',
+  'outline-offset',
+  'outline-style',
+  'outline-width',
+  'overflow',
+  'overflow-wrap',
+  'overflow-x',
+  'overflow-y',
+  'padding',
+  'padding-bottom',
+  'padding-left',
+  'padding-right',
+  'padding-top',
+  'page-break-after',
+  'page-break-before',
+  'page-break-inside',
+  'perspective',
+  'perspective-origin',
+  'pointer-events',
+  'position',
+  'quotes',
+  'resize',
+  'right',
+  'src', // @font-face
+  'tab-size',
+  'table-layout',
+  'text-align',
+  'text-align-last',
+  'text-decoration',
+  'text-decoration-color',
+  'text-decoration-line',
+  'text-decoration-style',
+  'text-indent',
+  'text-overflow',
+  'text-rendering',
+  'text-shadow',
+  'text-transform',
+  'text-underline-position',
+  'top',
+  'transform',
+  'transform-origin',
+  'transform-style',
+  'transition',
+  'transition-delay',
+  'transition-duration',
+  'transition-property',
+  'transition-timing-function',
+  'unicode-bidi',
+  'vertical-align',
+  'visibility',
+  'white-space',
+  'widows',
+  'width',
+  'word-break',
+  'word-spacing',
+  'word-wrap',
+  'z-index'
+  // reverse makes sure longer attributes `font-weight` are matched fully
+  // instead of getting false positives on say `font`
+].reverse();
+
+// some grammars use them all as a single group
+const PSEUDO_SELECTORS = PSEUDO_CLASSES$1.concat(PSEUDO_ELEMENTS$1);
+
 /*
 Language: Less
 Description: It's CSS, with just a little more.
@@ -24542,30 +29002,52 @@ Website: http://lesscss.org
 Category: common, css
 */
 
+/** @type LanguageFn */
 function less(hljs) {
-  var IDENT_RE        = '[\\w-]+'; // yes, Less identifiers may begin with a digit
-  var INTERP_IDENT_RE = '(' + IDENT_RE + '|@\\{' + IDENT_RE + '\\})';
+  const modes = MODES$2(hljs);
+  const PSEUDO_SELECTORS$1 = PSEUDO_SELECTORS;
+
+  const AT_MODIFIERS = "and or not only";
+  const IDENT_RE = '[\\w-]+'; // yes, Less identifiers may begin with a digit
+  const INTERP_IDENT_RE = '(' + IDENT_RE + '|@\\{' + IDENT_RE + '\\})';
 
   /* Generic Modes */
 
-  var RULES = [], VALUE = []; // forward def. for recursive modes
+  const RULES = []; const VALUE_MODES = []; // forward def. for recursive modes
 
-  var STRING_MODE = function(c) { return {
+  const STRING_MODE = function(c) {
+    return {
     // Less strings are not multiline (also include '~' for more consistent coloring of "escaped" strings)
-    className: 'string', begin: '~?' + c + '.*?' + c
-  };};
+      className: 'string',
+      begin: '~?' + c + '.*?' + c
+    };
+  };
 
-  var IDENT_MODE = function(name, begin, relevance) { return {
-    className: name, begin: begin, relevance: relevance
-  };};
+  const IDENT_MODE = function(name, begin, relevance) {
+    return {
+      className: name,
+      begin: begin,
+      relevance: relevance
+    };
+  };
 
-  var PARENS_MODE = {
+  const AT_KEYWORDS = {
+    $pattern: /[a-z-]+/,
+    keyword: AT_MODIFIERS,
+    attribute: MEDIA_FEATURES$1.join(" ")
+  };
+
+  const PARENS_MODE = {
     // used only to properly balance nested parens inside mixin call, def. arg list
-    begin: '\\(', end: '\\)', contains: VALUE, relevance: 0
+    begin: '\\(',
+    end: '\\)',
+    contains: VALUE_MODES,
+    keywords: AT_KEYWORDS,
+    relevance: 0
   };
 
   // generic Less highlighter (used almost everywhere except selectors):
-  VALUE.push(
+  VALUE_MODES.push(
     hljs.C_LINE_COMMENT_MODE,
     hljs.C_BLOCK_COMMENT_MODE,
     STRING_MODE("'"),
@@ -24573,97 +29055,159 @@ function less(hljs) {
     hljs.CSS_NUMBER_MODE, // fixme: it does not include dot for numbers like .5em :(
     {
       begin: '(url|data-uri)\\(',
-      starts: {className: 'string', end: '[\\)\\n]', excludeEnd: true}
+      starts: {
+        className: 'string',
+        end: '[\\)\\n]',
+        excludeEnd: true
+      }
     },
-    IDENT_MODE('number', '#[0-9A-Fa-f]+\\b'),
+    modes.HEXCOLOR,
     PARENS_MODE,
     IDENT_MODE('variable', '@@?' + IDENT_RE, 10),
-    IDENT_MODE('variable', '@\\{'  + IDENT_RE + '\\}'),
+    IDENT_MODE('variable', '@\\{' + IDENT_RE + '\\}'),
     IDENT_MODE('built_in', '~?`[^`]*?`'), // inline javascript (or whatever host language) *multiline* string
     { // @media features (it’s here to not duplicate things in AT_RULE_MODE with extra PARENS_MODE overriding):
-      className: 'attribute', begin: IDENT_RE + '\\s*:', end: ':', returnBegin: true, excludeEnd: true
+      className: 'attribute',
+      begin: IDENT_RE + '\\s*:',
+      end: ':',
+      returnBegin: true,
+      excludeEnd: true
     },
-    {
-      className: 'meta',
-      begin: '!important'
-    }
+    modes.IMPORTANT
   );
 
-  var VALUE_WITH_RULESETS = VALUE.concat({
-    begin: /\{/, end: /\}/, contains: RULES
+  const VALUE_WITH_RULESETS = VALUE_MODES.concat({
+    begin: /\{/,
+    end: /\}/,
+    contains: RULES
   });
 
-  var MIXIN_GUARD_MODE = {
-    beginKeywords: 'when', endsWithParent: true,
-    contains: [{beginKeywords: 'and not'}].concat(VALUE) // using this form to override VALUE’s 'function' match
+  const MIXIN_GUARD_MODE = {
+    beginKeywords: 'when',
+    endsWithParent: true,
+    contains: [
+      {
+        beginKeywords: 'and not'
+      }
+    ].concat(VALUE_MODES) // using this form to override VALUE’s 'function' match
   };
 
   /* Rule-Level Modes */
 
-  var RULE_MODE = {
-    begin: INTERP_IDENT_RE + '\\s*:', returnBegin: true, end: '[;}]',
+  const RULE_MODE = {
+    begin: INTERP_IDENT_RE + '\\s*:',
+    returnBegin: true,
+    end: /[;}]/,
     relevance: 0,
     contains: [
       {
+        begin: /-(webkit|moz|ms|o)-/
+      },
+      {
         className: 'attribute',
-        begin: INTERP_IDENT_RE, end: ':', excludeEnd: true,
+        begin: '\\b(' + ATTRIBUTES$1.join('|') + ')\\b',
+        end: /(?=:)/,
         starts: {
-          endsWithParent: true, illegal: '[<=$]',
+          endsWithParent: true,
+          illegal: '[<=$]',
           relevance: 0,
-          contains: VALUE
+          contains: VALUE_MODES
         }
       }
     ]
   };
 
-  var AT_RULE_MODE = {
+  const AT_RULE_MODE = {
     className: 'keyword',
     begin: '@(import|media|charset|font-face|(-[a-z]+-)?keyframes|supports|document|namespace|page|viewport|host)\\b',
-    starts: {end: '[;{}]', returnEnd: true, contains: VALUE, relevance: 0}
+    starts: {
+      end: '[;{}]',
+      keywords: AT_KEYWORDS,
+      returnEnd: true,
+      contains: VALUE_MODES,
+      relevance: 0
+    }
   };
 
   // variable definitions and calls
-  var VAR_RULE_MODE = {
+  const VAR_RULE_MODE = {
     className: 'variable',
     variants: [
       // using more strict pattern for higher relevance to increase chances of Less detection.
       // this is *the only* Less specific statement used in most of the sources, so...
       // (we’ll still often loose to the css-parser unless there's '//' comment,
       // simply because 1 variable just can't beat 99 properties :)
-      {begin: '@' + IDENT_RE + '\\s*:', relevance: 15},
-      {begin: '@' + IDENT_RE}
+      {
+        begin: '@' + IDENT_RE + '\\s*:',
+        relevance: 15
+      },
+      {
+        begin: '@' + IDENT_RE
+      }
     ],
-    starts: {end: '[;}]', returnEnd: true, contains: VALUE_WITH_RULESETS}
+    starts: {
+      end: '[;}]',
+      returnEnd: true,
+      contains: VALUE_WITH_RULESETS
+    }
   };
 
-  var SELECTOR_MODE = {
+  const SELECTOR_MODE = {
     // first parse unambiguous selectors (i.e. those not starting with tag)
     // then fall into the scary lookahead-discriminator variant.
     // this mode also handles mixin definitions and calls
-    variants: [{
-      begin: '[\\.#:&\\[>]', end: '[;{}]'  // mixin calls end with ';'
-      }, {
-      begin: INTERP_IDENT_RE, end: /\{/
-    }],
+    variants: [
+      {
+        begin: '[\\.#:&\\[>]',
+        end: '[;{}]' // mixin calls end with ';'
+      },
+      {
+        begin: INTERP_IDENT_RE,
+        end: /\{/
+      }
+    ],
     returnBegin: true,
-    returnEnd:   true,
+    returnEnd: true,
     illegal: '[<=\'$"]',
     relevance: 0,
     contains: [
       hljs.C_LINE_COMMENT_MODE,
       hljs.C_BLOCK_COMMENT_MODE,
       MIXIN_GUARD_MODE,
-      IDENT_MODE('keyword',  'all\\b'),
-      IDENT_MODE('variable', '@\\{'  + IDENT_RE + '\\}'),     // otherwise it’s identified as tag
-      IDENT_MODE('selector-tag',  INTERP_IDENT_RE + '%?', 0), // '%' for more consistent coloring of @keyframes "tags"
+      IDENT_MODE('keyword', 'all\\b'),
+      IDENT_MODE('variable', '@\\{' + IDENT_RE + '\\}'), // otherwise it’s identified as tag
+      {
+        begin: '\\b(' + TAGS$1.join('|') + ')\\b',
+        className: 'selector-tag'
+      },
+      IDENT_MODE('selector-tag', INTERP_IDENT_RE + '%?', 0), // '%' for more consistent coloring of @keyframes "tags"
       IDENT_MODE('selector-id', '#' + INTERP_IDENT_RE),
       IDENT_MODE('selector-class', '\\.' + INTERP_IDENT_RE, 0),
-      IDENT_MODE('selector-tag',  '&', 0),
-      {className: 'selector-attr', begin: '\\[', end: '\\]'},
-      {className: 'selector-pseudo', begin: /:(:)?[a-zA-Z0-9_\-+()"'.]+/},
-      {begin: '\\(', end: '\\)', contains: VALUE_WITH_RULESETS}, // argument list of parametric mixins
-      {begin: '!important'} // eat !important after mixin call or it will be colored as tag
+      IDENT_MODE('selector-tag', '&', 0),
+      modes.ATTRIBUTE_SELECTOR_MODE,
+      {
+        className: 'selector-pseudo',
+        begin: ':(' + PSEUDO_CLASSES$1.join('|') + ')'
+      },
+      {
+        className: 'selector-pseudo',
+        begin: '::(' + PSEUDO_ELEMENTS$1.join('|') + ')'
+      },
+      {
+        begin: '\\(',
+        end: '\\)',
+        contains: VALUE_WITH_RULESETS
+      }, // argument list of parametric mixins
+      {
+        begin: '!important'
+      } // eat !important after mixin call or it will be colored as tag
     ]
+  };
+
+  const PSEUDO_SELECTOR_MODE = {
+    begin: IDENT_RE + ':(:)?' + `(${PSEUDO_SELECTORS$1.join('|')})`,
+    returnBegin: true,
+    contains: [ SELECTOR_MODE ]
   };
 
   RULES.push(
@@ -24671,6 +29215,7 @@ function less(hljs) {
     hljs.C_BLOCK_COMMENT_MODE,
     AT_RULE_MODE,
     VAR_RULE_MODE,
+    PSEUDO_SELECTOR_MODE,
     RULE_MODE,
     SELECTOR_MODE
   );
@@ -24987,7 +29532,7 @@ function livecodeserver(hljs) {
 
 var livecodeserver_1 = livecodeserver;
 
-const KEYWORDS$1 = [
+const KEYWORDS$2 = [
   "as", // for exports
   "in",
   "of",
@@ -25030,7 +29575,7 @@ const KEYWORDS$1 = [
   "export",
   "extends"
 ];
-const LITERALS$1 = [
+const LITERALS$2 = [
   "true",
   "false",
   "null",
@@ -25039,7 +29584,7 @@ const LITERALS$1 = [
   "Infinity"
 ];
 
-const TYPES$1 = [
+const TYPES$2 = [
   "Intl",
   "DataView",
   "Number",
@@ -25070,10 +29615,13 @@ const TYPES$1 = [
   "Array",
   "Uint8Array",
   "Uint8ClampedArray",
-  "ArrayBuffer"
+  "ArrayBuffer",
+  "BigInt64Array",
+  "BigUint64Array",
+  "BigInt"
 ];
 
-const ERROR_TYPES$1 = [
+const ERROR_TYPES$2 = [
   "EvalError",
   "InternalError",
   "RangeError",
@@ -25083,7 +29631,7 @@ const ERROR_TYPES$1 = [
   "URIError"
 ];
 
-const BUILT_IN_GLOBALS$1 = [
+const BUILT_IN_GLOBALS$2 = [
   "setInterval",
   "setTimeout",
   "clearInterval",
@@ -25105,7 +29653,7 @@ const BUILT_IN_GLOBALS$1 = [
   "unescape"
 ];
 
-const BUILT_IN_VARIABLES$1 = [
+const BUILT_IN_VARIABLES$2 = [
   "arguments",
   "this",
   "super",
@@ -25117,11 +29665,11 @@ const BUILT_IN_VARIABLES$1 = [
   "global" // Node.js
 ];
 
-const BUILT_INS$1 = [].concat(
-  BUILT_IN_GLOBALS$1,
-  BUILT_IN_VARIABLES$1,
-  TYPES$1,
-  ERROR_TYPES$1
+const BUILT_INS$2 = [].concat(
+  BUILT_IN_GLOBALS$2,
+  BUILT_IN_VARIABLES$2,
+  TYPES$2,
+  ERROR_TYPES$2
 );
 
 /*
@@ -25179,10 +29727,10 @@ function livescript(hljs) {
     '__bind',
     '__indexOf'
   ];
-  const KEYWORDS$1$1 = {
-    keyword: KEYWORDS$1.concat(LIVESCRIPT_KEYWORDS).join(" "),
-    literal: LITERALS$1.concat(LIVESCRIPT_LITERALS).join(" "),
-    built_in: BUILT_INS$1.concat(LIVESCRIPT_BUILT_INS).join(" ")
+  const KEYWORDS$1 = {
+    keyword: KEYWORDS$2.concat(LIVESCRIPT_KEYWORDS),
+    literal: LITERALS$2.concat(LIVESCRIPT_LITERALS),
+    built_in: BUILT_INS$2.concat(LIVESCRIPT_BUILT_INS)
   };
   const JS_IDENT_RE = '[A-Za-z$_](?:-[0-9A-Za-z$_]|[0-9A-Za-z$_])*';
   const TITLE = hljs.inherit(hljs.TITLE_MODE, {
@@ -25192,13 +29740,13 @@ function livescript(hljs) {
     className: 'subst',
     begin: /#\{/,
     end: /\}/,
-    keywords: KEYWORDS$1$1
+    keywords: KEYWORDS$1
   };
   const SUBST_SIMPLE = {
     className: 'subst',
     begin: /#[A-Za-z$_]/,
     end: /(?:-[0-9A-Za-z$_]|[0-9A-Za-z$_])*/,
-    keywords: KEYWORDS$1$1
+    keywords: KEYWORDS$1
   };
   const EXPRESSIONS = [
     hljs.BINARY_NUMBER_MODE,
@@ -25290,7 +29838,7 @@ function livescript(hljs) {
       {
         begin: /\(/,
         end: /\)/,
-        keywords: KEYWORDS$1$1,
+        keywords: KEYWORDS$1,
         contains: ['self'].concat(EXPRESSIONS)
       }
     ]
@@ -25303,7 +29851,7 @@ function livescript(hljs) {
   return {
     name: 'LiveScript',
     aliases: ['ls'],
-    keywords: KEYWORDS$1$1,
+    keywords: KEYWORDS$1,
     illegal: /\/\*/,
     contains: EXPRESSIONS.concat([
       hljs.COMMENT('\\/\\*', '\\*\\/'),
@@ -25368,7 +29916,7 @@ var livescript_1 = livescript;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$9(re) {
+function source$r(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -25379,8 +29927,8 @@ function source$9(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$9(...args) {
-  const joined = args.map((x) => source$9(x)).join("");
+function concat$q(...args) {
+  const joined = args.map((x) => source$r(x)).join("");
   return joined;
 }
 
@@ -25428,7 +29976,7 @@ function llvm(hljs) {
   const VARIABLE = {
     className: 'variable',
     variants: [
-      { begin: concat$9(/%/, IDENT_RE) },
+      { begin: concat$q(/%/, IDENT_RE) },
       { begin: /%\d+/ },
       { begin: /#\d+/ },
     ]
@@ -25436,10 +29984,10 @@ function llvm(hljs) {
   const FUNCTION = {
     className: 'title',
     variants: [
-      { begin: concat$9(/@/, IDENT_RE) },
+      { begin: concat$q(/@/, IDENT_RE) },
       { begin: /@\d+/ },
-      { begin: concat$9(/!/, IDENT_RE) },
-      { begin: concat$9(/!\d+/, IDENT_RE) },
+      { begin: concat$q(/!/, IDENT_RE) },
+      { begin: concat$q(/!\d+/, IDENT_RE) },
       // https://llvm.org/docs/LangRef.html#namedmetadatastructure
       // obviously a single digit can also be used in this fashion
       { begin: /!\d+/ }
@@ -32422,7 +36970,7 @@ const SYSTEM_SYMBOLS = [
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$8(re) {
+function source$s(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -32433,16 +36981,16 @@ function source$8(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function optional(re) {
-  return concat$8('(', re, ')?');
+function optional$7(re) {
+  return concat$r('(', re, ')?');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$8(...args) {
-  const joined = args.map((x) => source$8(x)).join("");
+function concat$r(...args) {
+  const joined = args.map((x) => source$s(x)).join("");
   return joined;
 }
 
@@ -32453,8 +37001,8 @@ function concat$8(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$4(...args) {
-  const joined = '(' + args.map((x) => source$8(x)).join("|") + ")";
+function either$8(...args) {
+  const joined = '(' + args.map((x) => source$s(x)).join("|") + ")";
   return joined;
 }
 
@@ -32475,18 +37023,18 @@ function mathematica(hljs) {
   const BASE_RE = /([2-9]|[1-2]\d|[3][0-5])\^\^/;
   const BASE_DIGITS_RE = /(\w*\.\w+|\w+\.\w*|\w+)/;
   const NUMBER_RE = /(\d*\.\d+|\d+\.\d*|\d+)/;
-  const BASE_NUMBER_RE = either$4(concat$8(BASE_RE, BASE_DIGITS_RE), NUMBER_RE);
+  const BASE_NUMBER_RE = either$8(concat$r(BASE_RE, BASE_DIGITS_RE), NUMBER_RE);
 
   const ACCURACY_RE = /``[+-]?(\d*\.\d+|\d+\.\d*|\d+)/;
   const PRECISION_RE = /`([+-]?(\d*\.\d+|\d+\.\d*|\d+))?/;
-  const APPROXIMATE_NUMBER_RE = either$4(ACCURACY_RE, PRECISION_RE);
+  const APPROXIMATE_NUMBER_RE = either$8(ACCURACY_RE, PRECISION_RE);
 
   const SCIENTIFIC_NOTATION_RE = /\*\^[+-]?\d+/;
 
-  const MATHEMATICA_NUMBER_RE = concat$8(
+  const MATHEMATICA_NUMBER_RE = concat$r(
     BASE_NUMBER_RE,
-    optional(APPROXIMATE_NUMBER_RE),
-    optional(SCIENTIFIC_NOTATION_RE)
+    optional$7(APPROXIMATE_NUMBER_RE),
+    optional$7(SCIENTIFIC_NOTATION_RE)
   );
 
   const NUMBERS = {
@@ -32547,7 +37095,7 @@ function mathematica(hljs) {
   const MESSAGES = {
     className: 'message-name',
     relevance: 0,
-    begin: concat$8("::", SYMBOL_RE)
+    begin: concat$r("::", SYMBOL_RE)
   };
 
   return {
@@ -33617,7 +38165,7 @@ var mizar_1 = mizar;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$7(re) {
+function source$t(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -33628,8 +38176,20 @@ function source$7(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$7(...args) {
-  const joined = args.map((x) => source$7(x)).join("");
+function concat$s(...args) {
+  const joined = args.map((x) => source$t(x)).join("");
+  return joined;
+}
+
+/**
+ * Any of the passed expresssions may match
+ *
+ * Creates a huge this | this | that | that match
+ * @param {(RegExp | string)[] } args
+ * @returns {string}
+ */
+function either$9(...args) {
+  const joined = '(' + args.map((x) => source$t(x)).join("|") + ")";
   return joined;
 }
 
@@ -33642,29 +38202,244 @@ Category: common
 
 /** @type LanguageFn */
 function perl(hljs) {
+  const KEYWORDS = [
+    'abs',
+    'accept',
+    'alarm',
+    'and',
+    'atan2',
+    'bind',
+    'binmode',
+    'bless',
+    'break',
+    'caller',
+    'chdir',
+    'chmod',
+    'chomp',
+    'chop',
+    'chown',
+    'chr',
+    'chroot',
+    'close',
+    'closedir',
+    'connect',
+    'continue',
+    'cos',
+    'crypt',
+    'dbmclose',
+    'dbmopen',
+    'defined',
+    'delete',
+    'die',
+    'do',
+    'dump',
+    'each',
+    'else',
+    'elsif',
+    'endgrent',
+    'endhostent',
+    'endnetent',
+    'endprotoent',
+    'endpwent',
+    'endservent',
+    'eof',
+    'eval',
+    'exec',
+    'exists',
+    'exit',
+    'exp',
+    'fcntl',
+    'fileno',
+    'flock',
+    'for',
+    'foreach',
+    'fork',
+    'format',
+    'formline',
+    'getc',
+    'getgrent',
+    'getgrgid',
+    'getgrnam',
+    'gethostbyaddr',
+    'gethostbyname',
+    'gethostent',
+    'getlogin',
+    'getnetbyaddr',
+    'getnetbyname',
+    'getnetent',
+    'getpeername',
+    'getpgrp',
+    'getpriority',
+    'getprotobyname',
+    'getprotobynumber',
+    'getprotoent',
+    'getpwent',
+    'getpwnam',
+    'getpwuid',
+    'getservbyname',
+    'getservbyport',
+    'getservent',
+    'getsockname',
+    'getsockopt',
+    'given',
+    'glob',
+    'gmtime',
+    'goto',
+    'grep',
+    'gt',
+    'hex',
+    'if',
+    'index',
+    'int',
+    'ioctl',
+    'join',
+    'keys',
+    'kill',
+    'last',
+    'lc',
+    'lcfirst',
+    'length',
+    'link',
+    'listen',
+    'local',
+    'localtime',
+    'log',
+    'lstat',
+    'lt',
+    'ma',
+    'map',
+    'mkdir',
+    'msgctl',
+    'msgget',
+    'msgrcv',
+    'msgsnd',
+    'my',
+    'ne',
+    'next',
+    'no',
+    'not',
+    'oct',
+    'open',
+    'opendir',
+    'or',
+    'ord',
+    'our',
+    'pack',
+    'package',
+    'pipe',
+    'pop',
+    'pos',
+    'print',
+    'printf',
+    'prototype',
+    'push',
+    'q|0',
+    'qq',
+    'quotemeta',
+    'qw',
+    'qx',
+    'rand',
+    'read',
+    'readdir',
+    'readline',
+    'readlink',
+    'readpipe',
+    'recv',
+    'redo',
+    'ref',
+    'rename',
+    'require',
+    'reset',
+    'return',
+    'reverse',
+    'rewinddir',
+    'rindex',
+    'rmdir',
+    'say',
+    'scalar',
+    'seek',
+    'seekdir',
+    'select',
+    'semctl',
+    'semget',
+    'semop',
+    'send',
+    'setgrent',
+    'sethostent',
+    'setnetent',
+    'setpgrp',
+    'setpriority',
+    'setprotoent',
+    'setpwent',
+    'setservent',
+    'setsockopt',
+    'shift',
+    'shmctl',
+    'shmget',
+    'shmread',
+    'shmwrite',
+    'shutdown',
+    'sin',
+    'sleep',
+    'socket',
+    'socketpair',
+    'sort',
+    'splice',
+    'split',
+    'sprintf',
+    'sqrt',
+    'srand',
+    'stat',
+    'state',
+    'study',
+    'sub',
+    'substr',
+    'symlink',
+    'syscall',
+    'sysopen',
+    'sysread',
+    'sysseek',
+    'system',
+    'syswrite',
+    'tell',
+    'telldir',
+    'tie',
+    'tied',
+    'time',
+    'times',
+    'tr',
+    'truncate',
+    'uc',
+    'ucfirst',
+    'umask',
+    'undef',
+    'unless',
+    'unlink',
+    'unpack',
+    'unshift',
+    'untie',
+    'until',
+    'use',
+    'utime',
+    'values',
+    'vec',
+    'wait',
+    'waitpid',
+    'wantarray',
+    'warn',
+    'when',
+    'while',
+    'write',
+    'x|0',
+    'xor',
+    'y|0'
+  ];
+
   // https://perldoc.perl.org/perlre#Modifiers
-  const REGEX_MODIFIERS = /[dualxmsipn]{0,12}/; // aa and xx are valid, making max length 12
+  const REGEX_MODIFIERS = /[dualxmsipngr]{0,12}/; // aa and xx are valid, making max length 12
   const PERL_KEYWORDS = {
     $pattern: /[\w.]+/,
-    keyword: 'getpwent getservent quotemeta msgrcv scalar kill dbmclose undef lc ' +
-    'ma syswrite tr send umask sysopen shmwrite vec qx utime local oct semctl localtime ' +
-    'readpipe do return format read sprintf dbmopen pop getpgrp not getpwnam rewinddir qq ' +
-    'fileno qw endprotoent wait sethostent bless s|0 opendir continue each sleep endgrent ' +
-    'shutdown dump chomp connect getsockname die socketpair close flock exists index shmget ' +
-    'sub for endpwent redo lstat msgctl setpgrp abs exit select print ref gethostbyaddr ' +
-    'unshift fcntl syscall goto getnetbyaddr join gmtime symlink semget splice x|0 ' +
-    'getpeername recv log setsockopt cos last reverse gethostbyname getgrnam study formline ' +
-    'endhostent times chop length gethostent getnetent pack getprotoent getservbyname rand ' +
-    'mkdir pos chmod y|0 substr endnetent printf next open msgsnd readdir use unlink ' +
-    'getsockopt getpriority rindex wantarray hex system getservbyport endservent int chr ' +
-    'untie rmdir prototype tell listen fork shmread ucfirst setprotoent else sysseek link ' +
-    'getgrgid shmctl waitpid unpack getnetbyname reset chdir grep split require caller ' +
-    'lcfirst until warn while values shift telldir getpwuid my getprotobynumber delete and ' +
-    'sort uc defined srand accept package seekdir getprotobyname semop our rename seek if q|0 ' +
-    'chroot sysread setpwent no crypt getc chown sqrt write setnetent setpriority foreach ' +
-    'tie sin msgget map stat getlogin unless elsif truncate exec keys glob tied closedir ' +
-    'ioctl socket readlink eval xor readline binmode setservent eof ord bind alarm pipe ' +
-    'atan2 getgrent exp time push setgrent gt lt or ne m|0 break given say state when'
+    keyword: KEYWORDS.join(" ")
   };
   const SUBST = {
     className: 'subst',
@@ -33683,7 +38458,7 @@ function perl(hljs) {
         begin: /\$\d/
       },
       {
-        begin: concat$7(
+        begin: concat$s(
           /[$%@](\^\w\b|#\w+(::\w+)*|\{\w+\}|\w+(::\w*)*)/,
           // negative look-ahead tries to avoid matching patterns that are not
           // Perl at all like $ident$, @ident@, etc.
@@ -33701,6 +38476,48 @@ function perl(hljs) {
     SUBST,
     VAR
   ];
+  const REGEX_DELIMS = [
+    /!/,
+    /\//,
+    /\|/,
+    /\?/,
+    /'/,
+    /"/, // valid but infrequent and weird
+    /#/ // valid but infrequent and weird
+  ];
+  /**
+   * @param {string|RegExp} prefix
+   * @param {string|RegExp} open
+   * @param {string|RegExp} close
+   */
+  const PAIRED_DOUBLE_RE = (prefix, open, close = '\\1') => {
+    const middle = (close === '\\1')
+      ? close
+      : concat$s(close, open);
+    return concat$s(
+      concat$s("(?:", prefix, ")"),
+      open,
+      /(?:\\.|[^\\\/])*?/,
+      middle,
+      /(?:\\.|[^\\\/])*?/,
+      close,
+      REGEX_MODIFIERS
+    );
+  };
+  /**
+   * @param {string|RegExp} prefix
+   * @param {string|RegExp} open
+   * @param {string|RegExp} close
+   */
+  const PAIRED_RE = (prefix, open, close) => {
+    return concat$s(
+      concat$s("(?:", prefix, ")"),
+      open,
+      /(?:\\.|[^\\\/])*?/,
+      close,
+      REGEX_MODIFIERS
+    );
+  };
   const PERL_DEFAULT_CONTAINS = [
     VAR,
     hljs.HASH_COMMENT_MODE,
@@ -33762,12 +38579,10 @@ function perl(hljs) {
         },
         {
           begin: /\{\w+\}/,
-          contains: [],
           relevance: 0
         },
         {
           begin: '-?\\w+\\s*=>',
-          contains: [],
           relevance: 0
         }
       ]
@@ -33785,26 +38600,34 @@ function perl(hljs) {
         hljs.HASH_COMMENT_MODE,
         {
           className: 'regexp',
-          begin: concat$7(
-            /(s|tr|y)/,
-            /\//,
-            /(\\.|[^\\\/])*/,
-            /\//,
-            /(\\.|[^\\\/])*/,
-            /\//,
-            REGEX_MODIFIERS
-          ),
-          relevance: 10
+          variants: [
+            // allow matching common delimiters
+            { begin: PAIRED_DOUBLE_RE("s|tr|y", either$9(...REGEX_DELIMS)) },
+            // and then paired delmis
+            { begin: PAIRED_DOUBLE_RE("s|tr|y", "\\(", "\\)") },
+            { begin: PAIRED_DOUBLE_RE("s|tr|y", "\\[", "\\]") },
+            { begin: PAIRED_DOUBLE_RE("s|tr|y", "\\{", "\\}") }
+          ],
+          relevance: 2
         },
         {
           className: 'regexp',
-          begin: /(m|qr)?\//,
-          end: concat$7(
-            /\//,
-            REGEX_MODIFIERS
-          ),
-          contains: [ hljs.BACKSLASH_ESCAPE ],
-          relevance: 0 // allows empty "//" which is a common comment delimiter in other languages
+          variants: [
+            {
+              // could be a comment in many languages so do not count
+              // as relevant
+              begin: /(m|qr)\/\//,
+              relevance: 0
+            },
+            // prefix is optional with /regex/
+            { begin: PAIRED_RE("(?:m|qr)?", /\//, /\//)},
+            // allow matching common delimiters
+            { begin: PAIRED_RE("m|qr", either$9(...REGEX_DELIMS), /\1/)},
+            // allow common paired delmins
+            { begin: PAIRED_RE("m|qr", /\(/, /\)/)},
+            { begin: PAIRED_RE("m|qr", /\[/, /\]/)},
+            { begin: PAIRED_RE("m|qr", /\{/, /\}/)}
+          ]
         }
       ]
     },
@@ -34353,7 +39176,6 @@ Category: system
 function nim(hljs) {
   return {
     name: 'Nim',
-    aliases: [ 'nim' ],
     keywords: {
       keyword:
         'addr and as asm bind block break case cast const continue converter ' +
@@ -35848,7 +40670,17 @@ function php(hljs) {
       HEREDOC
     ]
   };
-  const NUMBER = {variants: [hljs.BINARY_NUMBER_MODE, hljs.C_NUMBER_MODE]};
+  const NUMBER = {
+    className: 'number',
+    variants: [
+      { begin: `\\b0b[01]+(?:_[01]+)*\\b` }, // Binary w/ underscore support
+      { begin: `\\b0o[0-7]+(?:_[0-7]+)*\\b` }, // Octals w/ underscore support
+      { begin: `\\b0x[\\da-f]+(?:_[\\da-f]+)*\\b` }, // Hex w/ underscore support
+      // Decimals w/ underscore support, with optional fragments and scientific exponent (e) suffix.
+      { begin: `(?:\\b\\d+(?:_\\d+)*(\\.(?:\\d+(?:_\\d+)*))?|\\B\\.\\d+)(?:e[+-]?\\d+)?` }
+    ],
+    relevance: 0
+  };
   const KEYWORDS = {
     keyword:
     // Magic constants:
@@ -35863,25 +40695,25 @@ function php(hljs) {
     // <https://www.php.net/manual/en/reserved.php>
     // <https://www.php.net/manual/en/language.types.type-juggling.php>
     'array abstract and as binary bool boolean break callable case catch class clone const continue declare ' +
-    'default do double else elseif empty enddeclare endfor endforeach endif endswitch endwhile eval extends ' +
+    'default do double else elseif empty enddeclare endfor endforeach endif endswitch endwhile enum eval extends ' +
     'final finally float for foreach from global goto if implements instanceof insteadof int integer interface ' +
-    'isset iterable list match|0 new object or private protected public real return string switch throw trait ' +
+    'isset iterable list match|0 mixed new object or private protected public real return string switch throw trait ' +
     'try unset use var void while xor yield',
     literal: 'false null true',
     built_in:
     // Standard PHP library:
     // <https://www.php.net/manual/en/book.spl.php>
     'Error|0 ' + // error is too common a name esp since PHP is case in-sensitive
-    'AppendIterator ArgumentCountError ArithmeticError ArrayIterator ArrayObject AssertionError BadFunctionCallException BadMethodCallException CachingIterator CallbackFilterIterator CompileError Countable DirectoryIterator DivisionByZeroError DomainException EmptyIterator ErrorException Exception FilesystemIterator FilterIterator GlobIterator InfiniteIterator InvalidArgumentException IteratorIterator LengthException LimitIterator LogicException MultipleIterator NoRewindIterator OutOfBoundsException OutOfRangeException OuterIterator OverflowException ParentIterator ParseError RangeException RecursiveArrayIterator RecursiveCachingIterator RecursiveCallbackFilterIterator RecursiveDirectoryIterator RecursiveFilterIterator RecursiveIterator RecursiveIteratorIterator RecursiveRegexIterator RecursiveTreeIterator RegexIterator RuntimeException SeekableIterator SplDoublyLinkedList SplFileInfo SplFileObject SplFixedArray SplHeap SplMaxHeap SplMinHeap SplObjectStorage SplObserver SplObserver SplPriorityQueue SplQueue SplStack SplSubject SplSubject SplTempFileObject TypeError UnderflowException UnexpectedValueException ' +
+    'AppendIterator ArgumentCountError ArithmeticError ArrayIterator ArrayObject AssertionError BadFunctionCallException BadMethodCallException CachingIterator CallbackFilterIterator CompileError Countable DirectoryIterator DivisionByZeroError DomainException EmptyIterator ErrorException Exception FilesystemIterator FilterIterator GlobIterator InfiniteIterator InvalidArgumentException IteratorIterator LengthException LimitIterator LogicException MultipleIterator NoRewindIterator OutOfBoundsException OutOfRangeException OuterIterator OverflowException ParentIterator ParseError RangeException RecursiveArrayIterator RecursiveCachingIterator RecursiveCallbackFilterIterator RecursiveDirectoryIterator RecursiveFilterIterator RecursiveIterator RecursiveIteratorIterator RecursiveRegexIterator RecursiveTreeIterator RegexIterator RuntimeException SeekableIterator SplDoublyLinkedList SplFileInfo SplFileObject SplFixedArray SplHeap SplMaxHeap SplMinHeap SplObjectStorage SplObserver SplObserver SplPriorityQueue SplQueue SplStack SplSubject SplSubject SplTempFileObject TypeError UnderflowException UnexpectedValueException UnhandledMatchError ' +
     // Reserved interfaces:
     // <https://www.php.net/manual/en/reserved.interfaces.php>
-    'ArrayAccess Closure Generator Iterator IteratorAggregate Serializable Throwable Traversable WeakReference ' +
+    'ArrayAccess Closure Generator Iterator IteratorAggregate Serializable Stringable Throwable Traversable WeakReference WeakMap ' +
     // Reserved classes:
     // <https://www.php.net/manual/en/reserved.classes.php>
     'Directory __PHP_Incomplete_Class parent php_user_filter self static stdClass'
   };
   return {
-    aliases: ['php', 'php3', 'php4', 'php5', 'php6', 'php7', 'php8'],
+    aliases: ['php3', 'php4', 'php5', 'php6', 'php7', 'php8'],
     case_insensitive: true,
     keywords: KEYWORDS,
     contains: [
@@ -35922,9 +40754,13 @@ function php(hljs) {
         beginKeywords: 'fn function', end: /[;{]/, excludeEnd: true,
         illegal: '[$%\\[]',
         contains: [
+          {
+            beginKeywords: 'use',
+          },
           hljs.UNDERSCORE_TITLE_MODE,
           {
-            begin: '=>' // No markup, just a relevance booster
+            begin: '=>', // No markup, just a relevance booster
+            endsParent: true
           },
           {
             className: 'params',
@@ -35944,11 +40780,13 @@ function php(hljs) {
       },
       {
         className: 'class',
-        beginKeywords: 'class interface',
+        variants: [
+          { beginKeywords: "enum", illegal: /[($"]/ },
+          { beginKeywords: "class interface trait", illegal: /[:($"]/ }
+        ],
         relevance: 0,
         end: /\{/,
         excludeEnd: true,
-        illegal: /[:($"]/,
         contains: [
           {beginKeywords: 'extends implements'},
           hljs.UNDERSCORE_TITLE_MODE
@@ -36166,16 +41004,16 @@ function powershell(hljs) {
     "void"
   ];
 
-  // https://msdn.microsoft.com/en-us/library/ms714428(v=vs.85).aspx
+  // https://docs.microsoft.com/en-us/powershell/scripting/developer/cmdlet/approved-verbs-for-windows-powershell-commands
   const VALID_VERBS =
     'Add|Clear|Close|Copy|Enter|Exit|Find|Format|Get|Hide|Join|Lock|' +
     'Move|New|Open|Optimize|Pop|Push|Redo|Remove|Rename|Reset|Resize|' +
     'Search|Select|Set|Show|Skip|Split|Step|Switch|Undo|Unlock|' +
     'Watch|Backup|Checkpoint|Compare|Compress|Convert|ConvertFrom|' +
     'ConvertTo|Dismount|Edit|Expand|Export|Group|Import|Initialize|' +
-    'Limit|Merge|Out|Publish|Restore|Save|Sync|Unpublish|Update|' +
-    'Approve|Assert|Complete|Confirm|Deny|Disable|Enable|Install|Invoke|Register|' +
-    'Request|Restart|Resume|Start|Stop|Submit|Suspend|Uninstall|' +
+    'Limit|Merge|Mount|Out|Publish|Restore|Save|Sync|Unpublish|Update|' +
+    'Approve|Assert|Build|Complete|Confirm|Deny|Deploy|Disable|Enable|Install|Invoke|' +
+    'Register|Request|Restart|Resume|Start|Stop|Submit|Suspend|Uninstall|' +
     'Unregister|Wait|Debug|Measure|Ping|Repair|Resolve|Test|Trace|Connect|' +
     'Disconnect|Read|Receive|Send|Write|Block|Grant|Protect|Revoke|Unblock|' +
     'Unprotect|Use|ForEach|Sort|Tee|Where';
@@ -37062,6 +41900,39 @@ function purebasic(hljs) {
 
 var purebasic_1 = purebasic;
 
+/**
+ * @param {string} value
+ * @returns {RegExp}
+ * */
+
+/**
+ * @param {RegExp | string } re
+ * @returns {string}
+ */
+function source$u(re) {
+  if (!re) return null;
+  if (typeof re === "string") return re;
+
+  return re.source;
+}
+
+/**
+ * @param {RegExp | string } re
+ * @returns {string}
+ */
+function lookahead$9(re) {
+  return concat$t('(?=', re, ')');
+}
+
+/**
+ * @param {...(RegExp | string) } args
+ * @returns {string}
+ */
+function concat$t(...args) {
+  const joined = args.map((x) => source$u(x)).join("");
+  return joined;
+}
+
 /*
 Language: Python
 Description: Python is an interpreted, object-oriented, high-level programming language with dynamic semantics.
@@ -37086,7 +41957,6 @@ function python(hljs) {
     'except',
     'finally',
     'for',
-    '',
     'from',
     'global',
     'if',
@@ -37103,7 +41973,7 @@ function python(hljs) {
     'try',
     'while',
     'with',
-    'yield',
+    'yield'
   ];
 
   const BUILT_INS = [
@@ -37175,7 +42045,7 @@ function python(hljs) {
     'tuple',
     'type',
     'vars',
-    'zip',
+    'zip'
   ];
 
   const LITERALS = [
@@ -37184,22 +42054,45 @@ function python(hljs) {
     'False',
     'None',
     'NotImplemented',
-    'True',
+    'True'
+  ];
+
+  // https://docs.python.org/3/library/typing.html
+  // TODO: Could these be supplemented by a CamelCase matcher in certain
+  // contexts, leaving these remaining only for relevance hinting?
+  const TYPES = [
+    "Any",
+    "Callable",
+    "Coroutine",
+    "Dict",
+    "List",
+    "Literal",
+    "Generic",
+    "Optional",
+    "Sequence",
+    "Set",
+    "Tuple",
+    "Type",
+    "Union"
   ];
 
   const KEYWORDS = {
-    keyword: RESERVED_WORDS.join(' '),
-    built_in: BUILT_INS.join(' '),
-    literal: LITERALS.join(' ')
+    $pattern: /[A-Za-z]\w+|__\w+__/,
+    keyword: RESERVED_WORDS,
+    built_in: BUILT_INS,
+    literal: LITERALS,
+    type: TYPES
   };
 
   const PROMPT = {
-    className: 'meta',  begin: /^(>>>|\.\.\.) /
+    className: 'meta',
+    begin: /^(>>>|\.\.\.) /
   };
 
   const SUBST = {
     className: 'subst',
-    begin: /\{/, end: /\}/,
+    begin: /\{/,
+    end: /\}/,
     keywords: KEYWORDS,
     illegal: /#/
   };
@@ -37211,47 +42104,81 @@ function python(hljs) {
 
   const STRING = {
     className: 'string',
-    contains: [hljs.BACKSLASH_ESCAPE],
+    contains: [ hljs.BACKSLASH_ESCAPE ],
     variants: [
       {
-        begin: /([uU]|[bB]|[rR]|[bB][rR]|[rR][bB])?'''/, end: /'''/,
-        contains: [hljs.BACKSLASH_ESCAPE, PROMPT],
+        begin: /([uU]|[bB]|[rR]|[bB][rR]|[rR][bB])?'''/,
+        end: /'''/,
+        contains: [
+          hljs.BACKSLASH_ESCAPE,
+          PROMPT
+        ],
         relevance: 10
       },
       {
-        begin: /([uU]|[bB]|[rR]|[bB][rR]|[rR][bB])?"""/, end: /"""/,
-        contains: [hljs.BACKSLASH_ESCAPE, PROMPT],
+        begin: /([uU]|[bB]|[rR]|[bB][rR]|[rR][bB])?"""/,
+        end: /"""/,
+        contains: [
+          hljs.BACKSLASH_ESCAPE,
+          PROMPT
+        ],
         relevance: 10
       },
       {
-        begin: /([fF][rR]|[rR][fF]|[fF])'''/, end: /'''/,
-        contains: [hljs.BACKSLASH_ESCAPE, PROMPT, LITERAL_BRACKET, SUBST]
+        begin: /([fF][rR]|[rR][fF]|[fF])'''/,
+        end: /'''/,
+        contains: [
+          hljs.BACKSLASH_ESCAPE,
+          PROMPT,
+          LITERAL_BRACKET,
+          SUBST
+        ]
       },
       {
-        begin: /([fF][rR]|[rR][fF]|[fF])"""/, end: /"""/,
-        contains: [hljs.BACKSLASH_ESCAPE, PROMPT, LITERAL_BRACKET, SUBST]
+        begin: /([fF][rR]|[rR][fF]|[fF])"""/,
+        end: /"""/,
+        contains: [
+          hljs.BACKSLASH_ESCAPE,
+          PROMPT,
+          LITERAL_BRACKET,
+          SUBST
+        ]
       },
       {
-        begin: /([uU]|[rR])'/, end: /'/,
+        begin: /([uU]|[rR])'/,
+        end: /'/,
         relevance: 10
       },
       {
-        begin: /([uU]|[rR])"/, end: /"/,
+        begin: /([uU]|[rR])"/,
+        end: /"/,
         relevance: 10
       },
       {
-        begin: /([bB]|[bB][rR]|[rR][bB])'/, end: /'/
+        begin: /([bB]|[bB][rR]|[rR][bB])'/,
+        end: /'/
       },
       {
-        begin: /([bB]|[bB][rR]|[rR][bB])"/, end: /"/
+        begin: /([bB]|[bB][rR]|[rR][bB])"/,
+        end: /"/
       },
       {
-        begin: /([fF][rR]|[rR][fF]|[fF])'/, end: /'/,
-        contains: [hljs.BACKSLASH_ESCAPE, LITERAL_BRACKET, SUBST]
+        begin: /([fF][rR]|[rR][fF]|[fF])'/,
+        end: /'/,
+        contains: [
+          hljs.BACKSLASH_ESCAPE,
+          LITERAL_BRACKET,
+          SUBST
+        ]
       },
       {
-        begin: /([fF][rR]|[rR][fF]|[fF])"/, end: /"/,
-        contains: [hljs.BACKSLASH_ESCAPE, LITERAL_BRACKET, SUBST]
+        begin: /([fF][rR]|[rR][fF]|[fF])"/,
+        end: /"/,
+        contains: [
+          hljs.BACKSLASH_ESCAPE,
+          LITERAL_BRACKET,
+          SUBST
+        ]
       },
       hljs.APOS_STRING_MODE,
       hljs.QUOTE_STRING_MODE
@@ -37262,7 +42189,8 @@ function python(hljs) {
   const digitpart = '[0-9](_?[0-9])*';
   const pointfloat = `(\\b(${digitpart}))?\\.(${digitpart})|\\b(${digitpart})\\.`;
   const NUMBER = {
-    className: 'number', relevance: 0,
+    className: 'number',
+    relevance: 0,
     variants: [
       // exponentfloat, pointfloat
       // https://docs.python.org/3.9/reference/lexical_analysis.html#floating-point-literals
@@ -37274,8 +42202,12 @@ function python(hljs) {
       // and we don't want to mishandle e.g. `0..hex()`; this should be safe
       // because both MUST contain a decimal point and so cannot be confused with
       // the interior part of an identifier
-      { begin: `(\\b(${digitpart})|(${pointfloat}))[eE][+-]?(${digitpart})[jJ]?\\b` },
-      { begin: `(${pointfloat})[jJ]?` },
+      {
+        begin: `(\\b(${digitpart})|(${pointfloat}))[eE][+-]?(${digitpart})[jJ]?\\b`
+      },
+      {
+        begin: `(${pointfloat})[jJ]?`
+      },
 
       // decinteger, bininteger, octinteger, hexinteger
       // https://docs.python.org/3.9/reference/lexical_analysis.html#integer-literals
@@ -37283,49 +42215,109 @@ function python(hljs) {
       // https://docs.python.org/2.7/reference/lexical_analysis.html#integer-and-long-integer-literals
       // decinteger is optionally imaginary
       // https://docs.python.org/3.9/reference/lexical_analysis.html#imaginary-literals
-      { begin: '\\b([1-9](_?[0-9])*|0+(_?0)*)[lLjJ]?\\b' },
-      { begin: '\\b0[bB](_?[01])+[lL]?\\b' },
-      { begin: '\\b0[oO](_?[0-7])+[lL]?\\b' },
-      { begin: '\\b0[xX](_?[0-9a-fA-F])+[lL]?\\b' },
+      {
+        begin: '\\b([1-9](_?[0-9])*|0+(_?0)*)[lLjJ]?\\b'
+      },
+      {
+        begin: '\\b0[bB](_?[01])+[lL]?\\b'
+      },
+      {
+        begin: '\\b0[oO](_?[0-7])+[lL]?\\b'
+      },
+      {
+        begin: '\\b0[xX](_?[0-9a-fA-F])+[lL]?\\b'
+      },
 
       // imagnumber (digitpart-based)
       // https://docs.python.org/3.9/reference/lexical_analysis.html#imaginary-literals
-      { begin: `\\b(${digitpart})[jJ]\\b` },
+      {
+        begin: `\\b(${digitpart})[jJ]\\b`
+      }
     ]
   };
-
+  const COMMENT_TYPE = {
+    className: "comment",
+    begin: lookahead$9(/# type:/),
+    end: /$/,
+    keywords: KEYWORDS,
+    contains: [
+      { // prevent keywords from coloring `type`
+        begin: /# type:/
+      },
+      // comment within a datatype comment includes no keywords
+      {
+        begin: /#/,
+        end: /\b\B/,
+        endsWithParent: true
+      }
+    ]
+  };
   const PARAMS = {
     className: 'params',
     variants: [
-      // Exclude params at functions without params
-      {begin: /\(\s*\)/, skip: true, className: null },
+      // Exclude params in functions without params
       {
-        begin: /\(/, end: /\)/, excludeBegin: true, excludeEnd: true,
-        keywords: KEYWORDS,
-        contains: ['self', PROMPT, NUMBER, STRING, hljs.HASH_COMMENT_MODE],
+        className: "",
+        begin: /\(\s*\)/,
+        skip: true
       },
-    ],
+      {
+        begin: /\(/,
+        end: /\)/,
+        excludeBegin: true,
+        excludeEnd: true,
+        keywords: KEYWORDS,
+        contains: [
+          'self',
+          PROMPT,
+          NUMBER,
+          STRING,
+          hljs.HASH_COMMENT_MODE
+        ]
+      }
+    ]
   };
-  SUBST.contains = [STRING, NUMBER, PROMPT];
+  SUBST.contains = [
+    STRING,
+    NUMBER,
+    PROMPT
+  ];
 
   return {
     name: 'Python',
-    aliases: ['py', 'gyp', 'ipython'],
+    aliases: [
+      'py',
+      'gyp',
+      'ipython'
+    ],
     keywords: KEYWORDS,
     illegal: /(<\/|->|\?)|=>/,
     contains: [
       PROMPT,
       NUMBER,
-      // eat "if" prior to string so that it won't accidentally be
-      // labeled as an f-string as in:
-      { begin: /\bself\b/, }, // very common convention
-      { beginKeywords: "if", relevance: 0 },
+      {
+        // very common convention
+        begin: /\bself\b/
+      },
+      {
+        // eat "if" prior to string so that it won't accidentally be
+        // labeled as an f-string
+        beginKeywords: "if",
+        relevance: 0
+      },
       STRING,
+      COMMENT_TYPE,
       hljs.HASH_COMMENT_MODE,
       {
         variants: [
-          {className: 'function', beginKeywords: 'def'},
-          {className: 'class', beginKeywords: 'class'}
+          {
+            className: 'function',
+            beginKeywords: 'def'
+          },
+          {
+            className: 'class',
+            beginKeywords: 'class'
+          }
         ],
         end: /:/,
         illegal: /[${=;\n,]/,
@@ -37333,18 +42325,21 @@ function python(hljs) {
           hljs.UNDERSCORE_TITLE_MODE,
           PARAMS,
           {
-            begin: /->/, endsWithParent: true,
-            keywords: 'None'
+            begin: /->/,
+            endsWithParent: true,
+            keywords: KEYWORDS
           }
         ]
       },
       {
         className: 'meta',
-        begin: /^[\t ]*@/, end: /(?=#)|$/,
-        contains: [NUMBER, PARAMS, STRING]
-      },
-      {
-        begin: /\b(print|exec)\(/ // don’t highlight keywords-turned-functions in Python 3
+        begin: /^[\t ]*@/,
+        end: /(?=#)|$/,
+        contains: [
+          NUMBER,
+          PARAMS,
+          STRING
+        ]
       }
     ]
   };
@@ -37436,7 +42431,7 @@ var q_1 = q;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$6(re) {
+function source$v(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -37447,8 +42442,8 @@ function source$6(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$6(...args) {
-  const joined = args.map((x) => source$6(x)).join("");
+function concat$u(...args) {
+  const joined = args.map((x) => source$v(x)).join("");
   return joined;
 }
 
@@ -37544,7 +42539,7 @@ function qml(hljs) {
   // Find QML object. A QML object is a QML identifier followed by { and ends at the matching }.
   // All we really care about is finding IDENT followed by { and just mark up the IDENT and ignore the {.
   const QML_OBJECT = {
-    begin: concat$6(QML_IDENT_RE, /\s*\{/),
+    begin: concat$u(QML_IDENT_RE, /\s*\{/),
     end: /\{/,
     returnBegin: true,
     relevance: 0,
@@ -37662,7 +42657,7 @@ var qml_1 = qml;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$5(re) {
+function source$w(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -37673,16 +42668,16 @@ function source$5(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$2(re) {
-  return concat$5('(?=', re, ')');
+function lookahead$a(re) {
+  return concat$v('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$5(...args) {
-  const joined = args.map((x) => source$5(x)).join("");
+function concat$v(...args) {
+  const joined = args.map((x) => source$w(x)).join("");
   return joined;
 }
 
@@ -37754,7 +42749,7 @@ function r(hljs) {
         const originalMode = Object.assign({}, mode);
         Object.keys(mode).forEach((key) => { delete mode[key]; });
 
-        mode.begin = concat$5(originalMode.beforeMatch, lookahead$2(originalMode.begin));
+        mode.begin = concat$v(originalMode.beforeMatch, lookahead$a(originalMode.begin));
         mode.starts = {
           relevance: 0,
           contains: [
@@ -37869,7 +42864,7 @@ function r(hljs) {
       },
       // relevance boost for assignment
       {
-        begin: concat$5(SIMPLE_IDENT, "\\s+<-\\s+")
+        begin: concat$v(SIMPLE_IDENT, "\\s+<-\\s+")
       },
       {
         // escaped identifier
@@ -38391,7 +43386,6 @@ function routeros(hljs) {
   return {
     name: 'Microtik RouterOS script',
     aliases: [
-      'routeros',
       'mikrotik'
     ],
     case_insensitive: true,
@@ -38422,8 +43416,10 @@ function routeros(hljs) {
       QUOTE_STRING,
       APOS_STRING,
       VAR,
-      { // attribute=value
-        begin: /[\w-]+=([^\s{}[\]()]+)/,
+      // attribute=value
+      {
+        // > is to avoid matches with => in other grammars
+        begin: /[\w-]+=([^\s{}[\]()>]+)/,
         relevance: 0,
         returnBegin: true,
         contains: [
@@ -38857,10 +43853,6 @@ function sas(hljs) {
 
   return {
     name: 'SAS',
-    aliases: [
-      'sas',
-      'SAS'
-    ],
     case_insensitive: true, // SAS is case-insensitive
     keywords: {
       literal:
@@ -38946,22 +43938,23 @@ function scala(hljs) {
     className: 'string',
     variants: [
       {
+        begin: '"""',
+        end: '"""'
+      },
+      {
         begin: '"',
         end: '"',
         illegal: '\\n',
         contains: [ hljs.BACKSLASH_ESCAPE ]
       },
       {
-        begin: '"""',
-        end: '"""',
-        relevance: 10
-      },
-      {
         begin: '[a-z]+"',
         end: '"',
         illegal: '\\n',
-        contains: [ hljs.BACKSLASH_ESCAPE,
-          SUBST ]
+        contains: [
+          hljs.BACKSLASH_ESCAPE,
+          SUBST
+        ]
       },
       {
         className: 'string',
@@ -39336,6 +44329,434 @@ function scilab(hljs) {
 
 var scilab_1 = scilab;
 
+const MODES$3 = (hljs) => {
+  return {
+    IMPORTANT: {
+      className: 'meta',
+      begin: '!important'
+    },
+    HEXCOLOR: {
+      className: 'number',
+      begin: '#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})'
+    },
+    ATTRIBUTE_SELECTOR_MODE: {
+      className: 'selector-attr',
+      begin: /\[/,
+      end: /\]/,
+      illegal: '$',
+      contains: [
+        hljs.APOS_STRING_MODE,
+        hljs.QUOTE_STRING_MODE
+      ]
+    }
+  };
+};
+
+const TAGS$2 = [
+  'a',
+  'abbr',
+  'address',
+  'article',
+  'aside',
+  'audio',
+  'b',
+  'blockquote',
+  'body',
+  'button',
+  'canvas',
+  'caption',
+  'cite',
+  'code',
+  'dd',
+  'del',
+  'details',
+  'dfn',
+  'div',
+  'dl',
+  'dt',
+  'em',
+  'fieldset',
+  'figcaption',
+  'figure',
+  'footer',
+  'form',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'header',
+  'hgroup',
+  'html',
+  'i',
+  'iframe',
+  'img',
+  'input',
+  'ins',
+  'kbd',
+  'label',
+  'legend',
+  'li',
+  'main',
+  'mark',
+  'menu',
+  'nav',
+  'object',
+  'ol',
+  'p',
+  'q',
+  'quote',
+  'samp',
+  'section',
+  'span',
+  'strong',
+  'summary',
+  'sup',
+  'table',
+  'tbody',
+  'td',
+  'textarea',
+  'tfoot',
+  'th',
+  'thead',
+  'time',
+  'tr',
+  'ul',
+  'var',
+  'video'
+];
+
+const MEDIA_FEATURES$2 = [
+  'any-hover',
+  'any-pointer',
+  'aspect-ratio',
+  'color',
+  'color-gamut',
+  'color-index',
+  'device-aspect-ratio',
+  'device-height',
+  'device-width',
+  'display-mode',
+  'forced-colors',
+  'grid',
+  'height',
+  'hover',
+  'inverted-colors',
+  'monochrome',
+  'orientation',
+  'overflow-block',
+  'overflow-inline',
+  'pointer',
+  'prefers-color-scheme',
+  'prefers-contrast',
+  'prefers-reduced-motion',
+  'prefers-reduced-transparency',
+  'resolution',
+  'scan',
+  'scripting',
+  'update',
+  'width',
+  // TODO: find a better solution?
+  'min-width',
+  'max-width',
+  'min-height',
+  'max-height'
+];
+
+// https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-classes
+const PSEUDO_CLASSES$2 = [
+  'active',
+  'any-link',
+  'blank',
+  'checked',
+  'current',
+  'default',
+  'defined',
+  'dir', // dir()
+  'disabled',
+  'drop',
+  'empty',
+  'enabled',
+  'first',
+  'first-child',
+  'first-of-type',
+  'fullscreen',
+  'future',
+  'focus',
+  'focus-visible',
+  'focus-within',
+  'has', // has()
+  'host', // host or host()
+  'host-context', // host-context()
+  'hover',
+  'indeterminate',
+  'in-range',
+  'invalid',
+  'is', // is()
+  'lang', // lang()
+  'last-child',
+  'last-of-type',
+  'left',
+  'link',
+  'local-link',
+  'not', // not()
+  'nth-child', // nth-child()
+  'nth-col', // nth-col()
+  'nth-last-child', // nth-last-child()
+  'nth-last-col', // nth-last-col()
+  'nth-last-of-type', //nth-last-of-type()
+  'nth-of-type', //nth-of-type()
+  'only-child',
+  'only-of-type',
+  'optional',
+  'out-of-range',
+  'past',
+  'placeholder-shown',
+  'read-only',
+  'read-write',
+  'required',
+  'right',
+  'root',
+  'scope',
+  'target',
+  'target-within',
+  'user-invalid',
+  'valid',
+  'visited',
+  'where' // where()
+];
+
+// https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-elements
+const PSEUDO_ELEMENTS$2 = [
+  'after',
+  'backdrop',
+  'before',
+  'cue',
+  'cue-region',
+  'first-letter',
+  'first-line',
+  'grammar-error',
+  'marker',
+  'part',
+  'placeholder',
+  'selection',
+  'slotted',
+  'spelling-error'
+];
+
+const ATTRIBUTES$2 = [
+  'align-content',
+  'align-items',
+  'align-self',
+  'animation',
+  'animation-delay',
+  'animation-direction',
+  'animation-duration',
+  'animation-fill-mode',
+  'animation-iteration-count',
+  'animation-name',
+  'animation-play-state',
+  'animation-timing-function',
+  'auto',
+  'backface-visibility',
+  'background',
+  'background-attachment',
+  'background-clip',
+  'background-color',
+  'background-image',
+  'background-origin',
+  'background-position',
+  'background-repeat',
+  'background-size',
+  'border',
+  'border-bottom',
+  'border-bottom-color',
+  'border-bottom-left-radius',
+  'border-bottom-right-radius',
+  'border-bottom-style',
+  'border-bottom-width',
+  'border-collapse',
+  'border-color',
+  'border-image',
+  'border-image-outset',
+  'border-image-repeat',
+  'border-image-slice',
+  'border-image-source',
+  'border-image-width',
+  'border-left',
+  'border-left-color',
+  'border-left-style',
+  'border-left-width',
+  'border-radius',
+  'border-right',
+  'border-right-color',
+  'border-right-style',
+  'border-right-width',
+  'border-spacing',
+  'border-style',
+  'border-top',
+  'border-top-color',
+  'border-top-left-radius',
+  'border-top-right-radius',
+  'border-top-style',
+  'border-top-width',
+  'border-width',
+  'bottom',
+  'box-decoration-break',
+  'box-shadow',
+  'box-sizing',
+  'break-after',
+  'break-before',
+  'break-inside',
+  'caption-side',
+  'clear',
+  'clip',
+  'clip-path',
+  'color',
+  'column-count',
+  'column-fill',
+  'column-gap',
+  'column-rule',
+  'column-rule-color',
+  'column-rule-style',
+  'column-rule-width',
+  'column-span',
+  'column-width',
+  'columns',
+  'content',
+  'counter-increment',
+  'counter-reset',
+  'cursor',
+  'direction',
+  'display',
+  'empty-cells',
+  'filter',
+  'flex',
+  'flex-basis',
+  'flex-direction',
+  'flex-flow',
+  'flex-grow',
+  'flex-shrink',
+  'flex-wrap',
+  'float',
+  'font',
+  'font-display',
+  'font-family',
+  'font-feature-settings',
+  'font-kerning',
+  'font-language-override',
+  'font-size',
+  'font-size-adjust',
+  'font-smoothing',
+  'font-stretch',
+  'font-style',
+  'font-variant',
+  'font-variant-ligatures',
+  'font-variation-settings',
+  'font-weight',
+  'height',
+  'hyphens',
+  'icon',
+  'image-orientation',
+  'image-rendering',
+  'image-resolution',
+  'ime-mode',
+  'inherit',
+  'initial',
+  'justify-content',
+  'left',
+  'letter-spacing',
+  'line-height',
+  'list-style',
+  'list-style-image',
+  'list-style-position',
+  'list-style-type',
+  'margin',
+  'margin-bottom',
+  'margin-left',
+  'margin-right',
+  'margin-top',
+  'marks',
+  'mask',
+  'max-height',
+  'max-width',
+  'min-height',
+  'min-width',
+  'nav-down',
+  'nav-index',
+  'nav-left',
+  'nav-right',
+  'nav-up',
+  'none',
+  'normal',
+  'object-fit',
+  'object-position',
+  'opacity',
+  'order',
+  'orphans',
+  'outline',
+  'outline-color',
+  'outline-offset',
+  'outline-style',
+  'outline-width',
+  'overflow',
+  'overflow-wrap',
+  'overflow-x',
+  'overflow-y',
+  'padding',
+  'padding-bottom',
+  'padding-left',
+  'padding-right',
+  'padding-top',
+  'page-break-after',
+  'page-break-before',
+  'page-break-inside',
+  'perspective',
+  'perspective-origin',
+  'pointer-events',
+  'position',
+  'quotes',
+  'resize',
+  'right',
+  'src', // @font-face
+  'tab-size',
+  'table-layout',
+  'text-align',
+  'text-align-last',
+  'text-decoration',
+  'text-decoration-color',
+  'text-decoration-line',
+  'text-decoration-style',
+  'text-indent',
+  'text-overflow',
+  'text-rendering',
+  'text-shadow',
+  'text-transform',
+  'text-underline-position',
+  'top',
+  'transform',
+  'transform-origin',
+  'transform-style',
+  'transition',
+  'transition-delay',
+  'transition-duration',
+  'transition-property',
+  'transition-timing-function',
+  'unicode-bidi',
+  'vertical-align',
+  'visibility',
+  'white-space',
+  'widows',
+  'width',
+  'word-break',
+  'word-spacing',
+  'word-wrap',
+  'z-index'
+  // reverse makes sure longer attributes `font-weight` are matched fully
+  // instead of getting false positives on say `font`
+].reverse();
+
 /*
 Language: SCSS
 Description: Scss is an extension of the syntax of CSS.
@@ -39343,36 +44764,21 @@ Author: Kurt Emch <kurt@kurtemch.com>
 Website: https://sass-lang.com
 Category: common, css
 */
+
+/** @type LanguageFn */
 function scss(hljs) {
-  var AT_IDENTIFIER = '@[a-z-]+'; // @font-face
-  var AT_MODIFIERS = "and or not only";
-  var IDENT_RE = '[a-zA-Z-][a-zA-Z0-9_-]*';
-  var VARIABLE = {
+  const modes = MODES$3(hljs);
+  const PSEUDO_ELEMENTS$1 = PSEUDO_ELEMENTS$2;
+  const PSEUDO_CLASSES$1 = PSEUDO_CLASSES$2;
+
+  const AT_IDENTIFIER = '@[a-z-]+'; // @font-face
+  const AT_MODIFIERS = "and or not only";
+  const IDENT_RE = '[a-zA-Z-][a-zA-Z0-9_-]*';
+  const VARIABLE = {
     className: 'variable',
     begin: '(\\$' + IDENT_RE + ')\\b'
   };
-  var HEXCOLOR = {
-    className: 'number', begin: '#[0-9A-Fa-f]+'
-  };
-  ({
-    className: 'attribute',
-    begin: '[A-Z\\_\\.\\-]+', end: ':',
-    excludeEnd: true,
-    illegal: '[^\\s]',
-    starts: {
-      endsWithParent: true, excludeEnd: true,
-      contains: [
-        HEXCOLOR,
-        hljs.CSS_NUMBER_MODE,
-        hljs.QUOTE_STRING_MODE,
-        hljs.APOS_STRING_MODE,
-        hljs.C_BLOCK_COMMENT_MODE,
-        {
-          className: 'meta', begin: '!important'
-        }
-      ]
-    }
-  });
+
   return {
     name: 'SCSS',
     case_insensitive: true,
@@ -39381,50 +44787,53 @@ function scss(hljs) {
       hljs.C_LINE_COMMENT_MODE,
       hljs.C_BLOCK_COMMENT_MODE,
       {
-        className: 'selector-id', begin: '#[A-Za-z0-9_-]+',
+        className: 'selector-id',
+        begin: '#[A-Za-z0-9_-]+',
         relevance: 0
       },
       {
-        className: 'selector-class', begin: '\\.[A-Za-z0-9_-]+',
+        className: 'selector-class',
+        begin: '\\.[A-Za-z0-9_-]+',
         relevance: 0
       },
+      modes.ATTRIBUTE_SELECTOR_MODE,
       {
-        className: 'selector-attr', begin: '\\[', end: '\\]',
-        illegal: '$'
-      },
-      {
-        className: 'selector-tag', // begin: IDENT_RE, end: '[,|\\s]'
-        begin: '\\b(a|abbr|acronym|address|area|article|aside|audio|b|base|big|blockquote|body|br|button|canvas|caption|cite|code|col|colgroup|command|datalist|dd|del|details|dfn|div|dl|dt|em|embed|fieldset|figcaption|figure|footer|form|frame|frameset|(h[1-6])|head|header|hgroup|hr|html|i|iframe|img|input|ins|kbd|keygen|label|legend|li|link|map|mark|meta|meter|nav|noframes|noscript|object|ol|optgroup|option|output|p|param|pre|progress|q|rp|rt|ruby|samp|script|section|select|small|span|strike|strong|style|sub|sup|table|tbody|td|textarea|tfoot|th|thead|time|title|tr|tt|ul|var|video)\\b',
+        className: 'selector-tag',
+        begin: '\\b(' + TAGS$2.join('|') + ')\\b',
+        // was there, before, but why?
         relevance: 0
       },
       {
         className: 'selector-pseudo',
-        begin: ':(visited|valid|root|right|required|read-write|read-only|out-range|optional|only-of-type|only-child|nth-of-type|nth-last-of-type|nth-last-child|nth-child|not|link|left|last-of-type|last-child|lang|invalid|indeterminate|in-range|hover|focus|first-of-type|first-line|first-letter|first-child|first|enabled|empty|disabled|default|checked|before|after|active)'
+        begin: ':(' + PSEUDO_CLASSES$1.join('|') + ')'
       },
       {
         className: 'selector-pseudo',
-        begin: '::(after|before|choices|first-letter|first-line|repeat-index|repeat-item|selection|value)'
+        begin: '::(' + PSEUDO_ELEMENTS$1.join('|') + ')'
       },
       VARIABLE,
+      { // pseudo-selector params
+        begin: /\(/,
+        end: /\)/,
+        contains: [ hljs.CSS_NUMBER_MODE ]
+      },
       {
         className: 'attribute',
-        begin: '\\b(src|z-index|word-wrap|word-spacing|word-break|width|widows|white-space|visibility|vertical-align|unicode-bidi|transition-timing-function|transition-property|transition-duration|transition-delay|transition|transform-style|transform-origin|transform|top|text-underline-position|text-transform|text-shadow|text-rendering|text-overflow|text-indent|text-decoration-style|text-decoration-line|text-decoration-color|text-decoration|text-align-last|text-align|tab-size|table-layout|right|resize|quotes|position|pointer-events|perspective-origin|perspective|page-break-inside|page-break-before|page-break-after|padding-top|padding-right|padding-left|padding-bottom|padding|overflow-y|overflow-x|overflow-wrap|overflow|outline-width|outline-style|outline-offset|outline-color|outline|orphans|order|opacity|object-position|object-fit|normal|none|nav-up|nav-right|nav-left|nav-index|nav-down|min-width|min-height|max-width|max-height|mask|marks|margin-top|margin-right|margin-left|margin-bottom|margin|list-style-type|list-style-position|list-style-image|list-style|line-height|letter-spacing|left|justify-content|initial|inherit|ime-mode|image-orientation|image-resolution|image-rendering|icon|hyphens|height|font-weight|font-variant-ligatures|font-variant|font-style|font-stretch|font-size-adjust|font-size|font-language-override|font-kerning|font-feature-settings|font-family|font|float|flex-wrap|flex-shrink|flex-grow|flex-flow|flex-direction|flex-basis|flex|filter|empty-cells|display|direction|cursor|counter-reset|counter-increment|content|column-width|column-span|column-rule-width|column-rule-style|column-rule-color|column-rule|column-gap|column-fill|column-count|columns|color|clip-path|clip|clear|caption-side|break-inside|break-before|break-after|box-sizing|box-shadow|box-decoration-break|bottom|border-width|border-top-width|border-top-style|border-top-right-radius|border-top-left-radius|border-top-color|border-top|border-style|border-spacing|border-right-width|border-right-style|border-right-color|border-right|border-radius|border-left-width|border-left-style|border-left-color|border-left|border-image-width|border-image-source|border-image-slice|border-image-repeat|border-image-outset|border-image|border-color|border-collapse|border-bottom-width|border-bottom-style|border-bottom-right-radius|border-bottom-left-radius|border-bottom-color|border-bottom|border|background-size|background-repeat|background-position|background-origin|background-image|background-color|background-clip|background-attachment|background-blend-mode|background|backface-visibility|auto|animation-timing-function|animation-play-state|animation-name|animation-iteration-count|animation-fill-mode|animation-duration|animation-direction|animation-delay|animation|align-self|align-items|align-content)\\b',
-        illegal: '[^\\s]'
+        begin: '\\b(' + ATTRIBUTES$2.join('|') + ')\\b'
       },
       {
         begin: '\\b(whitespace|wait|w-resize|visible|vertical-text|vertical-ideographic|uppercase|upper-roman|upper-alpha|underline|transparent|top|thin|thick|text|text-top|text-bottom|tb-rl|table-header-group|table-footer-group|sw-resize|super|strict|static|square|solid|small-caps|separate|se-resize|scroll|s-resize|rtl|row-resize|ridge|right|repeat|repeat-y|repeat-x|relative|progress|pointer|overline|outside|outset|oblique|nowrap|not-allowed|normal|none|nw-resize|no-repeat|no-drop|newspaper|ne-resize|n-resize|move|middle|medium|ltr|lr-tb|lowercase|lower-roman|lower-alpha|loose|list-item|line|line-through|line-edge|lighter|left|keep-all|justify|italic|inter-word|inter-ideograph|inside|inset|inline|inline-block|inherit|inactive|ideograph-space|ideograph-parenthesis|ideograph-numeric|ideograph-alpha|horizontal|hidden|help|hand|groove|fixed|ellipsis|e-resize|double|dotted|distribute|distribute-space|distribute-letter|distribute-all-lines|disc|disabled|default|decimal|dashed|crosshair|collapse|col-resize|circle|char|center|capitalize|break-word|break-all|bottom|both|bolder|bold|block|bidi-override|below|baseline|auto|always|all-scroll|absolute|table|table-cell)\\b'
       },
       {
-        begin: ':', end: ';',
+        begin: ':',
+        end: ';',
         contains: [
           VARIABLE,
-          HEXCOLOR,
+          modes.HEXCOLOR,
           hljs.CSS_NUMBER_MODE,
           hljs.QUOTE_STRING_MODE,
           hljs.APOS_STRING_MODE,
-          {
-            className: 'meta', begin: '!important'
-          }
+          modes.IMPORTANT
         ]
       },
       // matching these here allows us to treat them more like regular CSS
@@ -39436,23 +44845,28 @@ function scss(hljs) {
         keywords: '@page @font-face'
       },
       {
-        begin: '@', end: '[{;]',
+        begin: '@',
+        end: '[{;]',
         returnBegin: true,
-        keywords: AT_MODIFIERS,
+        keywords: {
+          $pattern: /[a-z-]+/,
+          keyword: AT_MODIFIERS,
+          attribute: MEDIA_FEATURES$2.join(" ")
+        },
         contains: [
           {
             begin: AT_IDENTIFIER,
             className: "keyword"
           },
+          {
+            begin: /[a-z-]+(?=:)/,
+            className: "attribute"
+          },
           VARIABLE,
           hljs.QUOTE_STRING_MODE,
           hljs.APOS_STRING_MODE,
-          HEXCOLOR,
-          hljs.CSS_NUMBER_MODE,
-          // {
-          //   begin: '\\s[A-Za-z0-9_.-]+',
-          //   relevance: 0
-          // }
+          modes.HEXCOLOR,
+          hljs.CSS_NUMBER_MODE
         ]
       }
     ]
@@ -39565,7 +44979,6 @@ function smali(hljs) {
   ];
   return {
     name: 'Smali',
-    aliases: [ 'smali' ],
     contains: [
       {
         className: 'string',
@@ -39853,7 +45266,6 @@ function sqf(hljs) {
 
   return {
     name: 'SQF',
-    aliases: [ 'sqf' ],
     case_insensitive: true,
     keywords: {
       keyword:
@@ -40418,7 +45830,7 @@ var sql_more_1 = sql_more;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$4(re) {
+function source$x(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -40429,8 +45841,8 @@ function source$4(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$4(...args) {
-  const joined = args.map((x) => source$4(x)).join("");
+function concat$w(...args) {
+  const joined = args.map((x) => source$x(x)).join("");
   return joined;
 }
 
@@ -40441,8 +45853,8 @@ function concat$4(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$3(...args) {
-  const joined = '(' + args.map((x) => source$4(x)).join("|") + ")";
+function either$a(...args) {
+  const joined = '(' + args.map((x) => source$x(x)).join("|") + ")";
   return joined;
 }
 
@@ -41047,9 +46459,9 @@ function sql(hljs) {
   };
 
   const FUNCTION_CALL = {
-    begin: concat$4(/\b/, either$3(...FUNCTIONS), /\s*\(/),
+    begin: concat$w(/\b/, either$a(...FUNCTIONS), /\s*\(/),
     keywords: {
-      built_in: FUNCTIONS.join(" ")
+      built_in: FUNCTIONS
     }
   };
 
@@ -41076,24 +46488,24 @@ function sql(hljs) {
     keywords: {
       $pattern: /\b[\w\.]+/,
       keyword:
-        reduceRelevancy(KEYWORDS, { when: (x) => x.length < 3 }).join(" "),
-      literal: LITERALS.join(" "),
-      type: TYPES.join(" "),
-      built_in: POSSIBLE_WITHOUT_PARENS.join(" ")
+        reduceRelevancy(KEYWORDS, { when: (x) => x.length < 3 }),
+      literal: LITERALS,
+      type: TYPES,
+      built_in: POSSIBLE_WITHOUT_PARENS
     },
     contains: [
       {
-        begin: either$3(...COMBOS),
+        begin: either$a(...COMBOS),
         keywords: {
           $pattern: /[\w\.]+/,
-          keyword: KEYWORDS.concat(COMBOS).join(" "),
-          literal: LITERALS.join(" "),
-          type: TYPES.join(" ")
+          keyword: KEYWORDS.concat(COMBOS),
+          literal: LITERALS,
+          type: TYPES
         },
       },
       {
         className: "type",
-        begin: either$3(...MULTI_WORD_TYPES)
+        begin: either$a(...MULTI_WORD_TYPES)
       },
       FUNCTION_CALL,
       VARIABLE,
@@ -41584,9 +46996,9 @@ function stan(hljs) {
     aliases: [ 'stanfuncs' ],
     keywords: {
       $pattern: hljs.IDENT_RE,
-      title: BLOCKS.join(' '),
-      keyword: STATEMENTS.concat(VAR_TYPES).concat(SPECIAL_FUNCTIONS).join(' '),
-      built_in: FUNCTIONS.join(' ')
+      title: BLOCKS,
+      keyword: STATEMENTS.concat(VAR_TYPES).concat(SPECIAL_FUNCTIONS),
+      built_in: FUNCTIONS
     },
     contains: [
       hljs.C_LINE_COMMENT_MODE,
@@ -41632,7 +47044,7 @@ function stan(hljs) {
       },
       {
         begin: '~\\s*(' + hljs.IDENT_RE + ')\\s*\\(',
-        keywords: DISTRIBUTIONS.join(' ')
+        keywords: DISTRIBUTIONS
       },
       {
         className: 'number',
@@ -41786,6 +47198,434 @@ function step21(hljs) {
 
 var step21_1 = step21;
 
+const MODES$4 = (hljs) => {
+  return {
+    IMPORTANT: {
+      className: 'meta',
+      begin: '!important'
+    },
+    HEXCOLOR: {
+      className: 'number',
+      begin: '#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})'
+    },
+    ATTRIBUTE_SELECTOR_MODE: {
+      className: 'selector-attr',
+      begin: /\[/,
+      end: /\]/,
+      illegal: '$',
+      contains: [
+        hljs.APOS_STRING_MODE,
+        hljs.QUOTE_STRING_MODE
+      ]
+    }
+  };
+};
+
+const TAGS$3 = [
+  'a',
+  'abbr',
+  'address',
+  'article',
+  'aside',
+  'audio',
+  'b',
+  'blockquote',
+  'body',
+  'button',
+  'canvas',
+  'caption',
+  'cite',
+  'code',
+  'dd',
+  'del',
+  'details',
+  'dfn',
+  'div',
+  'dl',
+  'dt',
+  'em',
+  'fieldset',
+  'figcaption',
+  'figure',
+  'footer',
+  'form',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'header',
+  'hgroup',
+  'html',
+  'i',
+  'iframe',
+  'img',
+  'input',
+  'ins',
+  'kbd',
+  'label',
+  'legend',
+  'li',
+  'main',
+  'mark',
+  'menu',
+  'nav',
+  'object',
+  'ol',
+  'p',
+  'q',
+  'quote',
+  'samp',
+  'section',
+  'span',
+  'strong',
+  'summary',
+  'sup',
+  'table',
+  'tbody',
+  'td',
+  'textarea',
+  'tfoot',
+  'th',
+  'thead',
+  'time',
+  'tr',
+  'ul',
+  'var',
+  'video'
+];
+
+const MEDIA_FEATURES$3 = [
+  'any-hover',
+  'any-pointer',
+  'aspect-ratio',
+  'color',
+  'color-gamut',
+  'color-index',
+  'device-aspect-ratio',
+  'device-height',
+  'device-width',
+  'display-mode',
+  'forced-colors',
+  'grid',
+  'height',
+  'hover',
+  'inverted-colors',
+  'monochrome',
+  'orientation',
+  'overflow-block',
+  'overflow-inline',
+  'pointer',
+  'prefers-color-scheme',
+  'prefers-contrast',
+  'prefers-reduced-motion',
+  'prefers-reduced-transparency',
+  'resolution',
+  'scan',
+  'scripting',
+  'update',
+  'width',
+  // TODO: find a better solution?
+  'min-width',
+  'max-width',
+  'min-height',
+  'max-height'
+];
+
+// https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-classes
+const PSEUDO_CLASSES$3 = [
+  'active',
+  'any-link',
+  'blank',
+  'checked',
+  'current',
+  'default',
+  'defined',
+  'dir', // dir()
+  'disabled',
+  'drop',
+  'empty',
+  'enabled',
+  'first',
+  'first-child',
+  'first-of-type',
+  'fullscreen',
+  'future',
+  'focus',
+  'focus-visible',
+  'focus-within',
+  'has', // has()
+  'host', // host or host()
+  'host-context', // host-context()
+  'hover',
+  'indeterminate',
+  'in-range',
+  'invalid',
+  'is', // is()
+  'lang', // lang()
+  'last-child',
+  'last-of-type',
+  'left',
+  'link',
+  'local-link',
+  'not', // not()
+  'nth-child', // nth-child()
+  'nth-col', // nth-col()
+  'nth-last-child', // nth-last-child()
+  'nth-last-col', // nth-last-col()
+  'nth-last-of-type', //nth-last-of-type()
+  'nth-of-type', //nth-of-type()
+  'only-child',
+  'only-of-type',
+  'optional',
+  'out-of-range',
+  'past',
+  'placeholder-shown',
+  'read-only',
+  'read-write',
+  'required',
+  'right',
+  'root',
+  'scope',
+  'target',
+  'target-within',
+  'user-invalid',
+  'valid',
+  'visited',
+  'where' // where()
+];
+
+// https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-elements
+const PSEUDO_ELEMENTS$3 = [
+  'after',
+  'backdrop',
+  'before',
+  'cue',
+  'cue-region',
+  'first-letter',
+  'first-line',
+  'grammar-error',
+  'marker',
+  'part',
+  'placeholder',
+  'selection',
+  'slotted',
+  'spelling-error'
+];
+
+const ATTRIBUTES$3 = [
+  'align-content',
+  'align-items',
+  'align-self',
+  'animation',
+  'animation-delay',
+  'animation-direction',
+  'animation-duration',
+  'animation-fill-mode',
+  'animation-iteration-count',
+  'animation-name',
+  'animation-play-state',
+  'animation-timing-function',
+  'auto',
+  'backface-visibility',
+  'background',
+  'background-attachment',
+  'background-clip',
+  'background-color',
+  'background-image',
+  'background-origin',
+  'background-position',
+  'background-repeat',
+  'background-size',
+  'border',
+  'border-bottom',
+  'border-bottom-color',
+  'border-bottom-left-radius',
+  'border-bottom-right-radius',
+  'border-bottom-style',
+  'border-bottom-width',
+  'border-collapse',
+  'border-color',
+  'border-image',
+  'border-image-outset',
+  'border-image-repeat',
+  'border-image-slice',
+  'border-image-source',
+  'border-image-width',
+  'border-left',
+  'border-left-color',
+  'border-left-style',
+  'border-left-width',
+  'border-radius',
+  'border-right',
+  'border-right-color',
+  'border-right-style',
+  'border-right-width',
+  'border-spacing',
+  'border-style',
+  'border-top',
+  'border-top-color',
+  'border-top-left-radius',
+  'border-top-right-radius',
+  'border-top-style',
+  'border-top-width',
+  'border-width',
+  'bottom',
+  'box-decoration-break',
+  'box-shadow',
+  'box-sizing',
+  'break-after',
+  'break-before',
+  'break-inside',
+  'caption-side',
+  'clear',
+  'clip',
+  'clip-path',
+  'color',
+  'column-count',
+  'column-fill',
+  'column-gap',
+  'column-rule',
+  'column-rule-color',
+  'column-rule-style',
+  'column-rule-width',
+  'column-span',
+  'column-width',
+  'columns',
+  'content',
+  'counter-increment',
+  'counter-reset',
+  'cursor',
+  'direction',
+  'display',
+  'empty-cells',
+  'filter',
+  'flex',
+  'flex-basis',
+  'flex-direction',
+  'flex-flow',
+  'flex-grow',
+  'flex-shrink',
+  'flex-wrap',
+  'float',
+  'font',
+  'font-display',
+  'font-family',
+  'font-feature-settings',
+  'font-kerning',
+  'font-language-override',
+  'font-size',
+  'font-size-adjust',
+  'font-smoothing',
+  'font-stretch',
+  'font-style',
+  'font-variant',
+  'font-variant-ligatures',
+  'font-variation-settings',
+  'font-weight',
+  'height',
+  'hyphens',
+  'icon',
+  'image-orientation',
+  'image-rendering',
+  'image-resolution',
+  'ime-mode',
+  'inherit',
+  'initial',
+  'justify-content',
+  'left',
+  'letter-spacing',
+  'line-height',
+  'list-style',
+  'list-style-image',
+  'list-style-position',
+  'list-style-type',
+  'margin',
+  'margin-bottom',
+  'margin-left',
+  'margin-right',
+  'margin-top',
+  'marks',
+  'mask',
+  'max-height',
+  'max-width',
+  'min-height',
+  'min-width',
+  'nav-down',
+  'nav-index',
+  'nav-left',
+  'nav-right',
+  'nav-up',
+  'none',
+  'normal',
+  'object-fit',
+  'object-position',
+  'opacity',
+  'order',
+  'orphans',
+  'outline',
+  'outline-color',
+  'outline-offset',
+  'outline-style',
+  'outline-width',
+  'overflow',
+  'overflow-wrap',
+  'overflow-x',
+  'overflow-y',
+  'padding',
+  'padding-bottom',
+  'padding-left',
+  'padding-right',
+  'padding-top',
+  'page-break-after',
+  'page-break-before',
+  'page-break-inside',
+  'perspective',
+  'perspective-origin',
+  'pointer-events',
+  'position',
+  'quotes',
+  'resize',
+  'right',
+  'src', // @font-face
+  'tab-size',
+  'table-layout',
+  'text-align',
+  'text-align-last',
+  'text-decoration',
+  'text-decoration-color',
+  'text-decoration-line',
+  'text-decoration-style',
+  'text-indent',
+  'text-overflow',
+  'text-rendering',
+  'text-shadow',
+  'text-transform',
+  'text-underline-position',
+  'top',
+  'transform',
+  'transform-origin',
+  'transform-style',
+  'transition',
+  'transition-delay',
+  'transition-duration',
+  'transition-property',
+  'transition-timing-function',
+  'unicode-bidi',
+  'vertical-align',
+  'visibility',
+  'white-space',
+  'widows',
+  'width',
+  'word-break',
+  'word-spacing',
+  'word-wrap',
+  'z-index'
+  // reverse makes sure longer attributes `font-weight` are matched fully
+  // instead of getting false positives on say `font`
+].reverse();
+
 /*
 Language: Stylus
 Author: Bryant Williams <b.n.williams@gmail.com>
@@ -41794,19 +47634,17 @@ Website: https://github.com/stylus/stylus
 Category: css
 */
 
+/** @type LanguageFn */
 function stylus(hljs) {
+  const modes = MODES$4(hljs);
 
-  var VARIABLE = {
+  const AT_MODIFIERS = "and or not only";
+  const VARIABLE = {
     className: 'variable',
     begin: '\\$' + hljs.IDENT_RE
   };
 
-  var HEX_COLOR = {
-    className: 'number',
-    begin: '#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})'
-  };
-
-  var AT_KEYWORDS = [
+  const AT_KEYWORDS = [
     'charset',
     'css',
     'debug',
@@ -41815,6 +47653,7 @@ function stylus(hljs) {
     'for',
     'import',
     'include',
+    'keyframes',
     'media',
     'mixin',
     'page',
@@ -41822,304 +47661,10 @@ function stylus(hljs) {
     'while'
   ];
 
-  var PSEUDO_SELECTORS = [
-    'after',
-    'before',
-    'first-letter',
-    'first-line',
-    'active',
-    'first-child',
-    'focus',
-    'hover',
-    'lang',
-    'link',
-    'visited'
-  ];
-
-  var TAGS = [
-    'a',
-    'abbr',
-    'address',
-    'article',
-    'aside',
-    'audio',
-    'b',
-    'blockquote',
-    'body',
-    'button',
-    'canvas',
-    'caption',
-    'cite',
-    'code',
-    'dd',
-    'del',
-    'details',
-    'dfn',
-    'div',
-    'dl',
-    'dt',
-    'em',
-    'fieldset',
-    'figcaption',
-    'figure',
-    'footer',
-    'form',
-    'h1',
-    'h2',
-    'h3',
-    'h4',
-    'h5',
-    'h6',
-    'header',
-    'hgroup',
-    'html',
-    'i',
-    'iframe',
-    'img',
-    'input',
-    'ins',
-    'kbd',
-    'label',
-    'legend',
-    'li',
-    'mark',
-    'menu',
-    'nav',
-    'object',
-    'ol',
-    'p',
-    'q',
-    'quote',
-    'samp',
-    'section',
-    'span',
-    'strong',
-    'summary',
-    'sup',
-    'table',
-    'tbody',
-    'td',
-    'textarea',
-    'tfoot',
-    'th',
-    'thead',
-    'time',
-    'tr',
-    'ul',
-    'var',
-    'video'
-  ];
-
-  var LOOKAHEAD_TAG_END = '(?=[.\\s\\n[:,])';
-
-  var ATTRIBUTES = [
-    'align-content',
-    'align-items',
-    'align-self',
-    'animation',
-    'animation-delay',
-    'animation-direction',
-    'animation-duration',
-    'animation-fill-mode',
-    'animation-iteration-count',
-    'animation-name',
-    'animation-play-state',
-    'animation-timing-function',
-    'auto',
-    'backface-visibility',
-    'background',
-    'background-attachment',
-    'background-clip',
-    'background-color',
-    'background-image',
-    'background-origin',
-    'background-position',
-    'background-repeat',
-    'background-size',
-    'border',
-    'border-bottom',
-    'border-bottom-color',
-    'border-bottom-left-radius',
-    'border-bottom-right-radius',
-    'border-bottom-style',
-    'border-bottom-width',
-    'border-collapse',
-    'border-color',
-    'border-image',
-    'border-image-outset',
-    'border-image-repeat',
-    'border-image-slice',
-    'border-image-source',
-    'border-image-width',
-    'border-left',
-    'border-left-color',
-    'border-left-style',
-    'border-left-width',
-    'border-radius',
-    'border-right',
-    'border-right-color',
-    'border-right-style',
-    'border-right-width',
-    'border-spacing',
-    'border-style',
-    'border-top',
-    'border-top-color',
-    'border-top-left-radius',
-    'border-top-right-radius',
-    'border-top-style',
-    'border-top-width',
-    'border-width',
-    'bottom',
-    'box-decoration-break',
-    'box-shadow',
-    'box-sizing',
-    'break-after',
-    'break-before',
-    'break-inside',
-    'caption-side',
-    'clear',
-    'clip',
-    'clip-path',
-    'color',
-    'column-count',
-    'column-fill',
-    'column-gap',
-    'column-rule',
-    'column-rule-color',
-    'column-rule-style',
-    'column-rule-width',
-    'column-span',
-    'column-width',
-    'columns',
-    'content',
-    'counter-increment',
-    'counter-reset',
-    'cursor',
-    'direction',
-    'display',
-    'empty-cells',
-    'filter',
-    'flex',
-    'flex-basis',
-    'flex-direction',
-    'flex-flow',
-    'flex-grow',
-    'flex-shrink',
-    'flex-wrap',
-    'float',
-    'font',
-    'font-family',
-    'font-feature-settings',
-    'font-kerning',
-    'font-language-override',
-    'font-size',
-    'font-size-adjust',
-    'font-stretch',
-    'font-style',
-    'font-variant',
-    'font-variant-ligatures',
-    'font-weight',
-    'height',
-    'hyphens',
-    'icon',
-    'image-orientation',
-    'image-rendering',
-    'image-resolution',
-    'ime-mode',
-    'inherit',
-    'initial',
-    'justify-content',
-    'left',
-    'letter-spacing',
-    'line-height',
-    'list-style',
-    'list-style-image',
-    'list-style-position',
-    'list-style-type',
-    'margin',
-    'margin-bottom',
-    'margin-left',
-    'margin-right',
-    'margin-top',
-    'marks',
-    'mask',
-    'max-height',
-    'max-width',
-    'min-height',
-    'min-width',
-    'nav-down',
-    'nav-index',
-    'nav-left',
-    'nav-right',
-    'nav-up',
-    'none',
-    'normal',
-    'object-fit',
-    'object-position',
-    'opacity',
-    'order',
-    'orphans',
-    'outline',
-    'outline-color',
-    'outline-offset',
-    'outline-style',
-    'outline-width',
-    'overflow',
-    'overflow-wrap',
-    'overflow-x',
-    'overflow-y',
-    'padding',
-    'padding-bottom',
-    'padding-left',
-    'padding-right',
-    'padding-top',
-    'page-break-after',
-    'page-break-before',
-    'page-break-inside',
-    'perspective',
-    'perspective-origin',
-    'pointer-events',
-    'position',
-    'quotes',
-    'resize',
-    'right',
-    'tab-size',
-    'table-layout',
-    'text-align',
-    'text-align-last',
-    'text-decoration',
-    'text-decoration-color',
-    'text-decoration-line',
-    'text-decoration-style',
-    'text-indent',
-    'text-overflow',
-    'text-rendering',
-    'text-shadow',
-    'text-transform',
-    'text-underline-position',
-    'top',
-    'transform',
-    'transform-origin',
-    'transform-style',
-    'transition',
-    'transition-delay',
-    'transition-duration',
-    'transition-property',
-    'transition-timing-function',
-    'unicode-bidi',
-    'vertical-align',
-    'visibility',
-    'white-space',
-    'widows',
-    'width',
-    'word-break',
-    'word-spacing',
-    'word-wrap',
-    'z-index'
-  ];
+  const LOOKAHEAD_TAG_END = '(?=[.\\s\\n[:,(])';
 
   // illegals
-  var ILLEGAL = [
+  const ILLEGAL = [
     '\\?',
     '(\\bReturn\\b)', // monkey
     '(\\bEnd\\b)', // monkey
@@ -42130,12 +47675,12 @@ function stylus(hljs) {
     '\\*\\s', // markdown
     '===\\s', // markdown
     '\\|',
-    '%', // prolog
+    '%' // prolog
   ];
 
   return {
     name: 'Stylus',
-    aliases: ['styl'],
+    aliases: [ 'styl' ],
     case_insensitive: false,
     keywords: 'if else for in',
     illegal: '(' + ILLEGAL.join('|') + ')',
@@ -42150,7 +47695,7 @@ function stylus(hljs) {
       hljs.C_BLOCK_COMMENT_MODE,
 
       // hex colors
-      HEX_COLOR,
+      modes.HEXCOLOR,
 
       // class tag
       {
@@ -42166,18 +47711,40 @@ function stylus(hljs) {
 
       // tags
       {
-        begin: '\\b(' + TAGS.join('|') + ')' + LOOKAHEAD_TAG_END,
+        begin: '\\b(' + TAGS$3.join('|') + ')' + LOOKAHEAD_TAG_END,
         className: 'selector-tag'
       },
 
       // psuedo selectors
       {
-        begin: '&?:?:\\b(' + PSEUDO_SELECTORS.join('|') + ')' + LOOKAHEAD_TAG_END
+        className: 'selector-pseudo',
+        begin: '&?:(' + PSEUDO_CLASSES$3.join('|') + ')' + LOOKAHEAD_TAG_END
+      },
+      {
+        className: 'selector-pseudo',
+        begin: '&?::(' + PSEUDO_ELEMENTS$3.join('|') + ')' + LOOKAHEAD_TAG_END
+      },
+
+      modes.ATTRIBUTE_SELECTOR_MODE,
+
+      {
+        className: "keyword",
+        begin: /@media/,
+        starts: {
+          end: /[{;}]/,
+          keywords: {
+            $pattern: /[a-z-]+/,
+            keyword: AT_MODIFIERS,
+            attribute: MEDIA_FEATURES$3.join(" ")
+          },
+          contains: [ hljs.CSS_NUMBER_MODE ]
+        }
       },
 
       // @ keywords
       {
-        begin: '\@(' + AT_KEYWORDS.join('|') + ')\\b'
+        className: 'keyword',
+        begin: '\@((-(o|moz|ms|webkit)-)?(' + AT_KEYWORDS.join('|') + '))\\b'
       },
 
       // variables
@@ -42185,9 +47752,6 @@ function stylus(hljs) {
 
       // dimension
       hljs.CSS_NUMBER_MODE,
-
-      // number
-      hljs.NUMBER_MODE,
 
       // functions
       //  - only from beginning of line + whitespace
@@ -42197,17 +47761,19 @@ function stylus(hljs) {
         illegal: '[\\n]',
         returnBegin: true,
         contains: [
-          {className: 'title', begin: '\\b[a-zA-Z][a-zA-Z0-9_\-]*'},
+          {
+            className: 'title',
+            begin: '\\b[a-zA-Z][a-zA-Z0-9_\-]*'
+          },
           {
             className: 'params',
             begin: /\(/,
             end: /\)/,
             contains: [
-              HEX_COLOR,
+              modes.HEXCOLOR,
               VARIABLE,
               hljs.APOS_STRING_MODE,
               hljs.CSS_NUMBER_MODE,
-              hljs.NUMBER_MODE,
               hljs.QUOTE_STRING_MODE
             ]
           }
@@ -42219,18 +47785,18 @@ function stylus(hljs) {
       //  - must have whitespace after it
       {
         className: 'attribute',
-        begin: '\\b(' + ATTRIBUTES.reverse().join('|') + ')\\b',
+        begin: '\\b(' + ATTRIBUTES$3.join('|') + ')\\b',
         starts: {
           // value container
           end: /;|$/,
           contains: [
-            HEX_COLOR,
+            modes.HEXCOLOR,
             VARIABLE,
             hljs.APOS_STRING_MODE,
             hljs.QUOTE_STRING_MODE,
             hljs.CSS_NUMBER_MODE,
-            hljs.NUMBER_MODE,
-            hljs.C_BLOCK_COMMENT_MODE
+            hljs.C_BLOCK_COMMENT_MODE,
+            modes.IMPORTANT
           ],
           illegal: /\./,
           relevance: 0
@@ -42303,7 +47869,7 @@ var subunit_1 = subunit;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$3(re) {
+function source$y(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -42314,16 +47880,16 @@ function source$3(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead$1(re) {
-  return concat$3('(?=', re, ')');
+function lookahead$b(re) {
+  return concat$x('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$3(...args) {
-  const joined = args.map((x) => source$3(x)).join("");
+function concat$x(...args) {
+  const joined = args.map((x) => source$y(x)).join("");
   return joined;
 }
 
@@ -42334,12 +47900,12 @@ function concat$3(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$2(...args) {
-  const joined = '(' + args.map((x) => source$3(x)).join("|") + ")";
+function either$b(...args) {
+  const joined = '(' + args.map((x) => source$y(x)).join("|") + ")";
   return joined;
 }
 
-const keywordWrapper = keyword => concat$3(
+const keywordWrapper = keyword => concat$x(
   /\b/,
   keyword,
   /\w$/.test(keyword) ? /\b/ : /\B/
@@ -42369,6 +47935,8 @@ const keywords = [
   // will result in additional modes being created to scan for those keywords to
   // avoid conflicts with other rules
   'associatedtype',
+  'async',
+  'await',
   /as\?/, // operator
   /as!/, // operator
   'as', // operator
@@ -42388,7 +47956,7 @@ const keywords = [
   'enum',
   'extension',
   'fallthrough',
-  'fileprivate(set)',
+  /fileprivate\(set\)/,
   'fileprivate',
   'final', // contextual
   'for',
@@ -42402,7 +47970,7 @@ const keywords = [
   /init\?/,
   /init!/,
   'inout',
-  'internal(set)',
+  /internal\(set\)/,
   'internal',
   'in',
   'is', // operator
@@ -42410,7 +47978,7 @@ const keywords = [
   'let',
   'mutating', // contextual
   'nonmutating', // contextual
-  'open(set)', // contextual
+  /open\(set\)/, // contextual
   'open', // contextual
   'operator',
   'optional', // contextual
@@ -42418,10 +47986,10 @@ const keywords = [
   'postfix', // contextual
   'precedencegroup',
   'prefix', // contextual
-  'private(set)',
+  /private\(set\)/,
   'private',
   'protocol',
-  'public(set)',
+  /public\(set\)/,
   'public',
   'repeat',
   'required', // contextual
@@ -42440,8 +48008,8 @@ const keywords = [
   /try!/, // operator
   'try', // operator
   'typealias',
-  'unowned(safe)', // contextual
-  'unowned(unsafe)', // contextual
+  /unowned\(safe\)/, // contextual
+  /unowned\(unsafe\)/, // contextual
   'unowned', // contextual
   'var',
   'weak', // contextual
@@ -42453,15 +48021,22 @@ const keywords = [
 // NOTE: Contextual keywords are reserved only in specific contexts.
 // Ideally, these should be matched using modes to avoid false positives.
 
-// TODO: Create a PRECEDENCE_GROUP mode to match the remaining contextual keywords:
-// assignment associativity higherThan left lowerThan none right
-// These aren't included in the list because they result in mostly false positives.
-
 // Literals.
 const literals = [
   'false',
   'nil',
   'true'
+];
+
+// Keywords used in precedence groups.
+const precedencegroupKeywords = [
+  'assignment',
+  'associativity',
+  'higherThan',
+  'left',
+  'lowerThan',
+  'none',
+  'right'
 ];
 
 // Keywords that start with a number sign (#).
@@ -42528,7 +48103,7 @@ const builtIns = [
 ];
 
 // Valid first characters for operators.
-const operatorHead = either$2(
+const operatorHead = either$b(
   /[/=\-+!*%<>&|^~?]/,
   /[\u00A1-\u00A7]/,
   /[\u00A9\u00AB]/,
@@ -42550,7 +48125,7 @@ const operatorHead = either$2(
 );
 
 // Valid characters for operators.
-const operatorCharacter = either$2(
+const operatorCharacter = either$b(
   operatorHead,
   /[\u0300-\u036F]/,
   /[\u1DC0-\u1DFF]/,
@@ -42562,10 +48137,10 @@ const operatorCharacter = either$2(
 );
 
 // Valid operator.
-const operator = concat$3(operatorHead, operatorCharacter, '*');
+const operator = concat$x(operatorHead, operatorCharacter, '*');
 
 // Valid first characters for identifiers.
-const identifierHead = either$2(
+const identifierHead = either$b(
   /[a-zA-Z_]/,
   /[\u00A8\u00AA\u00AD\u00AF\u00B2-\u00B5\u00B7-\u00BA]/,
   /[\u00BC-\u00BE\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF]/,
@@ -42576,7 +48151,7 @@ const identifierHead = either$2(
   /[\u2C00-\u2DFF\u2E80-\u2FFF]/,
   /[\u3004-\u3007\u3021-\u302F\u3031-\u303F\u3040-\uD7FF]/,
   /[\uF900-\uFD3D\uFD40-\uFDCF\uFDF0-\uFE1F\uFE30-\uFE44]/,
-  /[\uFE47-\uFFFD]/
+  /[\uFE47-\uFEFE\uFF00-\uFFFD]/ // Should be /[\uFE47-\uFFFD]/, but we have to exclude FEFF.
   // The following characters are also allowed, but the regexes aren't supported yet.
   // /[\u{10000}-\u{1FFFD}\u{20000-\u{2FFFD}\u{30000}-\u{3FFFD}\u{40000}-\u{4FFFD}]/u,
   // /[\u{50000}-\u{5FFFD}\u{60000-\u{6FFFD}\u{70000}-\u{7FFFD}\u{80000}-\u{8FFFD}]/u,
@@ -42585,23 +48160,23 @@ const identifierHead = either$2(
 );
 
 // Valid characters for identifiers.
-const identifierCharacter = either$2(
+const identifierCharacter = either$b(
   identifierHead,
   /\d/,
   /[\u0300-\u036F\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]/
 );
 
 // Valid identifier.
-const identifier = concat$3(identifierHead, identifierCharacter, '*');
+const identifier = concat$x(identifierHead, identifierCharacter, '*');
 
 // Valid type identifier.
-const typeIdentifier = concat$3(/[A-Z]/, identifierCharacter, '*');
+const typeIdentifier = concat$x(/[A-Z]/, identifierCharacter, '*');
 
 // Built-in attributes, which are highlighted as keywords.
 // @available is handled separately.
 const keywordAttributes = [
   'autoclosure',
-  concat$3(/convention\(/, either$2('swift', 'block', 'c'), /\)/),
+  concat$x(/convention\(/, either$b('swift', 'block', 'c'), /\)/),
   'discardableResult',
   'dynamicCallable',
   'dynamicMemberLookup',
@@ -42619,7 +48194,7 @@ const keywordAttributes = [
   'NSApplicationMain',
   'NSCopying',
   'NSManaged',
-  concat$3(/objc\(/, identifier, /\)/),
+  concat$x(/objc\(/, identifier, /\)/),
   'objc',
   'objcMembers',
   'propertyWrapper',
@@ -42656,6 +48231,10 @@ Category: common, system
 
 /** @type LanguageFn */
 function swift(hljs) {
+  const WHITESPACE = {
+    match: /\s+/,
+    relevance: 0
+  };
   // https://docs.swift.org/swift-book/ReferenceManual/LexicalStructure.html#ID411
   const BLOCK_COMMENT = hljs.COMMENT(
     '/\\*',
@@ -42664,18 +48243,22 @@ function swift(hljs) {
       contains: [ 'self' ]
     }
   );
+  const COMMENTS = [
+    hljs.C_LINE_COMMENT_MODE,
+    BLOCK_COMMENT
+  ];
 
   // https://docs.swift.org/swift-book/ReferenceManual/LexicalStructure.html#ID413
   // https://docs.swift.org/swift-book/ReferenceManual/zzSummaryOfTheGrammar.html
   const DOT_KEYWORD = {
     className: 'keyword',
-    begin: concat$3(/\./, lookahead$1(either$2(...dotKeywords, ...optionalDotKeywords))),
-    end: either$2(...dotKeywords, ...optionalDotKeywords),
+    begin: concat$x(/\./, lookahead$b(either$b(...dotKeywords, ...optionalDotKeywords))),
+    end: either$b(...dotKeywords, ...optionalDotKeywords),
     excludeBegin: true
   };
   const KEYWORD_GUARD = {
     // Consume .keyword to prevent highlighting properties and methods as keywords.
-    begin: concat$3(/\./, either$2(...keywords)),
+    match: concat$x(/\./, either$b(...keywords)),
     relevance: 0
   };
   const PLAIN_KEYWORDS = keywords
@@ -42689,20 +48272,19 @@ function swift(hljs) {
     variants: [
       {
         className: 'keyword',
-        begin: either$2(...REGEX_KEYWORDS, ...optionalDotKeywords)
+        match: either$b(...REGEX_KEYWORDS, ...optionalDotKeywords)
       }
     ]
   };
   // find all the regular keywords
   const KEYWORDS = {
-    $pattern: either$2(
-      /\b\w+(\(\w+\))?/, // kw or kw(arg)
+    $pattern: either$b(
+      /\b\w+/, // regular keywords
       /#\w+/ // number keywords
     ),
     keyword: PLAIN_KEYWORDS
-      .concat(numberSignKeywords)
-      .join(" "),
-    literal: literals.join(" ")
+      .concat(numberSignKeywords),
+    literal: literals
   };
   const KEYWORD_MODES = [
     DOT_KEYWORD,
@@ -42713,12 +48295,12 @@ function swift(hljs) {
   // https://github.com/apple/swift/tree/main/stdlib/public/core
   const BUILT_IN_GUARD = {
     // Consume .built_in to prevent highlighting properties and methods.
-    begin: concat$3(/\./, either$2(...builtIns)),
+    match: concat$x(/\./, either$b(...builtIns)),
     relevance: 0
   };
   const BUILT_IN = {
     className: 'built_in',
-    begin: concat$3(/\b/, either$2(...builtIns), /(?=\()/)
+    match: concat$x(/\b/, either$b(...builtIns), /(?=\()/)
   };
   const BUILT_INS = [
     BUILT_IN_GUARD,
@@ -42728,7 +48310,7 @@ function swift(hljs) {
   // https://docs.swift.org/swift-book/ReferenceManual/LexicalStructure.html#ID418
   const OPERATOR_GUARD = {
     // Prevent -> from being highlighting as an operator.
-    begin: /->/,
+    match: /->/,
     relevance: 0
   };
   const OPERATOR = {
@@ -42736,13 +48318,13 @@ function swift(hljs) {
     relevance: 0,
     variants: [
       {
-        begin: operator
+        match: operator
       },
       {
         // dot-operator: only operators that start with a dot are allowed to use dots as
         // characters (..., ...<, .*, etc). So there rule here is: a dot followed by one or more
         // characters that may also include dots.
-        begin: `\\.(\\.|${operatorCharacter})+`
+        match: `\\.(\\.|${operatorCharacter})+`
       }
     ]
   };
@@ -42761,19 +48343,19 @@ function swift(hljs) {
     variants: [
       // decimal floating-point-literal (subsumes decimal-literal)
       {
-        begin: `\\b(${decimalDigits})(\\.(${decimalDigits}))?` + `([eE][+-]?(${decimalDigits}))?\\b`
+        match: `\\b(${decimalDigits})(\\.(${decimalDigits}))?` + `([eE][+-]?(${decimalDigits}))?\\b`
       },
       // hexadecimal floating-point-literal (subsumes hexadecimal-literal)
       {
-        begin: `\\b0x(${hexDigits})(\\.(${hexDigits}))?` + `([pP][+-]?(${decimalDigits}))?\\b`
+        match: `\\b0x(${hexDigits})(\\.(${hexDigits}))?` + `([pP][+-]?(${decimalDigits}))?\\b`
       },
       // octal-literal
       {
-        begin: /\b0o([0-7]_*)+\b/
+        match: /\b0o([0-7]_*)+\b/
       },
       // binary-literal
       {
-        begin: /\b0b([01]_*)+\b/
+        match: /\b0b([01]_*)+\b/
       }
     ]
   };
@@ -42783,26 +48365,26 @@ function swift(hljs) {
     className: 'subst',
     variants: [
       {
-        begin: concat$3(/\\/, rawDelimiter, /[0\\tnr"']/)
+        match: concat$x(/\\/, rawDelimiter, /[0\\tnr"']/)
       },
       {
-        begin: concat$3(/\\/, rawDelimiter, /u\{[0-9a-fA-F]{1,8}\}/)
+        match: concat$x(/\\/, rawDelimiter, /u\{[0-9a-fA-F]{1,8}\}/)
       }
     ]
   });
   const ESCAPED_NEWLINE = (rawDelimiter = "") => ({
     className: 'subst',
-    begin: concat$3(/\\/, rawDelimiter, /[\t ]*(?:[\r\n]|\r\n)/)
+    match: concat$x(/\\/, rawDelimiter, /[\t ]*(?:[\r\n]|\r\n)/)
   });
   const INTERPOLATION = (rawDelimiter = "") => ({
     className: 'subst',
     label: "interpol",
-    begin: concat$3(/\\/, rawDelimiter, /\(/),
+    begin: concat$x(/\\/, rawDelimiter, /\(/),
     end: /\)/
   });
   const MULTILINE_STRING = (rawDelimiter = "") => ({
-    begin: concat$3(rawDelimiter, /"""/),
-    end: concat$3(/"""/, rawDelimiter),
+    begin: concat$x(rawDelimiter, /"""/),
+    end: concat$x(/"""/, rawDelimiter),
     contains: [
       ESCAPED_CHARACTER(rawDelimiter),
       ESCAPED_NEWLINE(rawDelimiter),
@@ -42810,8 +48392,8 @@ function swift(hljs) {
     ]
   });
   const SINGLE_LINE_STRING = (rawDelimiter = "") => ({
-    begin: concat$3(rawDelimiter, /"/),
-    end: concat$3(/"/, rawDelimiter),
+    begin: concat$x(rawDelimiter, /"/),
+    end: concat$x(/"/, rawDelimiter),
     contains: [
       ESCAPED_CHARACTER(rawDelimiter),
       INTERPOLATION(rawDelimiter)
@@ -42833,15 +48415,15 @@ function swift(hljs) {
 
   // https://docs.swift.org/swift-book/ReferenceManual/LexicalStructure.html#ID412
   const QUOTED_IDENTIFIER = {
-    begin: concat$3(/`/, identifier, /`/)
+    match: concat$x(/`/, identifier, /`/)
   };
   const IMPLICIT_PARAMETER = {
     className: 'variable',
-    begin: /\$\d+/
+    match: /\$\d+/
   };
   const PROPERTY_WRAPPER_PROJECTION = {
     className: 'variable',
-    begin: `\\$${identifierCharacter}+`
+    match: `\\$${identifierCharacter}+`
   };
   const IDENTIFIERS = [
     QUOTED_IDENTIFIER,
@@ -42851,30 +48433,30 @@ function swift(hljs) {
 
   // https://docs.swift.org/swift-book/ReferenceManual/Attributes.html
   const AVAILABLE_ATTRIBUTE = {
-    begin: /(@|#)available\(/,
-    end: /\)/,
-    keywords: {
-      $pattern: /[@#]?\w+/,
-      keyword: availabilityKeywords
-        .concat([
-          "@available",
-          "#available"
-        ])
-        .join(' ')
-    },
-    contains: [
-      ...OPERATORS,
-      NUMBER,
-      STRING
-    ]
+    match: /(@|#)available/,
+    className: "keyword",
+    starts: {
+      contains: [
+        {
+          begin: /\(/,
+          end: /\)/,
+          keywords: availabilityKeywords,
+          contains: [
+            ...OPERATORS,
+            NUMBER,
+            STRING
+          ]
+        }
+      ]
+    }
   };
   const KEYWORD_ATTRIBUTE = {
     className: 'keyword',
-    begin: concat$3(/@/, either$2(...keywordAttributes))
+    match: concat$x(/@/, either$b(...keywordAttributes))
   };
   const USER_DEFINED_ATTRIBUTE = {
     className: 'meta',
-    begin: concat$3(/@/, identifier)
+    match: concat$x(/@/, identifier)
   };
   const ATTRIBUTES = [
     AVAILABLE_ATTRIBUTE,
@@ -42884,28 +48466,28 @@ function swift(hljs) {
 
   // https://docs.swift.org/swift-book/ReferenceManual/Types.html
   const TYPE = {
-    begin: lookahead$1(/\b[A-Z]/),
+    match: lookahead$b(/\b[A-Z]/),
     relevance: 0,
     contains: [
       { // Common Apple frameworks, for relevance boost
         className: 'type',
-        begin: concat$3(/(AV|CA|CF|CG|CI|CL|CM|CN|CT|MK|MP|MTK|MTL|NS|SCN|SK|UI|WK|XC)/, identifierCharacter, '+')
+        match: concat$x(/(AV|CA|CF|CG|CI|CL|CM|CN|CT|MK|MP|MTK|MTL|NS|SCN|SK|UI|WK|XC)/, identifierCharacter, '+')
       },
       { // Type identifier
         className: 'type',
-        begin: typeIdentifier,
+        match: typeIdentifier,
         relevance: 0
       },
       { // Optional type
-        begin: /[?!]+/,
+        match: /[?!]+/,
         relevance: 0
       },
       { // Variadic parameter
-        begin: /\.\.\./,
+        match: /\.\.\./,
         relevance: 0
       },
       { // Protocol composition
-        begin: concat$3(/\s+&\s+/, lookahead$1(typeIdentifier)),
+        match: concat$x(/\s+&\s+/, lookahead$b(typeIdentifier)),
         relevance: 0
       }
     ]
@@ -42915,6 +48497,7 @@ function swift(hljs) {
     end: />/,
     keywords: KEYWORDS,
     contains: [
+      ...COMMENTS,
       ...KEYWORD_MODES,
       ...ATTRIBUTES,
       OPERATOR_GUARD,
@@ -42922,6 +48505,165 @@ function swift(hljs) {
     ]
   };
   TYPE.contains.push(GENERIC_ARGUMENTS);
+
+  // https://docs.swift.org/swift-book/ReferenceManual/Expressions.html#ID552
+  // Prevents element names from being highlighted as keywords.
+  const TUPLE_ELEMENT_NAME = {
+    match: concat$x(identifier, /\s*:/),
+    keywords: "_|0",
+    relevance: 0
+  };
+  // Matches tuples as well as the parameter list of a function type.
+  const TUPLE = {
+    begin: /\(/,
+    end: /\)/,
+    relevance: 0,
+    keywords: KEYWORDS,
+    contains: [
+      'self',
+      TUPLE_ELEMENT_NAME,
+      ...COMMENTS,
+      ...KEYWORD_MODES,
+      ...BUILT_INS,
+      ...OPERATORS,
+      NUMBER,
+      STRING,
+      ...IDENTIFIERS,
+      ...ATTRIBUTES,
+      TYPE
+    ]
+  };
+
+  // https://docs.swift.org/swift-book/ReferenceManual/Declarations.html#ID362
+  // Matches both the keyword func and the function title.
+  // Grouping these lets us differentiate between the operator function <
+  // and the start of the generic parameter clause (also <).
+  const FUNC_PLUS_TITLE = {
+    beginKeywords: 'func',
+    contains: [
+      {
+        className: 'title',
+        match: either$b(QUOTED_IDENTIFIER.match, identifier, operator),
+        // Required to make sure the opening < of the generic parameter clause
+        // isn't parsed as a second title.
+        endsParent: true,
+        relevance: 0
+      },
+      WHITESPACE
+    ]
+  };
+  const GENERIC_PARAMETERS = {
+    begin: /</,
+    end: />/,
+    contains: [
+      ...COMMENTS,
+      TYPE
+    ]
+  };
+  const FUNCTION_PARAMETER_NAME = {
+    begin: either$b(
+      lookahead$b(concat$x(identifier, /\s*:/)),
+      lookahead$b(concat$x(identifier, /\s+/, identifier, /\s*:/))
+    ),
+    end: /:/,
+    relevance: 0,
+    contains: [
+      {
+        className: 'keyword',
+        match: /\b_\b/
+      },
+      {
+        className: 'params',
+        match: identifier
+      }
+    ]
+  };
+  const FUNCTION_PARAMETERS = {
+    begin: /\(/,
+    end: /\)/,
+    keywords: KEYWORDS,
+    contains: [
+      FUNCTION_PARAMETER_NAME,
+      ...COMMENTS,
+      ...KEYWORD_MODES,
+      ...OPERATORS,
+      NUMBER,
+      STRING,
+      ...ATTRIBUTES,
+      TYPE,
+      TUPLE
+    ],
+    endsParent: true,
+    illegal: /["']/
+  };
+  const FUNCTION = {
+    className: 'function',
+    match: lookahead$b(/\bfunc\b/),
+    contains: [
+      FUNC_PLUS_TITLE,
+      GENERIC_PARAMETERS,
+      FUNCTION_PARAMETERS,
+      WHITESPACE
+    ],
+    illegal: [
+      /\[/,
+      /%/
+    ]
+  };
+
+  // https://docs.swift.org/swift-book/ReferenceManual/Declarations.html#ID375
+  // https://docs.swift.org/swift-book/ReferenceManual/Declarations.html#ID379
+  const INIT_SUBSCRIPT = {
+    className: 'function',
+    match: /\b(subscript|init[?!]?)\s*(?=[<(])/,
+    keywords: {
+      keyword: "subscript init init? init!",
+      $pattern: /\w+[?!]?/
+    },
+    contains: [
+      GENERIC_PARAMETERS,
+      FUNCTION_PARAMETERS,
+      WHITESPACE
+    ],
+    illegal: /\[|%/
+  };
+  // https://docs.swift.org/swift-book/ReferenceManual/Declarations.html#ID380
+  const OPERATOR_DECLARATION = {
+    beginKeywords: 'operator',
+    end: hljs.MATCH_NOTHING_RE,
+    contains: [
+      {
+        className: 'title',
+        match: operator,
+        endsParent: true,
+        relevance: 0
+      }
+    ]
+  };
+
+  // https://docs.swift.org/swift-book/ReferenceManual/Declarations.html#ID550
+  const PRECEDENCEGROUP = {
+    beginKeywords: 'precedencegroup',
+    end: hljs.MATCH_NOTHING_RE,
+    contains: [
+      {
+        className: 'title',
+        match: typeIdentifier,
+        relevance: 0
+      },
+      {
+        begin: /{/,
+        end: /}/,
+        relevance: 0,
+        endsParent: true,
+        keywords: [
+          ...precedencegroupKeywords,
+          ...literals
+        ],
+        contains: [ TYPE ]
+      }
+    ]
+  };
 
   // Add supported submodes to string interpolation.
   for (const variant of STRING.variants) {
@@ -42953,42 +48695,9 @@ function swift(hljs) {
     name: 'Swift',
     keywords: KEYWORDS,
     contains: [
-      hljs.C_LINE_COMMENT_MODE,
-      BLOCK_COMMENT,
-      {
-        className: 'function',
-        beginKeywords: 'func',
-        end: /\{/,
-        excludeEnd: true,
-        contains: [
-          hljs.inherit(hljs.TITLE_MODE, {
-            begin: /[A-Za-z$_][0-9A-Za-z$_]*/
-          }),
-          {
-            begin: /</,
-            end: />/
-          },
-          {
-            className: 'params',
-            begin: /\(/,
-            end: /\)/,
-            endsParent: true,
-            keywords: KEYWORDS,
-            contains: [
-              'self',
-              ...KEYWORD_MODES,
-              NUMBER,
-              STRING,
-              hljs.C_BLOCK_COMMENT_MODE,
-              { // relevance booster
-                begin: ':'
-              }
-            ],
-            illegal: /["']/
-          }
-        ],
-        illegal: /\[|%/
-      },
+      ...COMMENTS,
+      FUNCTION,
+      INIT_SUBSCRIPT,
       {
         className: 'class',
         beginKeywords: 'struct protocol class extension enum',
@@ -43002,13 +48711,12 @@ function swift(hljs) {
           ...KEYWORD_MODES
         ]
       },
+      OPERATOR_DECLARATION,
+      PRECEDENCEGROUP,
       {
         beginKeywords: 'import',
         end: /$/,
-        contains: [
-          hljs.C_LINE_COMMENT_MODE,
-          BLOCK_COMMENT
-        ],
+        contains: [ ...COMMENTS ],
         relevance: 0
       },
       ...KEYWORD_MODES,
@@ -43018,7 +48726,8 @@ function swift(hljs) {
       STRING,
       ...IDENTIFIERS,
       ...ATTRIBUTES,
-      TYPE
+      TYPE,
+      TUPLE
     ]
   };
 }
@@ -43150,7 +48859,6 @@ function yaml(hljs) {
     end: ',',
     endsWithParent: true,
     excludeEnd: true,
-    contains: [],
     keywords: LITERALS,
     relevance: 0
   };
@@ -43249,7 +48957,7 @@ function yaml(hljs) {
   return {
     name: 'YAML',
     case_insensitive: true,
-    aliases: ['yml', 'YAML'],
+    aliases: [ 'yml' ],
     contains: MODES
   };
 }
@@ -43312,6 +49020,39 @@ function tap(hljs) {
 
 var tap_1 = tap;
 
+/**
+ * @param {string} value
+ * @returns {RegExp}
+ * */
+
+/**
+ * @param {RegExp | string } re
+ * @returns {string}
+ */
+function source$z(re) {
+  if (!re) return null;
+  if (typeof re === "string") return re;
+
+  return re.source;
+}
+
+/**
+ * @param {RegExp | string } re
+ * @returns {string}
+ */
+function optional$8(re) {
+  return concat$y('(', re, ')?');
+}
+
+/**
+ * @param {...(RegExp | string) } args
+ * @returns {string}
+ */
+function concat$y(...args) {
+  const joined = args.map((x) => source$z(x)).join("");
+  return joined;
+}
+
 /*
 Language: Tcl
 Description: Tcl is a very simple programming language.
@@ -43320,6 +49061,13 @@ Website: https://www.tcl.tk/about/language.html
 */
 
 function tcl(hljs) {
+  const TCL_IDENT = /[a-zA-Z_][a-zA-Z0-9_]*/;
+
+  const NUMBER = {
+    className: 'number',
+    variants: [hljs.BINARY_NUMBER_MODE, hljs.C_NUMBER_MODE]
+  };
+
   return {
     name: 'Tcl',
     aliases: ['tk'],
@@ -43353,15 +49101,24 @@ function tcl(hljs) {
         ]
       },
       {
-        excludeEnd: true,
+        className: "variable",
         variants: [
           {
-            begin: '\\$(\\{)?(::)?[a-zA-Z_]((::)?[a-zA-Z0-9_])*\\(([a-zA-Z0-9_])*\\)',
-            end: '[^a-zA-Z0-9_\\}\\$]'
+            begin: concat$y(
+              /\$/,
+              optional$8(/::/),
+              TCL_IDENT,
+              '(::',
+              TCL_IDENT,
+              ')*'
+            )
           },
           {
-            begin: '\\$(\\{)?(::)?[a-zA-Z_]((::)?[a-zA-Z0-9_])*',
-            end: '(\\))?[^a-zA-Z0-9_\\}\\$]'
+            begin: '\\$\\{(::)?[a-zA-Z_]((::)?[a-zA-Z0-9_])*',
+            end: '\\}',
+            contains: [
+              NUMBER
+            ]
           }
         ]
       },
@@ -43372,10 +49129,7 @@ function tcl(hljs) {
           hljs.inherit(hljs.QUOTE_STRING_MODE, {illegal: null})
         ]
       },
-      {
-        className: 'number',
-        variants: [hljs.BINARY_NUMBER_MODE, hljs.C_NUMBER_MODE]
-      }
+      NUMBER
     ]
   }
 }
@@ -43608,8 +49362,8 @@ function twig(hljs) {
 
 var twig_1 = twig;
 
-const IDENT_RE = '[A-Za-z$_][0-9A-Za-z$_]*';
-const KEYWORDS = [
+const IDENT_RE$2 = '[A-Za-z$_][0-9A-Za-z$_]*';
+const KEYWORDS$3 = [
   "as", // for exports
   "in",
   "of",
@@ -43652,7 +49406,7 @@ const KEYWORDS = [
   "export",
   "extends"
 ];
-const LITERALS = [
+const LITERALS$3 = [
   "true",
   "false",
   "null",
@@ -43661,7 +49415,7 @@ const LITERALS = [
   "Infinity"
 ];
 
-const TYPES = [
+const TYPES$3 = [
   "Intl",
   "DataView",
   "Number",
@@ -43692,10 +49446,13 @@ const TYPES = [
   "Array",
   "Uint8Array",
   "Uint8ClampedArray",
-  "ArrayBuffer"
+  "ArrayBuffer",
+  "BigInt64Array",
+  "BigUint64Array",
+  "BigInt"
 ];
 
-const ERROR_TYPES = [
+const ERROR_TYPES$3 = [
   "EvalError",
   "InternalError",
   "RangeError",
@@ -43705,7 +49462,7 @@ const ERROR_TYPES = [
   "URIError"
 ];
 
-const BUILT_IN_GLOBALS = [
+const BUILT_IN_GLOBALS$3 = [
   "setInterval",
   "setTimeout",
   "clearInterval",
@@ -43727,7 +49484,7 @@ const BUILT_IN_GLOBALS = [
   "unescape"
 ];
 
-const BUILT_IN_VARIABLES = [
+const BUILT_IN_VARIABLES$3 = [
   "arguments",
   "this",
   "super",
@@ -43739,11 +49496,11 @@ const BUILT_IN_VARIABLES = [
   "global" // Node.js
 ];
 
-const BUILT_INS = [].concat(
-  BUILT_IN_GLOBALS,
-  BUILT_IN_VARIABLES,
-  TYPES,
-  ERROR_TYPES
+const BUILT_INS$3 = [].concat(
+  BUILT_IN_GLOBALS$3,
+  BUILT_IN_VARIABLES$3,
+  TYPES$3,
+  ERROR_TYPES$3
 );
 
 /**
@@ -43755,7 +49512,7 @@ const BUILT_INS = [].concat(
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$2(re) {
+function source$A(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -43766,16 +49523,16 @@ function source$2(re) {
  * @param {RegExp | string } re
  * @returns {string}
  */
-function lookahead(re) {
-  return concat$2('(?=', re, ')');
+function lookahead$c(re) {
+  return concat$z('(?=', re, ')');
 }
 
 /**
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$2(...args) {
-  const joined = args.map((x) => source$2(x)).join("");
+function concat$z(...args) {
+  const joined = args.map((x) => source$A(x)).join("");
   return joined;
 }
 
@@ -43787,7 +49544,7 @@ Website: https://developer.mozilla.org/en-US/docs/Web/JavaScript
 */
 
 /** @type LanguageFn */
-function javascript(hljs) {
+function javascript$1(hljs) {
   /**
    * Takes a string like "<Booger" and checks to see
    * if we can find a matching "</Booger" later in the
@@ -43801,7 +49558,7 @@ function javascript(hljs) {
     return pos !== -1;
   };
 
-  const IDENT_RE$1 = IDENT_RE;
+  const IDENT_RE$1 = IDENT_RE$2;
   const FRAGMENT = {
     begin: '<>',
     end: '</>'
@@ -43835,10 +49592,10 @@ function javascript(hljs) {
     }
   };
   const KEYWORDS$1 = {
-    $pattern: IDENT_RE,
-    keyword: KEYWORDS.join(" "),
-    literal: LITERALS.join(" "),
-    built_in: BUILT_INS.join(" ")
+    $pattern: IDENT_RE$2,
+    keyword: KEYWORDS$3,
+    literal: LITERALS$3,
+    built_in: BUILT_INS$3
   };
 
   // https://tc39.es/ecma262/#sec-literals-numeric-literals
@@ -44020,7 +49777,7 @@ function javascript(hljs) {
       COMMENT,
       NUMBER,
       { // object attr container
-        begin: concat$2(/[{,\n]\s*/,
+        begin: concat$z(/[{,\n]\s*/,
           // we need to look ahead to make sure that we actually have an
           // attribute coming up so we don't steal a comma from a potential
           // "value" container
@@ -44031,7 +49788,7 @@ function javascript(hljs) {
           // fails to find any actual attrs. But this still does the job because
           // it prevents the value contain rule from grabbing this instead and
           // prevening this rule from firing when we actually DO have keys.
-          lookahead(concat$2(
+          lookahead$c(concat$z(
             // we also need to allow for multiple possible comments inbetween
             // the first key:value pairing
             /(((\/\/.*$)|(\/\*(\*[^/]|[^*])*\*\/))\s*)*/,
@@ -44040,7 +49797,7 @@ function javascript(hljs) {
         contains: [
           {
             className: 'attr',
-            begin: IDENT_RE$1 + lookahead('\\s*:'),
+            begin: IDENT_RE$1 + lookahead$c('\\s*:'),
             relevance: 0
           }
         ]
@@ -44219,7 +49976,7 @@ Category: common, scripting
 
 /** @type LanguageFn */
 function typescript(hljs) {
-  const IDENT_RE$1 = IDENT_RE;
+  const IDENT_RE$1 = IDENT_RE$2;
   const NAMESPACE = {
     beginKeywords: 'namespace', end: /\{/, excludeEnd: true
   };
@@ -44256,10 +50013,10 @@ function typescript(hljs) {
     "readonly"
   ];
   const KEYWORDS$1 = {
-    $pattern: IDENT_RE,
-    keyword: KEYWORDS.concat(TS_SPECIFIC_KEYWORDS).join(" "),
-    literal: LITERALS.join(" "),
-    built_in: BUILT_INS.concat(TYPES).join(" ")
+    $pattern: IDENT_RE$2,
+    keyword: KEYWORDS$3.concat(TS_SPECIFIC_KEYWORDS),
+    literal: LITERALS$3,
+    built_in: BUILT_INS$3.concat(TYPES)
   };
   const DECORATOR = {
     className: 'meta',
@@ -44272,7 +50029,7 @@ function typescript(hljs) {
     mode.contains.splice(indx, 1, replacement);
   };
 
-  const tsLanguage = javascript(hljs);
+  const tsLanguage = javascript$1(hljs);
 
   // this should update anywhere keywords is used since
   // it will be the same actual JS object
@@ -44295,7 +50052,7 @@ function typescript(hljs) {
 
   Object.assign(tsLanguage, {
     name: 'TypeScript',
-    aliases: ['ts']
+    aliases: ['ts', 'tsx']
   });
 
   return tsLanguage;
@@ -44374,7 +50131,7 @@ var vala_1 = vala;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source$1(re) {
+function source$B(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -44385,8 +50142,8 @@ function source$1(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat$1(...args) {
-  const joined = args.map((x) => source$1(x)).join("");
+function concat$A(...args) {
+  const joined = args.map((x) => source$B(x)).join("");
   return joined;
 }
 
@@ -44397,8 +50154,8 @@ function concat$1(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either$1(...args) {
-  const joined = '(' + args.map((x) => source$1(x)).join("|") + ")";
+function either$c(...args) {
+  const joined = '(' + args.map((x) => source$B(x)).join("|") + ")";
   return joined;
 }
 
@@ -44444,23 +50201,23 @@ function vbnet(hljs) {
     variants: [
       {
         // #YYYY-MM-DD# (ISO-Date) or #M/D/YYYY# (US-Date)
-        begin: concat$1(/# */, either$1(YYYY_MM_DD, MM_DD_YYYY), / *#/)
+        begin: concat$A(/# */, either$c(YYYY_MM_DD, MM_DD_YYYY), / *#/)
       },
       {
         // #H:mm[:ss]# (24h Time)
-        begin: concat$1(/# */, TIME_24H, / *#/)
+        begin: concat$A(/# */, TIME_24H, / *#/)
       },
       {
         // #h[:mm[:ss]] A# (12h Time)
-        begin: concat$1(/# */, TIME_12H, / *#/)
+        begin: concat$A(/# */, TIME_12H, / *#/)
       },
       {
         // date plus time
-        begin: concat$1(
+        begin: concat$A(
           /# */,
-          either$1(YYYY_MM_DD, MM_DD_YYYY),
+          either$c(YYYY_MM_DD, MM_DD_YYYY),
           / +/,
-          either$1(TIME_12H, TIME_24H),
+          either$c(TIME_12H, TIME_24H),
           / *#/
         )
       }
@@ -44589,7 +50346,7 @@ var vbnet_1 = vbnet;
  * @param {RegExp | string } re
  * @returns {string}
  */
-function source(re) {
+function source$C(re) {
   if (!re) return null;
   if (typeof re === "string") return re;
 
@@ -44600,8 +50357,8 @@ function source(re) {
  * @param {...(RegExp | string) } args
  * @returns {string}
  */
-function concat(...args) {
-  const joined = args.map((x) => source(x)).join("");
+function concat$B(...args) {
+  const joined = args.map((x) => source$C(x)).join("");
   return joined;
 }
 
@@ -44612,8 +50369,8 @@ function concat(...args) {
  * @param {(RegExp | string)[] } args
  * @returns {string}
  */
-function either(...args) {
-  const joined = '(' + args.map((x) => source(x)).join("|") + ")";
+function either$d(...args) {
+  const joined = '(' + args.map((x) => source$C(x)).join("|") + ")";
   return joined;
 }
 
@@ -44650,11 +50407,11 @@ function vbscript(hljs) {
   ];
 
   const BUILT_IN_CALL = {
-    begin: concat(either(...BUILT_IN_FUNCTIONS), "\\s*\\("),
+    begin: concat$B(either$d(...BUILT_IN_FUNCTIONS), "\\s*\\("),
     // relevance 0 because this is acting as a beginKeywords really
     relevance:0,
     keywords: {
-      built_in: BUILT_IN_FUNCTIONS.join(" ")
+      built_in: BUILT_IN_FUNCTIONS
     }
   };
 
@@ -44668,7 +50425,7 @@ function vbscript(hljs) {
         'if then else on error option explicit new private property let get public randomize ' +
         'redim rem select case set stop sub while wend with end to elseif is or xor and not ' +
         'class_initialize class_terminate default preserve in me byval byref step resume goto',
-      built_in: BUILT_IN_OBJECTS.join(" "),
+      built_in: BUILT_IN_OBJECTS,
       literal:
         'true false null nothing empty'
     },
@@ -45833,7 +51590,7 @@ core.registerLanguage('zephir', zephir_1);
 
 var lib = core;
 
-var __decorate$B = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$2 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45871,76 +51628,12 @@ exports.CodeBlock = class CodeBlock extends LeafElement {
     }
 };
 // TODO language string as property/attribute
-exports.CodeBlock.styles = css$1 ``;
-exports.CodeBlock = __decorate$B([
+exports.CodeBlock.styles = css ``;
+exports.CodeBlock = __decorate$2([
     customElement('markdown-code')
 ], exports.CodeBlock);
 
-class InlineElement extends MarkdownLitElement {
-    connectedCallback() {
-        super.connectedCallback();
-        //this.setAttribute("contenteditable", "true");
-    }
-    /* normalize for an inline element consists of finding <br>s and
-        - create a new element of the same type with the content after the <br>
-        - move the br to the parent, next to this
-        - move the content after, in the newly created element to the parent, after the <br>
-  
-      <parent>content1 <inline>content2 <br/> content3</inline> content4</parent>
-          becomes
-      <parent>content1 <inline>content2 </inline><br/><inline> content3</inline> content4</parent>
-  
-      It is up to the parent to deal with the <br> at this point.
-    */
-    normalizeContent() {
-        var _a;
-        if (this.mergeSameSiblings() && this.nextSibling instanceof InlineElement && this.tagName == this.nextSibling.tagName) {
-            Array.from(this.nextSibling.childNodes).forEach((e) => this.appendChild(e));
-            (_a = this.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(this.nextSibling);
-            this.normalizeContent();
-            return true;
-        }
-        for (let i = 0; i < this.childNodes.length; i++) {
-            const content = this.childNodes[i];
-            if (content instanceof HTMLBRElement) {
-                this.pushBreakAndNodesAfterToParent(content);
-                return true;
-                //return this.normalizeContent();
-            }
-            else if (content instanceof MarkdownLitElement) {
-                if (content.normalizeContent()) {
-                    return this.normalizeContent();
-                }
-            }
-            else {
-                if (this.normalizeChildContent(content)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-    mergeSameSiblings() {
-        return false;
-    }
-    getMarkdown() {
-        return getMarkdownWithTextForElement(this);
-    }
-    mergeWithPrevious(currentSelection) {
-        if (this.parentNode instanceof MarkdownLitElement) {
-            this.parentNode.mergeWithPrevious(currentSelection);
-        }
-    }
-    mergeNextIn() {
-        if (this.parentNode instanceof MarkdownLitElement) {
-            this.parentNode.mergeNextIn();
-        }
-    }
-}
-class TerminalInlineElement extends MarkdownLitElement {
-}
-
-var __decorate$A = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$3 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45957,11 +51650,11 @@ exports.CodeSpan = class CodeSpan extends TerminalInlineElement {
         return true;
     }
 };
-exports.CodeSpan = __decorate$A([
+exports.CodeSpan = __decorate$3([
     customElement('markdown-code-span')
 ], exports.CodeSpan);
 
-var __decorate$z = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$4 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -45983,13 +51676,13 @@ exports.HTML = class HTML extends LeafElement {
         return true;
     }
 };
-exports.HTML.styles = css$1 `
+exports.HTML.styles = css `
   `;
-exports.HTML = __decorate$z([
+exports.HTML = __decorate$4([
     customElement('markdown-html')
 ], exports.HTML);
 
-var __decorate$y = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$5 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -46032,7 +51725,7 @@ exports.MarkdownImage = class MarkdownImage extends TerminalInlineElement {
         }
     }
 };
-exports.MarkdownImage.styles = css$1 `
+exports.MarkdownImage.styles = css `
     :host([destination]) .upload {
       display: none;
     }
@@ -46041,17 +51734,17 @@ exports.MarkdownImage.styles = css$1 `
       padding: 10px;
     }
   `;
-__decorate$y([
+__decorate$5([
     property()
 ], exports.MarkdownImage.prototype, "destination", void 0);
-__decorate$y([
+__decorate$5([
     property()
 ], exports.MarkdownImage.prototype, "title", void 0);
-exports.MarkdownImage = __decorate$y([
+exports.MarkdownImage = __decorate$5([
     customElement('markdown-image')
 ], exports.MarkdownImage);
 
-var __decorate$x = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$6 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -46130,7 +51823,7 @@ exports.MarkdownLink = class MarkdownLink extends TerminalInlineElement {
         return true;
     }
 };
-exports.MarkdownLink.styles = css$1 `
+exports.MarkdownLink.styles = css `
         :host {
           position: relative;
         }
@@ -46163,17 +51856,17 @@ exports.MarkdownLink.styles = css$1 `
           box-shadow: 0px 0px 5px 2px rgb(0 0 0 / 50%);
         }
   `;
-__decorate$x([
+__decorate$6([
     property()
 ], exports.MarkdownLink.prototype, "destination", void 0);
-__decorate$x([
+__decorate$6([
     property()
 ], exports.MarkdownLink.prototype, "title", void 0);
-exports.MarkdownLink = __decorate$x([
+exports.MarkdownLink = __decorate$6([
     customElement('markdown-link')
 ], exports.MarkdownLink);
 
-var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$7 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -46216,7 +51909,7 @@ exports.List = class List extends ContainerElement {
         }
     }
 };
-exports.List.styles = css$1 `
+exports.List.styles = css `
     :host {
       counter-reset: section;
     }
@@ -46236,2614 +51929,20 @@ exports.List.styles = css$1 `
       list-style-type: decimal;
     }
   `;
-__decorate$w([
+__decorate$7([
     property({ type: Boolean })
 ], exports.List.prototype, "ordered", void 0);
-__decorate$w([
+__decorate$7([
     property({ type: Number })
 ], exports.List.prototype, "start", void 0);
-__decorate$w([
+__decorate$7([
     property({ type: Boolean })
 ], exports.List.prototype, "spread", void 0);
-exports.List = __decorate$w([
+exports.List = __decorate$7([
     customElement('markdown-list')
 ], exports.List);
 
-/*
- * @license
- *
- * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
- * https://github.com/chjj/marked
- *
- * Copyright (c) 2018-2020, Костя Третяк. (MIT Licensed)
- * https://github.com/ts-stack/markdown
- */
-class ExtendRegexp {
-    constructor(regex, flags = '') {
-        this.source = regex.source;
-        this.flags = flags;
-    }
-    /**
-     * Extend regular expression.
-     *
-     * @param groupName Regular expression for search a group name.
-     * @param groupRegexp Regular expression of named group.
-     */
-    setGroup(groupName, groupRegexp) {
-        let newRegexp = typeof groupRegexp == 'string' ? groupRegexp : groupRegexp.source;
-        newRegexp = newRegexp.replace(/(^|[^\[])\^/g, '$1');
-        // Extend regexp.
-        this.source = this.source.replace(groupName, newRegexp);
-        return this;
-    }
-    /**
-     * Returns a result of extending a regular expression.
-     */
-    getRegexp() {
-        return new RegExp(this.source, this.flags);
-    }
-}
-
-/**
- * @license
- *
- * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
- * https://github.com/chjj/marked
- *
- * Copyright (c) 2018-2020, Костя Третяк. (MIT Licensed)
- * https://github.com/ts-stack/markdown
- */
-const escapeTest = /[&<>"']/;
-const escapeReplace = /[&<>"']/g;
-const replacements = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    // tslint:disable-next-line:quotemark
-    "'": '&#39;',
-};
-const escapeTestNoEncode = /[<>"']|&(?!#?\w+;)/;
-const escapeReplaceNoEncode = /[<>"']|&(?!#?\w+;)/g;
-function escape(html, encode) {
-    if (encode) {
-        if (escapeTest.test(html)) {
-            return html.replace(escapeReplace, (ch) => replacements[ch]);
-        }
-    }
-    else {
-        if (escapeTestNoEncode.test(html)) {
-            return html.replace(escapeReplaceNoEncode, (ch) => replacements[ch]);
-        }
-    }
-    return html;
-}
-function unescape(html) {
-    // Explicitly match decimal, hex, and named HTML entities
-    return html.replace(/&(#(?:\d+)|(?:#x[0-9A-Fa-f]+)|(?:\w+));?/gi, function (_, n) {
-        n = n.toLowerCase();
-        if (n === 'colon') {
-            return ':';
-        }
-        if (n.charAt(0) === '#') {
-            return n.charAt(1) === 'x'
-                ? String.fromCharCode(parseInt(n.substring(2), 16))
-                : String.fromCharCode(+n.substring(1));
-        }
-        return '';
-    });
-}
-
-/**
- * @license
- *
- * Copyright (c) 2018-2020, Костя Третяк. (MIT Licensed)
- * https://github.com/ts-stack/markdown
- */
-var TokenType;
-(function (TokenType) {
-    TokenType[TokenType["space"] = 1] = "space";
-    TokenType[TokenType["text"] = 2] = "text";
-    TokenType[TokenType["paragraph"] = 3] = "paragraph";
-    TokenType[TokenType["heading"] = 4] = "heading";
-    TokenType[TokenType["listStart"] = 5] = "listStart";
-    TokenType[TokenType["listEnd"] = 6] = "listEnd";
-    TokenType[TokenType["looseItemStart"] = 7] = "looseItemStart";
-    TokenType[TokenType["looseItemEnd"] = 8] = "looseItemEnd";
-    TokenType[TokenType["listItemStart"] = 9] = "listItemStart";
-    TokenType[TokenType["listItemEnd"] = 10] = "listItemEnd";
-    TokenType[TokenType["blockquoteStart"] = 11] = "blockquoteStart";
-    TokenType[TokenType["blockquoteEnd"] = 12] = "blockquoteEnd";
-    TokenType[TokenType["code"] = 13] = "code";
-    TokenType[TokenType["table"] = 14] = "table";
-    TokenType[TokenType["html"] = 15] = "html";
-    TokenType[TokenType["hr"] = 16] = "hr";
-})(TokenType || (TokenType = {}));
-class MarkedOptions {
-    constructor() {
-        this.gfm = true;
-        this.tables = true;
-        this.breaks = false;
-        this.pedantic = false;
-        this.sanitize = false;
-        this.mangle = true;
-        this.smartLists = false;
-        this.silent = false;
-        this.langPrefix = 'lang-';
-        this.smartypants = false;
-        this.headerPrefix = '';
-        /**
-         * Self-close the tags for void elements (&lt;br/&gt;, &lt;img/&gt;, etc.)
-         * with a "/" as required by XHTML.
-         */
-        this.xhtml = false;
-        /**
-         * The function that will be using to escape HTML entities.
-         * By default using inner helper.
-         */
-        this.escape = escape;
-        /**
-         * The function that will be using to unescape HTML entities.
-         * By default using inner helper.
-         */
-        this.unescape = unescape;
-    }
-}
-
-/**
- * @license
- *
- * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
- * https://github.com/chjj/marked
- *
- * Copyright (c) 2018-2020, Костя Третяк. (MIT Licensed)
- * https://github.com/ts-stack/markdown
- */
-class Renderer {
-    constructor(options) {
-        this.options = options || Marked.options;
-    }
-    code(code, lang, escaped) {
-        if (this.options.highlight) {
-            const out = this.options.highlight(code, lang);
-            if (out != null && out !== code) {
-                escaped = true;
-                code = out;
-            }
-        }
-        if (!lang) {
-            return '\n<pre><code>' + (escaped ? code : this.options.escape(code, true)) + '\n</code></pre>\n';
-        }
-        return ('\n<pre><code class="' +
-            this.options.langPrefix +
-            this.options.escape(lang, true) +
-            '">' +
-            (escaped ? code : this.options.escape(code, true)) +
-            '\n</code></pre>\n');
-    }
-    blockquote(quote) {
-        return '<blockquote>\n' + quote + '</blockquote>\n';
-    }
-    html(html) {
-        return html;
-    }
-    heading(text, level, raw) {
-        const id = this.options.headerPrefix + raw.toLowerCase().replace(/[^\w]+/g, '-');
-        return `<h${level} id="${id}">${text}</h${level}>\n`;
-    }
-    hr() {
-        return this.options.xhtml ? '<hr/>\n' : '<hr>\n';
-    }
-    list(body, ordered) {
-        const type = ordered ? 'ol' : 'ul';
-        return `\n<${type}>\n${body}</${type}>\n`;
-    }
-    listitem(text) {
-        return '<li>' + text + '</li>\n';
-    }
-    paragraph(text) {
-        return '<p>' + text + '</p>\n';
-    }
-    table(header, body) {
-        return `
-<table>
-<thead>
-${header}</thead>
-<tbody>
-${body}</tbody>
-</table>
-`;
-    }
-    tablerow(content) {
-        return '<tr>\n' + content + '</tr>\n';
-    }
-    tablecell(content, flags) {
-        const type = flags.header ? 'th' : 'td';
-        const tag = flags.align ? '<' + type + ' style="text-align:' + flags.align + '">' : '<' + type + '>';
-        return tag + content + '</' + type + '>\n';
-    }
-    // *** Inline level renderer methods. ***
-    strong(text) {
-        return '<strong>' + text + '</strong>';
-    }
-    em(text) {
-        return '<em>' + text + '</em>';
-    }
-    codespan(text) {
-        return '<code>' + text + '</code>';
-    }
-    br() {
-        return this.options.xhtml ? '<br/>' : '<br>';
-    }
-    del(text) {
-        return '<del>' + text + '</del>';
-    }
-    link(href, title, text) {
-        if (this.options.sanitize) {
-            let prot;
-            try {
-                prot = decodeURIComponent(this.options.unescape(href))
-                    .replace(/[^\w:]/g, '')
-                    .toLowerCase();
-            }
-            catch (e) {
-                return text;
-            }
-            if (prot.indexOf('javascript:') === 0 || prot.indexOf('vbscript:') === 0 || prot.indexOf('data:') === 0) {
-                return text;
-            }
-        }
-        let out = '<a href="' + href + '"';
-        if (title) {
-            out += ' title="' + title + '"';
-        }
-        out += '>' + text + '</a>';
-        return out;
-    }
-    image(href, title, text) {
-        let out = '<img src="' + href + '" alt="' + text + '"';
-        if (title) {
-            out += ' title="' + title + '"';
-        }
-        out += this.options.xhtml ? '/>' : '>';
-        return out;
-    }
-    text(text) {
-        return text;
-    }
-}
-
-/**
- * @license
- *
- * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
- * https://github.com/chjj/marked
- *
- * Copyright (c) 2018-2020, Костя Третяк. (MIT Licensed)
- * https://github.com/ts-stack/markdown
- */
-/**
- * Inline Lexer & Compiler.
- */
-class InlineLexer {
-    constructor(staticThis, links, options = Marked.options, renderer) {
-        this.staticThis = staticThis;
-        this.links = links;
-        this.options = options;
-        this.renderer = renderer || this.options.renderer || new Renderer(this.options);
-        if (!this.links) {
-            throw new Error(`InlineLexer requires 'links' parameter.`);
-        }
-        this.setRules();
-    }
-    /**
-     * Static Lexing/Compiling Method.
-     */
-    static output(src, links, options) {
-        const inlineLexer = new this(this, links, options);
-        return inlineLexer.output(src);
-    }
-    static getRulesBase() {
-        if (this.rulesBase) {
-            return this.rulesBase;
-        }
-        /**
-         * Inline-Level Grammar.
-         */
-        const base = {
-            escape: /^\\([\\`*{}\[\]()#+\-.!_>])/,
-            autolink: /^<([^ <>]+(@|:\/)[^ <>]+)>/,
-            tag: /^<!--[\s\S]*?-->|^<\/?\w+(?:"[^"]*"|'[^']*'|[^<'">])*?>/,
-            link: /^!?\[(inside)\]\(href\)/,
-            reflink: /^!?\[(inside)\]\s*\[([^\]]*)\]/,
-            nolink: /^!?\[((?:\[[^\]]*\]|[^\[\]])*)\]/,
-            strong: /^__([\s\S]+?)__(?!_)|^\*\*([\s\S]+?)\*\*(?!\*)/,
-            em: /^\b_((?:[^_]|__)+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,
-            code: /^(`+)([\s\S]*?[^`])\1(?!`)/,
-            br: /^ {2,}\n(?!\s*$)/,
-            text: /^[\s\S]+?(?=[\\<!\[_*`]| {2,}\n|$)/,
-            _inside: /(?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*/,
-            _href: /\s*<?([\s\S]*?)>?(?:\s+['"]([\s\S]*?)['"])?\s*/,
-        };
-        base.link = new ExtendRegexp(base.link).setGroup('inside', base._inside).setGroup('href', base._href).getRegexp();
-        base.reflink = new ExtendRegexp(base.reflink).setGroup('inside', base._inside).getRegexp();
-        return (this.rulesBase = base);
-    }
-    static getRulesPedantic() {
-        if (this.rulesPedantic) {
-            return this.rulesPedantic;
-        }
-        return (this.rulesPedantic = Object.assign(Object.assign({}, this.getRulesBase()), {
-            strong: /^__(?=\S)([\s\S]*?\S)__(?!_)|^\*\*(?=\S)([\s\S]*?\S)\*\*(?!\*)/,
-            em: /^_(?=\S)([\s\S]*?\S)_(?!_)|^\*(?=\S)([\s\S]*?\S)\*(?!\*)/,
-        }));
-    }
-    static getRulesGfm() {
-        if (this.rulesGfm) {
-            return this.rulesGfm;
-        }
-        const base = this.getRulesBase();
-        const escape = new ExtendRegexp(base.escape).setGroup('])', '~|])').getRegexp();
-        const text = new ExtendRegexp(base.text).setGroup(']|', '~]|').setGroup('|', '|https?://|').getRegexp();
-        return (this.rulesGfm = Object.assign(Object.assign({}, base), {
-            escape,
-            url: /^(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/,
-            del: /^~~(?=\S)([\s\S]*?\S)~~/,
-            text,
-        }));
-    }
-    static getRulesBreaks() {
-        if (this.rulesBreaks) {
-            return this.rulesBreaks;
-        }
-        const inline = this.getRulesGfm();
-        const gfm = this.getRulesGfm();
-        return (this.rulesBreaks = Object.assign(Object.assign({}, gfm), {
-            br: new ExtendRegexp(inline.br).setGroup('{2,}', '*').getRegexp(),
-            text: new ExtendRegexp(gfm.text).setGroup('{2,}', '*').getRegexp(),
-        }));
-    }
-    setRules() {
-        if (this.options.gfm) {
-            if (this.options.breaks) {
-                this.rules = this.staticThis.getRulesBreaks();
-            }
-            else {
-                this.rules = this.staticThis.getRulesGfm();
-            }
-        }
-        else if (this.options.pedantic) {
-            this.rules = this.staticThis.getRulesPedantic();
-        }
-        else {
-            this.rules = this.staticThis.getRulesBase();
-        }
-        this.hasRulesGfm = this.rules.url !== undefined;
-    }
-    /**
-     * Lexing/Compiling.
-     */
-    output(nextPart) {
-        nextPart = nextPart;
-        let execArr;
-        let out = '';
-        while (nextPart) {
-            // escape
-            if ((execArr = this.rules.escape.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                out += execArr[1];
-                continue;
-            }
-            // autolink
-            if ((execArr = this.rules.autolink.exec(nextPart))) {
-                let text;
-                let href;
-                nextPart = nextPart.substring(execArr[0].length);
-                if (execArr[2] === '@') {
-                    text = this.options.escape(execArr[1].charAt(6) === ':' ? this.mangle(execArr[1].substring(7)) : this.mangle(execArr[1]));
-                    href = this.mangle('mailto:') + text;
-                }
-                else {
-                    text = this.options.escape(execArr[1]);
-                    href = text;
-                }
-                out += this.renderer.link(href, null, text);
-                continue;
-            }
-            // url (gfm)
-            if (!this.inLink && this.hasRulesGfm && (execArr = this.rules.url.exec(nextPart))) {
-                let text;
-                let href;
-                nextPart = nextPart.substring(execArr[0].length);
-                text = this.options.escape(execArr[1]);
-                href = text;
-                out += this.renderer.link(href, null, text);
-                continue;
-            }
-            // tag
-            if ((execArr = this.rules.tag.exec(nextPart))) {
-                if (!this.inLink && /^<a /i.test(execArr[0])) {
-                    this.inLink = true;
-                }
-                else if (this.inLink && /^<\/a>/i.test(execArr[0])) {
-                    this.inLink = false;
-                }
-                nextPart = nextPart.substring(execArr[0].length);
-                out += this.options.sanitize
-                    ? this.options.sanitizer
-                        ? this.options.sanitizer(execArr[0])
-                        : this.options.escape(execArr[0])
-                    : execArr[0];
-                continue;
-            }
-            // link
-            if ((execArr = this.rules.link.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                this.inLink = true;
-                out += this.outputLink(execArr, {
-                    href: execArr[2],
-                    title: execArr[3],
-                });
-                this.inLink = false;
-                continue;
-            }
-            // reflink, nolink
-            if ((execArr = this.rules.reflink.exec(nextPart)) || (execArr = this.rules.nolink.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                const keyLink = (execArr[2] || execArr[1]).replace(/\s+/g, ' ');
-                const link = this.links[keyLink.toLowerCase()];
-                if (!link || !link.href) {
-                    out += execArr[0].charAt(0);
-                    nextPart = execArr[0].substring(1) + nextPart;
-                    continue;
-                }
-                this.inLink = true;
-                out += this.outputLink(execArr, link);
-                this.inLink = false;
-                continue;
-            }
-            // strong
-            if ((execArr = this.rules.strong.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                out += this.renderer.strong(this.output(execArr[2] || execArr[1]));
-                continue;
-            }
-            // em
-            if ((execArr = this.rules.em.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                out += this.renderer.em(this.output(execArr[2] || execArr[1]));
-                continue;
-            }
-            // code
-            if ((execArr = this.rules.code.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                out += this.renderer.codespan(this.options.escape(execArr[2].trim(), true));
-                continue;
-            }
-            // br
-            if ((execArr = this.rules.br.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                out += this.renderer.br();
-                continue;
-            }
-            // del (gfm)
-            if (this.hasRulesGfm && (execArr = this.rules.del.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                out += this.renderer.del(this.output(execArr[1]));
-                continue;
-            }
-            // text
-            if ((execArr = this.rules.text.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                out += this.renderer.text(this.options.escape(this.smartypants(execArr[0])));
-                continue;
-            }
-            if (nextPart) {
-                throw new Error('Infinite loop on byte: ' + nextPart.charCodeAt(0));
-            }
-        }
-        return out;
-    }
-    /**
-     * Compile Link.
-     */
-    outputLink(execArr, link) {
-        const href = this.options.escape(link.href);
-        const title = link.title ? this.options.escape(link.title) : null;
-        return execArr[0].charAt(0) !== '!'
-            ? this.renderer.link(href, title, this.output(execArr[1]))
-            : this.renderer.image(href, title, this.options.escape(execArr[1]));
-    }
-    /**
-     * Smartypants Transformations.
-     */
-    smartypants(text) {
-        if (!this.options.smartypants) {
-            return text;
-        }
-        return (text
-            // em-dashes
-            .replace(/---/g, '\u2014')
-            // en-dashes
-            .replace(/--/g, '\u2013')
-            // opening singles
-            .replace(/(^|[-\u2014/(\[{"\s])'/g, '$1\u2018')
-            // closing singles & apostrophes
-            .replace(/'/g, '\u2019')
-            // opening doubles
-            .replace(/(^|[-\u2014/(\[{\u2018\s])"/g, '$1\u201c')
-            // closing doubles
-            .replace(/"/g, '\u201d')
-            // ellipses
-            .replace(/\.{3}/g, '\u2026'));
-    }
-    /**
-     * Mangle Links.
-     */
-    mangle(text) {
-        if (!this.options.mangle) {
-            return text;
-        }
-        let out = '';
-        const length = text.length;
-        for (let i = 0; i < length; i++) {
-            let str;
-            if (Math.random() > 0.5) {
-                str = 'x' + text.charCodeAt(i).toString(16);
-            }
-            out += '&#' + str + ';';
-        }
-        return out;
-    }
-}
-InlineLexer.rulesBase = null;
-/**
- * Pedantic Inline Grammar.
- */
-InlineLexer.rulesPedantic = null;
-/**
- * GFM Inline Grammar
- */
-InlineLexer.rulesGfm = null;
-/**
- * GFM + Line Breaks Inline Grammar.
- */
-InlineLexer.rulesBreaks = null;
-
-/**
- * @license
- *
- * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
- * https://github.com/chjj/marked
- *
- * Copyright (c) 2018-2020, Костя Третяк. (MIT Licensed)
- * https://github.com/ts-stack/markdown
- */
-/**
- * Parsing & Compiling.
- */
-class Parser {
-    constructor(options) {
-        this.simpleRenderers = [];
-        this.line = 0;
-        this.tokens = [];
-        this.token = null;
-        this.options = options || Marked.options;
-        this.renderer = this.options.renderer || new Renderer(this.options);
-    }
-    static parse(tokens, links, options) {
-        const parser = new this(options);
-        return parser.parse(links, tokens);
-    }
-    parse(links, tokens) {
-        this.inlineLexer = new InlineLexer(InlineLexer, links, this.options, this.renderer);
-        this.tokens = tokens.reverse();
-        let out = '';
-        while (this.next()) {
-            out += this.tok();
-        }
-        return out;
-    }
-    debug(links, tokens) {
-        this.inlineLexer = new InlineLexer(InlineLexer, links, this.options, this.renderer);
-        this.tokens = tokens.reverse();
-        let out = '';
-        while (this.next()) {
-            const outToken = this.tok();
-            this.token.line = this.line += outToken.split('\n').length - 1;
-            out += outToken;
-        }
-        return out;
-    }
-    next() {
-        return (this.token = this.tokens.pop());
-    }
-    getNextElement() {
-        return this.tokens[this.tokens.length - 1];
-    }
-    parseText() {
-        let body = this.token.text;
-        let nextElement;
-        while ((nextElement = this.getNextElement()) && nextElement.type == TokenType.text) {
-            body += '\n' + this.next().text;
-        }
-        return this.inlineLexer.output(body);
-    }
-    tok() {
-        switch (this.token.type) {
-            case TokenType.space: {
-                return '';
-            }
-            case TokenType.paragraph: {
-                return this.renderer.paragraph(this.inlineLexer.output(this.token.text));
-            }
-            case TokenType.text: {
-                if (this.options.isNoP) {
-                    return this.parseText();
-                }
-                else {
-                    return this.renderer.paragraph(this.parseText());
-                }
-            }
-            case TokenType.heading: {
-                return this.renderer.heading(this.inlineLexer.output(this.token.text), this.token.depth, this.token.text);
-            }
-            case TokenType.listStart: {
-                let body = '';
-                const ordered = this.token.ordered;
-                while (this.next().type != TokenType.listEnd) {
-                    body += this.tok();
-                }
-                return this.renderer.list(body, ordered);
-            }
-            case TokenType.listItemStart: {
-                let body = '';
-                while (this.next().type != TokenType.listItemEnd) {
-                    body += this.token.type == TokenType.text ? this.parseText() : this.tok();
-                }
-                return this.renderer.listitem(body);
-            }
-            case TokenType.looseItemStart: {
-                let body = '';
-                while (this.next().type != TokenType.listItemEnd) {
-                    body += this.tok();
-                }
-                return this.renderer.listitem(body);
-            }
-            case TokenType.code: {
-                return this.renderer.code(this.token.text, this.token.lang, this.token.escaped);
-            }
-            case TokenType.table: {
-                let header = '';
-                let body = '';
-                let cell;
-                // header
-                cell = '';
-                for (let i = 0; i < this.token.header.length; i++) {
-                    const flags = { header: true, align: this.token.align[i] };
-                    const out = this.inlineLexer.output(this.token.header[i]);
-                    cell += this.renderer.tablecell(out, flags);
-                }
-                header += this.renderer.tablerow(cell);
-                for (const row of this.token.cells) {
-                    cell = '';
-                    for (let j = 0; j < row.length; j++) {
-                        cell += this.renderer.tablecell(this.inlineLexer.output(row[j]), {
-                            header: false,
-                            align: this.token.align[j]
-                        });
-                    }
-                    body += this.renderer.tablerow(cell);
-                }
-                return this.renderer.table(header, body);
-            }
-            case TokenType.blockquoteStart: {
-                let body = '';
-                while (this.next().type != TokenType.blockquoteEnd) {
-                    body += this.tok();
-                }
-                return this.renderer.blockquote(body);
-            }
-            case TokenType.hr: {
-                return this.renderer.hr();
-            }
-            case TokenType.html: {
-                const html = !this.token.pre && !this.options.pedantic ? this.inlineLexer.output(this.token.text) : this.token.text;
-                return this.renderer.html(html);
-            }
-            default: {
-                if (this.simpleRenderers.length) {
-                    for (let i = 0; i < this.simpleRenderers.length; i++) {
-                        if (this.token.type == 'simpleRule' + (i + 1)) {
-                            return this.simpleRenderers[i].call(this.renderer, this.token.execArr);
-                        }
-                    }
-                }
-                const errMsg = `Token with "${this.token.type}" type was not found.`;
-                if (this.options.silent) {
-                    console.log(errMsg);
-                }
-                else {
-                    throw new Error(errMsg);
-                }
-            }
-        }
-    }
-}
-
-/**
- * @license
- *
- * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
- * https://github.com/chjj/marked
- *
- * Copyright (c) 2018-2020, Костя Третяк. (MIT Licensed)
- * https://github.com/ts-stack/markdown
- */
-class Marked {
-    /**
-     * Merges the default options with options that will be set.
-     *
-     * @param options Hash of options.
-     */
-    static setOptions(options) {
-        Object.assign(this.options, options);
-        return this;
-    }
-    /**
-     * Setting simple block rule.
-     */
-    static setBlockRule(regexp, renderer = () => '') {
-        BlockLexer.simpleRules.push(regexp);
-        this.simpleRenderers.push(renderer);
-        return this;
-    }
-    /**
-     * Accepts Markdown text and returns text in HTML format.
-     *
-     * @param src String of markdown source to be compiled.
-     * @param options Hash of options. They replace, but do not merge with the default options.
-     * If you want the merging, you can to do this via `Marked.setOptions()`.
-     */
-    static parse(src, options = this.options) {
-        try {
-            const { tokens, links } = this.callBlockLexer(src, options);
-            return this.callParser(tokens, links, options);
-        }
-        catch (e) {
-            return this.callMe(e);
-        }
-    }
-    /**
-     * Accepts Markdown text and returns object with text in HTML format,
-     * tokens and links from `BlockLexer.parser()`.
-     *
-     * @param src String of markdown source to be compiled.
-     * @param options Hash of options. They replace, but do not merge with the default options.
-     * If you want the merging, you can to do this via `Marked.setOptions()`.
-     */
-    static debug(src, options = this.options) {
-        const { tokens, links } = this.callBlockLexer(src, options);
-        let origin = tokens.slice();
-        const parser = new Parser(options);
-        parser.simpleRenderers = this.simpleRenderers;
-        const result = parser.debug(links, tokens);
-        /**
-         * Translates a token type into a readable form,
-         * and moves `line` field to a first place in a token object.
-         */
-        origin = origin.map(token => {
-            token.type = TokenType[token.type] || token.type;
-            const line = token.line;
-            delete token.line;
-            if (line) {
-                return Object.assign({ line }, token);
-            }
-            else {
-                return token;
-            }
-        });
-        return { tokens: origin, links, result };
-    }
-    static callBlockLexer(src = '', options) {
-        if (typeof src != 'string') {
-            throw new Error(`Expected that the 'src' parameter would have a 'string' type, got '${typeof src}'`);
-        }
-        // Preprocessing.
-        src = src
-            .replace(/\r\n|\r/g, '\n')
-            .replace(/\t/g, '    ')
-            .replace(/\u00a0/g, ' ')
-            .replace(/\u2424/g, '\n')
-            .replace(/^ +$/gm, '');
-        return BlockLexer.lex(src, options, true);
-    }
-    static callParser(tokens, links, options) {
-        if (this.simpleRenderers.length) {
-            const parser = new Parser(options);
-            parser.simpleRenderers = this.simpleRenderers;
-            return parser.parse(links, tokens);
-        }
-        else {
-            return Parser.parse(tokens, links, options);
-        }
-    }
-    static callMe(err) {
-        err.message += '\nPlease report this to https://github.com/ts-stack/markdown';
-        if (this.options.silent) {
-            return '<p>An error occured:</p><pre>' + this.options.escape(err.message + '', true) + '</pre>';
-        }
-        throw err;
-    }
-}
-Marked.options = new MarkedOptions();
-Marked.simpleRenderers = [];
-
-/**
- * @license
- *
- * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
- * https://github.com/chjj/marked
- *
- * Copyright (c) 2018-2020, Костя Третяк. (MIT Licensed)
- * https://github.com/ts-stack/markdown
- */
-class BlockLexer {
-    constructor(staticThis, options) {
-        this.staticThis = staticThis;
-        this.links = {};
-        this.tokens = [];
-        this.options = options || Marked.options;
-        this.setRules();
-    }
-    /**
-     * Accepts Markdown text and returns object with tokens and links.
-     *
-     * @param src String of markdown source to be compiled.
-     * @param options Hash of options.
-     */
-    static lex(src, options, top, isBlockQuote) {
-        const lexer = new this(this, options);
-        return lexer.getTokens(src, top, isBlockQuote);
-    }
-    static getRulesBase() {
-        if (this.rulesBase) {
-            return this.rulesBase;
-        }
-        const base = {
-            newline: /^\n+/,
-            code: /^( {4}[^\n]+\n*)+/,
-            hr: /^( *[-*_]){3,} *(?:\n+|$)/,
-            heading: /^ *(#{1,6}) *([^\n]+?) *#* *(?:\n+|$)/,
-            lheading: /^([^\n]+)\n *(=|-){2,} *(?:\n+|$)/,
-            blockquote: /^( *>[^\n]+(\n[^\n]+)*\n*)+/,
-            list: /^( *)(bull) [\s\S]+?(?:hr|def|\n{2,}(?! )(?!\1bull )\n*|\s*$)/,
-            html: /^ *(?:comment *(?:\n|\s*$)|closed *(?:\n{2,}|\s*$)|closing *(?:\n{2,}|\s*$))/,
-            def: /^ *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$)/,
-            paragraph: /^((?:[^\n]+\n?(?!hr|heading|lheading|blockquote|tag|def))+)\n*/,
-            text: /^[^\n]+/,
-            bullet: /(?:[*+-]|\d+\.)/,
-            item: /^( *)(bull) [^\n]*(?:\n(?!\1bull )[^\n]*)*/,
-        };
-        base.item = new ExtendRegexp(base.item, 'gm').setGroup(/bull/g, base.bullet).getRegexp();
-        base.list = new ExtendRegexp(base.list)
-            .setGroup(/bull/g, base.bullet)
-            .setGroup('hr', '\\n+(?=\\1?(?:[-*_] *){3,}(?:\\n+|$))')
-            .setGroup('def', '\\n+(?=' + base.def.source + ')')
-            .getRegexp();
-        const tag = '(?!(?:' +
-            'a|em|strong|small|s|cite|q|dfn|abbr|data|time|code' +
-            '|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo' +
-            '|span|br|wbr|ins|del|img)\\b)\\w+(?!:/|[^\\w\\s@]*@)\\b';
-        base.html = new ExtendRegexp(base.html)
-            .setGroup('comment', /<!--[\s\S]*?-->/)
-            .setGroup('closed', /<(tag)[\s\S]+?<\/\1>/)
-            .setGroup('closing', /<tag(?:"[^"]*"|'[^']*'|[^'">])*?>/)
-            .setGroup(/tag/g, tag)
-            .getRegexp();
-        base.paragraph = new ExtendRegexp(base.paragraph)
-            .setGroup('hr', base.hr)
-            .setGroup('heading', base.heading)
-            .setGroup('lheading', base.lheading)
-            .setGroup('blockquote', base.blockquote)
-            .setGroup('tag', '<' + tag)
-            .setGroup('def', base.def)
-            .getRegexp();
-        return (this.rulesBase = base);
-    }
-    static getRulesGfm() {
-        if (this.rulesGfm) {
-            return this.rulesGfm;
-        }
-        const base = this.getRulesBase();
-        const gfm = Object.assign(Object.assign({}, base), {
-            fences: /^ *(`{3,}|~{3,})[ \.]*(\S+)? *\n([\s\S]*?)\s*\1 *(?:\n+|$)/,
-            paragraph: /^/,
-            heading: /^ *(#{1,6}) +([^\n]+?) *#* *(?:\n+|$)/,
-        });
-        const group1 = gfm.fences.source.replace('\\1', '\\2');
-        const group2 = base.list.source.replace('\\1', '\\3');
-        gfm.paragraph = new ExtendRegexp(base.paragraph).setGroup('(?!', `(?!${group1}|${group2}|`).getRegexp();
-        return (this.rulesGfm = gfm);
-    }
-    static getRulesTable() {
-        if (this.rulesTables) {
-            return this.rulesTables;
-        }
-        return (this.rulesTables = Object.assign(Object.assign({}, this.getRulesGfm()), {
-            nptable: /^ *(\S.*\|.*)\n *([-:]+ *\|[-| :]*)\n((?:.*\|.*(?:\n|$))*)\n*/,
-            table: /^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/,
-        }));
-    }
-    setRules() {
-        if (this.options.gfm) {
-            if (this.options.tables) {
-                this.rules = this.staticThis.getRulesTable();
-            }
-            else {
-                this.rules = this.staticThis.getRulesGfm();
-            }
-        }
-        else {
-            this.rules = this.staticThis.getRulesBase();
-        }
-        this.hasRulesGfm = this.rules.fences !== undefined;
-        this.hasRulesTables = this.rules.table !== undefined;
-    }
-    /**
-     * Lexing.
-     */
-    getTokens(src, top, isBlockQuote) {
-        let nextPart = src;
-        let execArr;
-        mainLoop: while (nextPart) {
-            // newline
-            if ((execArr = this.rules.newline.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                if (execArr[0].length > 1) {
-                    this.tokens.push({ type: TokenType.space });
-                }
-            }
-            // code
-            if ((execArr = this.rules.code.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                const code = execArr[0].replace(/^ {4}/gm, '');
-                this.tokens.push({
-                    type: TokenType.code,
-                    text: !this.options.pedantic ? code.replace(/\n+$/, '') : code,
-                });
-                continue;
-            }
-            // fences code (gfm)
-            if (this.hasRulesGfm && (execArr = this.rules.fences.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                this.tokens.push({
-                    type: TokenType.code,
-                    lang: execArr[2],
-                    text: execArr[3] || '',
-                });
-                continue;
-            }
-            // heading
-            if ((execArr = this.rules.heading.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                this.tokens.push({
-                    type: TokenType.heading,
-                    depth: execArr[1].length,
-                    text: execArr[2],
-                });
-                continue;
-            }
-            // table no leading pipe (gfm)
-            if (top && this.hasRulesTables && (execArr = this.rules.nptable.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                const item = {
-                    type: TokenType.table,
-                    header: execArr[1].replace(/^ *| *\| *$/g, '').split(/ *\| */),
-                    align: execArr[2].replace(/^ *|\| *$/g, '').split(/ *\| */),
-                    cells: [],
-                };
-                for (let i = 0; i < item.align.length; i++) {
-                    if (/^ *-+: *$/.test(item.align[i])) {
-                        item.align[i] = 'right';
-                    }
-                    else if (/^ *:-+: *$/.test(item.align[i])) {
-                        item.align[i] = 'center';
-                    }
-                    else if (/^ *:-+ *$/.test(item.align[i])) {
-                        item.align[i] = 'left';
-                    }
-                    else {
-                        item.align[i] = null;
-                    }
-                }
-                const td = execArr[3].replace(/\n$/, '').split('\n');
-                for (let i = 0; i < td.length; i++) {
-                    item.cells[i] = td[i].split(/ *\| */);
-                }
-                this.tokens.push(item);
-                continue;
-            }
-            // lheading
-            if ((execArr = this.rules.lheading.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                this.tokens.push({
-                    type: TokenType.heading,
-                    depth: execArr[2] === '=' ? 1 : 2,
-                    text: execArr[1],
-                });
-                continue;
-            }
-            // hr
-            if ((execArr = this.rules.hr.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                this.tokens.push({ type: TokenType.hr });
-                continue;
-            }
-            // blockquote
-            if ((execArr = this.rules.blockquote.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                this.tokens.push({ type: TokenType.blockquoteStart });
-                const str = execArr[0].replace(/^ *> ?/gm, '');
-                // Pass `top` to keep the current
-                // "toplevel" state. This is exactly
-                // how markdown.pl works.
-                this.getTokens(str);
-                this.tokens.push({ type: TokenType.blockquoteEnd });
-                continue;
-            }
-            // list
-            if ((execArr = this.rules.list.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                const bull = execArr[2];
-                this.tokens.push({ type: TokenType.listStart, ordered: bull.length > 1 });
-                // Get each top-level item.
-                const str = execArr[0].match(this.rules.item);
-                const length = str.length;
-                let next = false;
-                let space;
-                let blockBullet;
-                let loose;
-                for (let i = 0; i < length; i++) {
-                    let item = str[i];
-                    // Remove the list item's bullet so it is seen as the next token.
-                    space = item.length;
-                    item = item.replace(/^ *([*+-]|\d+\.) +/, '');
-                    // Outdent whatever the list item contains. Hacky.
-                    if (item.indexOf('\n ') !== -1) {
-                        space -= item.length;
-                        item = !this.options.pedantic
-                            ? item.replace(new RegExp('^ {1,' + space + '}', 'gm'), '')
-                            : item.replace(/^ {1,4}/gm, '');
-                    }
-                    // Determine whether the next list item belongs here.
-                    // Backpedal if it does not belong in this list.
-                    if (this.options.smartLists && i !== length - 1) {
-                        blockBullet = this.staticThis.getRulesBase().bullet.exec(str[i + 1])[0];
-                        if (bull !== blockBullet && !(bull.length > 1 && blockBullet.length > 1)) {
-                            nextPart = str.slice(i + 1).join('\n') + nextPart;
-                            i = length - 1;
-                        }
-                    }
-                    // Determine whether item is loose or not.
-                    // Use: /(^|\n)(?! )[^\n]+\n\n(?!\s*$)/
-                    // for discount behavior.
-                    loose = next || /\n\n(?!\s*$)/.test(item);
-                    if (i !== length - 1) {
-                        next = item.charAt(item.length - 1) === '\n';
-                        if (!loose) {
-                            loose = next;
-                        }
-                    }
-                    this.tokens.push({ type: loose ? TokenType.looseItemStart : TokenType.listItemStart });
-                    // Recurse.
-                    this.getTokens(item, false, isBlockQuote);
-                    this.tokens.push({ type: TokenType.listItemEnd });
-                }
-                this.tokens.push({ type: TokenType.listEnd });
-                continue;
-            }
-            // html
-            if ((execArr = this.rules.html.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                const attr = execArr[1];
-                const isPre = attr === 'pre' || attr === 'script' || attr === 'style';
-                this.tokens.push({
-                    type: this.options.sanitize ? TokenType.paragraph : TokenType.html,
-                    pre: !this.options.sanitizer && isPre,
-                    text: execArr[0],
-                });
-                continue;
-            }
-            // def
-            if (top && (execArr = this.rules.def.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                this.links[execArr[1].toLowerCase()] = {
-                    href: execArr[2],
-                    title: execArr[3],
-                };
-                continue;
-            }
-            // table (gfm)
-            if (top && this.hasRulesTables && (execArr = this.rules.table.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                const item = {
-                    type: TokenType.table,
-                    header: execArr[1].replace(/^ *| *\| *$/g, '').split(/ *\| */),
-                    align: execArr[2].replace(/^ *|\| *$/g, '').split(/ *\| */),
-                    cells: [],
-                };
-                for (let i = 0; i < item.align.length; i++) {
-                    if (/^ *-+: *$/.test(item.align[i])) {
-                        item.align[i] = 'right';
-                    }
-                    else if (/^ *:-+: *$/.test(item.align[i])) {
-                        item.align[i] = 'center';
-                    }
-                    else if (/^ *:-+ *$/.test(item.align[i])) {
-                        item.align[i] = 'left';
-                    }
-                    else {
-                        item.align[i] = null;
-                    }
-                }
-                const td = execArr[3].replace(/(?: *\| *)?\n$/, '').split('\n');
-                for (let i = 0; i < td.length; i++) {
-                    item.cells[i] = td[i].replace(/^ *\| *| *\| *$/g, '').split(/ *\| */);
-                }
-                this.tokens.push(item);
-                continue;
-            }
-            // simple rules
-            if (this.staticThis.simpleRules.length) {
-                const simpleRules = this.staticThis.simpleRules;
-                for (let i = 0; i < simpleRules.length; i++) {
-                    if ((execArr = simpleRules[i].exec(nextPart))) {
-                        nextPart = nextPart.substring(execArr[0].length);
-                        const type = 'simpleRule' + (i + 1);
-                        this.tokens.push({ type, execArr });
-                        continue mainLoop;
-                    }
-                }
-            }
-            // top-level paragraph
-            if (top && (execArr = this.rules.paragraph.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                if (execArr[1].slice(-1) === '\n') {
-                    this.tokens.push({
-                        type: TokenType.paragraph,
-                        text: execArr[1].slice(0, -1),
-                    });
-                }
-                else {
-                    this.tokens.push({
-                        type: this.tokens.length > 0 ? TokenType.paragraph : TokenType.text,
-                        text: execArr[1],
-                    });
-                }
-                continue;
-            }
-            // text
-            // Top-level should never reach here.
-            if ((execArr = this.rules.text.exec(nextPart))) {
-                nextPart = nextPart.substring(execArr[0].length);
-                this.tokens.push({ type: TokenType.text, text: execArr[0] });
-                continue;
-            }
-            if (nextPart) {
-                throw new Error('Infinite loop on byte: ' + nextPart.charCodeAt(0) + `, near text '${nextPart.slice(0, 30)}...'`);
-            }
-        }
-        return { tokens: this.tokens, links: this.links };
-    }
-}
-BlockLexer.simpleRules = [];
-BlockLexer.rulesBase = null;
-/**
- * GFM Block Grammar.
- */
-BlockLexer.rulesGfm = null;
-/**
- * GFM + Tables Block Grammar.
- */
-BlockLexer.rulesTables = null;
-
-/*
-  https://www.markdownguide.org/extended-syntax/#heading-ids
-  https://github.com/syntax-tree/mdast#code
-  https://stackoverflow.com/questions/5319754/cross-reference-named-anchor-in-markdown
-  https://github.com/ts-stack/markdown#overriding-renderer-methods
-*/
-class MarkdownEditableComponentsRenderer extends Renderer {
-    toc() {
-        return `<markdown-toc></markdown-toc>`;
-    }
-    code(code, lang, escaped) {
-        var _a;
-        // TODO escaped?
-        if (!escaped && this.options.escape) {
-            code = (_a = this.options.escape) === null || _a === void 0 ? void 0 : _a.call(this, code);
-            escaped = true;
-        }
-        if (lang) {
-            let id;
-            [id, lang] = this.parseAnchor("code-" + (Date.now() + Math.random()), lang, false);
-            return this.codeWithAnchor(code, lang, id, escaped);
-        }
-        else {
-            return this.codeWithAnchor(code, lang, undefined, escaped);
-        }
-    }
-    codeWithAnchor(code, lang, id, escaped) {
-        var _a;
-        const langAttr = lang ? `lang='${lang}'` : "";
-        const idAttr = id ? `id='${id}'` : "";
-        if (!escaped && this.options.escape) {
-            code = (_a = this.options.escape) === null || _a === void 0 ? void 0 : _a.call(this, code);
-            escaped = true;
-        }
-        return `<markdown-code ${langAttr} ${idAttr}>${code}</markdown-code>`;
-    }
-    blockquote(quote) {
-        return `<markdown-quote>${quote}</markdown-quote>`;
-    }
-    html(html) {
-        return `<markdown-html>${html}</markdown-html>`;
-    }
-    heading(text, level, raw) {
-        let id;
-        [id, text] = this.parseAnchor("heading-", text, true);
-        return this.headingWithAnchor(text, level, raw, id);
-    }
-    headingWithAnchor(text, level, _raw, id) {
-        const idAttr = id ? `id='${id}'` : "";
-        return `<markdown-header-${level} ${idAttr}>${text}</markdown-header-${level}>`;
-    }
-    list(body, ordered) {
-        return `<markdown-list ordered='${ordered}'>${body}</markdown-list>`;
-    }
-    listitem(text) {
-        if (text.startsWith("<markdown-paragraph>[ ] ")) {
-            // see https://github.com/ts-stack/markdown/issues/8
-            return `<markdown-task-list-item>${text.replace("<markdown-paragraph>[ ] ", "<markdown-paragraph>")}</markdown-task-list-item>`;
-        }
-        else if (text.startsWith("<markdown-paragraph>[x] ")) {
-            return `<markdown-task-list-item checked='true'>${text.replace("<markdown-paragraph>[x] ", "<markdown-paragraph>")}</markdown-task-list-item>`;
-        }
-        else if (text.startsWith("[ ] ")) {
-            // see https://github.com/ts-stack/markdown/issues/8
-            return `<markdown-task-list-item>${text.replace("[ ] ", "")}</markdown-task-list-item>`;
-        }
-        else if (text.startsWith("[x] ")) {
-            return `<markdown-task-list-item checked='true'>${text.replace("[x] ", "")}</markdown-task-list-item>`;
-        }
-        else {
-            return `<markdown-list-item>${text}</markdown-list-item>`;
-        }
-    }
-    paragraph(text) {
-        text = text.replaceAll("${toc}", this.toc());
-        return `<markdown-paragraph>${text}</markdown-paragraph>`;
-    }
-    codespan(text) {
-        return `<markdown-code-span>${text}</markdown-code-span>`;
-    }
-    hr() {
-        return `<markdown-break></markdown-break>`;
-    }
-    strong(text) {
-        return `<markdown-strong>${text}</markdown-strong>`;
-    }
-    em(text) {
-        return `<markdown-emphasis>${text}</markdown-emphasis>`;
-    }
-    del(text) {
-        return `<markdown-strike>${text}</markdown-strike>`;
-    }
-    table(header, body) {
-        return `<markdown-table>${header.replaceAll('markdown-table-row>', 'markdown-table-header-row>')}${body}</markdown-table>`;
-    }
-    tablerow(content) {
-        return `<markdown-table-row>${content}</markdown-table-row>`;
-    }
-    tablecell(content, flags) {
-        if (flags.header == true) {
-            return `<markdown-table-header-cell>${content}</markdown-table-header-cell>`;
-        }
-        else {
-            return `<markdown-table-cell>${content}</markdown-table-cell>`;
-        }
-    }
-    link(href, title, text) {
-        if (title) {
-            return `<markdown-link destination='${href}' title='${title}'>${text}</markdown-link>`;
-        }
-        else {
-            return `<markdown-link destination='${href}'>${text}</markdown-link>`;
-        }
-    }
-    image(href, title, text) {
-        if (title) {
-            return `<markdown-image destination='${href}' title='${title}'>${text}</markdown-image>`;
-        }
-        else {
-            return `<markdown-image destination='${href}'>${text}</markdown-image>`;
-        }
-    }
-    // strong(text: string): string;
-    // em(text: string): string;
-    // br(): string;
-    // del(text: string): string;
-    // text(text: string): string;
-    parseAnchor(idPrefix, text, useTextInId) {
-        const regexp = /\s*{([^}]+)}$/;
-        const execArr = regexp.exec(text);
-        let id = idPrefix;
-        if (execArr) {
-            text = text.replace(regexp, '');
-            id += execArr[1];
-        }
-        else {
-            if (useTextInId) {
-                id += text.toLocaleLowerCase().replace(/[^\wа-яіїє]+/gi, '-');
-            }
-        }
-        return [id, text];
-    }
-}
-function parse(markdown, renderer) {
-    const options = new MarkedOptions();
-    options.gfm = true;
-    const actualRenderer = renderer != null ? renderer : new MarkdownEditableComponentsRenderer();
-    options.renderer = actualRenderer;
-    Marked.setBlockRule(
-    // /^ *(`{3,}|~{3,})[ \.]*(\S+)? +{([^}]+)} *\n([\s\S]*?)\s*\1 *(?:\n+|$)/, 
-    // TODO: check that works properly:
-    /^ *(`{3,}|~{3,})[ .]*(\S+)? +{([^}]+)} *\n([\s\S]*?)\s*\1 *(?:\n+|$)/, function (execArr) {
-        return this.codeWithAnchor(execArr[4], execArr[2], execArr[3]);
-    });
-    return Marked.parse(markdown, options);
-}
-
-const globalVariables = css$1 `
-  :host {
-    --header1-font-size: 2em;
-    --header2-font-size: 1.5em;
-    --header3-font-size: 1.17em;
-    --header4-font-size: 1em;
-    --header5-font-size: 0.83em;
-    --header6-font-size: 0.67em;
-  }
-`;
-
-var __decorate$v = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var MarkdownDocument_1;
-exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends LitElement {
-    constructor() {
-        super(...arguments);
-        // TODO: fix eslint-disable
-        // eslint-disable-next-line no-unused-vars
-        this.parser = (markdown) => parse(markdown);
-        this.toolbar = null;
-        this.selectionRoot = document;
-        this.onLinkClick = null;
-        this.currentSelection = null;
-        this.lastSelection = null;
-        this._mouseSelection = false;
-        this.isChrome = !!window.chrome;
-        this.editable = false;
-    }
-    get markdown() { return this.getMarkdown(); }
-    set markdown(markdown) { this.renderMarkdown(markdown); }
-    render() {
-        return html `
-      <div>
-        <div class="toolbar">
-          <slot name="toolbar"></slot>
-        </div>
-        <div class="toc">
-          <!-- <slot name="markdown-toc"></slot> -->
-        </div>
-        <slot></slot>
-      </div>
-    `;
-    }
-    connectedCallback() {
-        super.connectedCallback();
-        this.setAttribute("contenteditable", "true");
-        if (this.getAttribute("spellcheck") == null) {
-            this.setAttribute("spellcheck", "false");
-        }
-        this._mousedown = this.mousedown.bind(this);
-        this.addEventListener('mousedown', this._mousedown);
-        //ocument.addEventListener('mousedown', this._mousedown);
-        this._mouseup = this.mouseup.bind(this);
-        this.addEventListener('mouseup', this._mouseup);
-        //document.addEventListener('mouseup', this._mouseup);
-        this._selectstart = this.selectstart.bind(this);
-        document.addEventListener('selectstart', this._selectstart);
-        this._selectionchange = this.selectionchange.bind(this);
-        document.addEventListener('selectionchange', this._selectionchange);
-        this.addEventListener('keydown', (e) => {
-            if (this.editable) {
-                if (e.code === 'Enter') {
-                    e.preventDefault();
-                    this.handleEnterKeyDown();
-                }
-                else if (e.code === 'Backspace') {
-                    this.handleBackspaceKeyDown(e);
-                }
-                else if (e.code === 'Delete') {
-                    this.handleDeleteKeyDown(e);
-                }
-                else if (e.code === 'Tab') {
-                    e.preventDefault();
-                    this.handleTabKeyDown(e.shiftKey);
-                }
-                if (e.defaultPrevented) {
-                    // if default prevented, chances are that input is note triggered.
-                    this.normalizeContent();
-                    this.onChange();
-                }
-                let current = this.getCurrentLeafBlock();
-                if (current != null && current.scrollIntoViewIfNeeded != null) { // until standard lands (https://github.com/w3c/csswg-drafts/pull/5677)
-                    current.scrollIntoViewIfNeeded();
-                }
-            }
-        });
-        this.addEventListener("input", () => {
-            this.normalizeContent();
-            this.onChange();
-        });
-        this.addEventListener('blur', () => {
-            if (this.getAttribute("contenteditable") == "true")
-                this.disableEditable();
-        });
-        this.addEventListener('drop', (e) => this.onDrop(e), false);
-        this.addEventListener('dragover', (event) => {
-            var _a, _b, _c, _d;
-            if (this.selectionRoot.caretPositionFromPoint) {
-                var pos = this.selectionRoot.caretPositionFromPoint(event.clientX, event.clientY);
-                let range = document.createRange();
-                range.setStart(pos.offsetNode, pos.offset);
-                range.collapse();
-                (_a = this.getSelection()) === null || _a === void 0 ? void 0 : _a.removeAllRanges();
-                (_b = this.getSelection()) === null || _b === void 0 ? void 0 : _b.addRange(range);
-            }
-            else if (this.selectionRoot.caretRangeFromPoint) {
-                let range = this.selectionRoot.caretRangeFromPoint(event.clientX, event.clientY);
-                if (range) {
-                    (_c = this.getSelection()) === null || _c === void 0 ? void 0 : _c.removeAllRanges();
-                    (_d = this.getSelection()) === null || _d === void 0 ? void 0 : _d.addRange(range);
-                }
-            }
-            event.preventDefault();
-            //event.stopPropagation();
-        }, false);
-    }
-    disconnectedCallback() {
-        document.removeEventListener('selectionchange', this._selectionchange);
-        document.removeEventListener('selectstart', this._selectstart);
-        //document.removeEventListener('mouseup', this._mouseup);
-        //document.removeEventListener('mousedown', this._mousedown);
-        super.disconnectedCallback();
-    }
-    getSelection() {
-        if (this.selectionRoot.getSelection != null) {
-            return this.selectionRoot.getSelection();
-        }
-        else {
-            return this.ownerDocument.getSelection();
-        }
-    }
-    onMouseSelection() {
-        // see https://bugs.chromium.org/p/chromium/issues/detail?id=1162730
-        if (this.isChrome) {
-            this.setAttribute("contenteditable", "false");
-        }
-    }
-    onEndMouseSelection() {
-        if (this.isChrome && this.getAttribute("contenteditable") == "false") {
-            this.setAttribute("contenteditable", "true");
-            this.focus();
-        }
-    }
-    mousedown(e) {
-        if (e.buttons % 2 == 1) { // TODO potential issue with left-handed mouse buttons redefined?
-            this._mouseSelection = true;
-        }
-    }
-    mouseup() {
-        this._mouseSelection = false;
-        this.onEndMouseSelection();
-    }
-    selectstart() {
-        /*const selection = this.getSelection();
-        if (selection?.anchorNode) {
-          if (this.contains(selection?.anchorNode)) {
-            if(this._mouseSelection) {
-              this.onMouseSelection();
-            }
-          }
-        }*/
-    }
-    selectionchange() {
-        const selection = this.getSelection();
-        if (selection === null || selection === void 0 ? void 0 : selection.anchorNode) {
-            if (this.contains(selection === null || selection === void 0 ? void 0 : selection.anchorNode)) {
-                let element = selection.anchorNode;
-                while (element && !(element instanceof MarkdownLitElement)) {
-                    element = element.parentNode;
-                }
-                if (element instanceof MarkdownLitElement && element.isEditable()) {
-                    if (this._mouseSelection) {
-                        this.onMouseSelection();
-                    } /* else {
-                      this.onEndMouseSelection();
-                    }*/
-                    this.enableEditable();
-                }
-                else {
-                    this.disableEditable();
-                }
-                this.currentSelection = selection;
-                this.lastSelection = { anchorNode: selection.anchorNode, anchorOffset: selection.anchorOffset };
-                this.stashedSelection = {
-                    anchorNode: selection.anchorNode,
-                    anchorOffset: selection.anchorOffset,
-                    focusNode: selection.focusNode,
-                    focusOffset: selection.focusOffset,
-                };
-                this.debugSelection();
-                this.affectToolbar();
-            }
-            else {
-                this.disableEditable();
-            }
-        }
-        else {
-            this.disableEditable();
-        }
-    }
-    enableEditable() {
-        var _a, _b;
-        if (!this.editable) {
-            this.editable = true;
-            (_a = this.toolbar) === null || _a === void 0 ? void 0 : _a.classList.add('focus-enabled');
-            (_b = this.toolbar) === null || _b === void 0 ? void 0 : _b.classList.remove('focus-disabled');
-        }
-    }
-    disableEditable() {
-        var _a, _b;
-        if (this.editable) {
-            this.editable = false;
-            (_a = this.toolbar) === null || _a === void 0 ? void 0 : _a.classList.remove('focus-enabled');
-            (_b = this.toolbar) === null || _b === void 0 ? void 0 : _b.classList.add('focus-disabled');
-        }
-    }
-    debugSelection() {
-        //console.log("selection " + this.selectionToContentRange())
-        /*let ancohor = this.getSelection()?.anchorNode;
-        if(ancohor instanceof Text) {
-          console.log("     selection " + ancohor.textContent + " " + this.getSelection()?.anchorOffset)
-        } else if(ancohor instanceof HTMLElement) {
-          console.log("     selection " + ancohor.tagName + " " + this.getSelection()?.anchorOffset)
-        }*/
-    }
-    // content range is a way to represent a selection that is less browser specific, and more markdown specific
-    selectionToContentRange() {
-        let selection = this.getSelection();
-        if (selection && selection.anchorNode && selection.focusNode) {
-            let anchorOffset = this.selectionNodeAndOffsetToContentOffset(selection.anchorNode, selection.anchorOffset);
-            let focusOffset = this.selectionNodeAndOffsetToContentOffset(selection.focusNode, selection.focusOffset);
-            if (anchorOffset != null && focusOffset != null) {
-                return [anchorOffset, focusOffset];
-            }
-            else {
-                return null;
-            }
-        }
-        else {
-            return null;
-        }
-    }
-    selectionNodeAndOffsetToContentOffset(node, offset) {
-        var _a, _b, _c, _d;
-        if (node == this) {
-            return this.contentLengthUntil(this.childNodes[offset]);
-        }
-        else if (node instanceof MarkdownLitElement) {
-            if (node.parentNode) {
-                let parent = this.selectionNodeAndOffsetToContentOffset(node.parentNode, Array.from(node.parentNode.childNodes).indexOf(node));
-                if (parent != null) {
-                    return parent + node.contentLengthUntil(node.childNodes[offset]);
-                }
-                else {
-                    return null;
-                }
-            }
-            else {
-                return null;
-            }
-        }
-        else if (node instanceof Text) {
-            // find the parent
-            if (node.parentNode) {
-                let parent = this.selectionNodeAndOffsetToContentOffset(node.parentNode, Array.from(node.parentNode.childNodes).indexOf(node));
-                if (parent != null) {
-                    var littleBit = 0;
-                    /*if(offset == 0) {
-                      littleBit += 0.1;
-                    }
-                    if(offset == node.textContent?.replaceAll('\u200b', '').length) {
-                      littleBit -= 0.1;
-                    }*/
-                    // count the number of special characters that are not part of the content like the zero width space
-                    // before the offset!
-                    let numberOfSpecialChars = ((_d = (_c = (_b = (_a = node.textContent) === null || _a === void 0 ? void 0 : _a.slice(0, offset)) === null || _b === void 0 ? void 0 : _b.split('\u200b')) === null || _c === void 0 ? void 0 : _c.length) !== null && _d !== void 0 ? _d : 1) - 1;
-                    return parent + offset - numberOfSpecialChars + littleBit;
-                }
-                else {
-                    return null;
-                }
-            }
-            else {
-                return null;
-            }
-        }
-        else {
-            return null;
-        }
-    }
-    onDrop(event) {
-        var _a, _b, _c;
-        if (((_a = event.dataTransfer) === null || _a === void 0 ? void 0 : _a.files) != null && ((_c = (_b = event.dataTransfer) === null || _b === void 0 ? void 0 : _b.files) === null || _c === void 0 ? void 0 : _c.length) == 1) {
-            let file = event.dataTransfer.files[0];
-            if (file.type.match('image.*')) {
-                event.stopPropagation();
-                event.preventDefault();
-                var reader = new FileReader();
-                reader.onload = (theFile) => {
-                    var _a, _b, _c;
-                    //get the data uri
-                    var dataURI = (_a = theFile.target) === null || _a === void 0 ? void 0 : _a.result;
-                    let img = document.createElement('markdown-image');
-                    img.setAttribute('destination', dataURI);
-                    if (this.selectionRoot.caretPositionFromPoint) {
-                        var pos = this.selectionRoot.caretPositionFromPoint(event.clientX, event.clientY);
-                        let range = document.createRange();
-                        range.setStart(pos.offsetNode, pos.offset);
-                        range.collapse();
-                        range.insertNode(img);
-                    }
-                    // Next, the WebKit way. This works in Chrome.
-                    else if (this.selectionRoot.caretRangeFromPoint) {
-                        let range = this.selectionRoot.caretRangeFromPoint(event.clientX, event.clientY);
-                        range === null || range === void 0 ? void 0 : range.insertNode(img);
-                    }
-                    else if ((_b = this.getSelection()) === null || _b === void 0 ? void 0 : _b.rangeCount) {
-                        (_c = this.getSelection()) === null || _c === void 0 ? void 0 : _c.getRangeAt(0).insertNode(img);
-                    }
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-    }
-    contentLengthUntil(child) {
-        const childNodes = Array.from(this.childNodes);
-        const indexOfChild = childNodes.indexOf(child);
-        if (indexOfChild >= 0) {
-            var result = 0;
-            childNodes.slice(0, indexOfChild).forEach((child) => {
-                if (child instanceof MarkdownLitElement) {
-                    result += child.contentLength();
-                }
-            });
-            return result;
-        }
-        else {
-            return 0;
-        }
-    }
-    setSelectionToContentRange(contentRange) {
-        var _a, _b;
-        //console.log("Reset selection to " + contentRange);
-        let [anchorNode, anchorOffset] = this.getNodeAndOffsetFromContentOffsetAnchor(contentRange[0]);
-        let [focusNode, focusOffset] = this.getNodeAndOffsetFromContentOffset(contentRange[1]);
-        const range = document.createRange();
-        range.setStart(anchorNode, anchorOffset);
-        range.setEnd(focusNode, focusOffset);
-        (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.removeAllRanges();
-        (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.addRange(range);
-    }
-    getNodeAndOffsetFromContentOffsetAnchor(contentOffset) {
-        if (this.children.length > 0) {
-            var resultNode = this.children[0];
-            //var previousNodeWasEol = false;
-            // keep the first that will fit the offset
-            for (let i = 0; i < this.children.length; i++) {
-                let child = this.children[i];
-                var lengthUntilChild = this.contentLengthUntil(child);
-                if (contentOffset == lengthUntilChild) {
-                    //if(previousNodeWasEol) {
-                    resultNode = child;
-                    //}
-                    break;
-                }
-                if (contentOffset == 0 || contentOffset < lengthUntilChild) {
-                    break;
-                }
-                resultNode = child;
-                //previousNodeWasEol = (child instanceof MarkdownLitElement && child.elementEndWithEndOfLineEquivalent());
-            }
-            if (resultNode instanceof MarkdownLitElement) {
-                return resultNode.getNodeAndOffsetFromContentOffsetAnchor(contentOffset - this.contentLengthUntil(resultNode));
-            }
-            else {
-                return [resultNode, Math.round(contentOffset) - this.contentLengthUntil(resultNode)];
-            }
-        }
-        else {
-            return [this, Math.round(contentOffset)]; // FIXME
-        }
-    }
-    getNodeAndOffsetFromContentOffset(contentOffset) {
-        if (this.children.length > 0) {
-            var resultNode = this.children[0];
-            var previousNodeWasEol = false;
-            // keep the first that will fit the offset
-            for (let i = 0; i < this.children.length; i++) {
-                let child = this.children[i];
-                var lengthUntilChild = this.contentLengthUntil(child);
-                if (contentOffset == lengthUntilChild) {
-                    if (previousNodeWasEol) {
-                        resultNode = child;
-                    }
-                    break;
-                }
-                if (contentOffset < lengthUntilChild) {
-                    break;
-                }
-                resultNode = child;
-                previousNodeWasEol = (child instanceof MarkdownLitElement && child.elementEndWithEndOfLineEquivalent());
-            }
-            if (resultNode instanceof MarkdownLitElement) {
-                return resultNode.getNodeAndOffsetFromContentOffset(contentOffset - this.contentLengthUntil(resultNode));
-            }
-            else {
-                return [resultNode, Math.round(contentOffset) - this.contentLengthUntil(resultNode)];
-            }
-        }
-        else {
-            return [this, Math.round(contentOffset)]; // FIXME
-        }
-    }
-    normalizeContent() {
-        this.domModificationOperation(() => {
-            this.normalizeDOM();
-        });
-    }
-    domModificationOperation(operation) {
-        const selectionContentRangeBefore = this.selectionToContentRange();
-        operation();
-        const selectionContentRangeAfter = this.selectionToContentRange();
-        //console.log(selectionContentRangeBefore + " -> " + selectionContentRangeAfter);
-        const equals = (a, b) => {
-            if (a == null && b == null)
-                return true;
-            if (a != null && b != null) {
-                return a[0] == b[0] && a[1] == b[1];
-            }
-            else {
-                return false;
-            }
-        };
-        if (!equals(selectionContentRangeBefore, selectionContentRangeAfter)) {
-            if (selectionContentRangeBefore) {
-                this.setSelectionToContentRange(selectionContentRangeBefore);
-            }
-        }
-        this.affectToolbar();
-        this.debugSelection();
-    }
-    normalizeDOM() {
-        //console.log("doc normalize")
-        for (let i = 0; i < this.childNodes.length; i++) {
-            const child = this.childNodes[i];
-            if (child instanceof MarkdownLitElement) {
-                if (child.normalizeContent()) {
-                    this.normalizeDOM();
-                    break;
-                }
-            }
-            else if (child instanceof HTMLDivElement) {
-                // on chromium new lines are handled by divs, it splits up the tags properly.
-                Array.from(child.childNodes).forEach((divChild) => {
-                    this.append(divChild);
-                });
-                child.remove();
-            }
-            else if (child instanceof HTMLImageElement) {
-                let img = document.createElement('markdown-image');
-                child.replaceWith(img);
-                //  src="${this.destination}" title="${this.title}" alt="${this.innerText}"
-                if (child.getAttribute('src') != null) {
-                    img.destination = child.getAttribute('src');
-                }
-                if (child.getAttribute('title') != null) {
-                    img.destination = child.getAttribute('title');
-                }
-                if (child.getAttribute('alt') != null) {
-                    img.innerText = child.getAttribute('alt');
-                }
-            }
-            else if (child instanceof Text && child.textContent.trim().length > 0) {
-                let p = document.createElement('markdown-paragraph');
-                p.textContent = child.textContent;
-                child.replaceWith(p);
-                p.normalizeContent();
-            }
-        }
-        if (this.lastElementChild == null || this.lastElementChild.tagName.toLowerCase() != 'markdown-paragraph') {
-            let p = document.createElement('markdown-paragraph');
-            p.textContent = '\u200b';
-            this.append(p);
-        }
-    }
-    contentLength() {
-        var result = 0;
-        Array.from(this.children).forEach((child) => {
-            if (child instanceof MarkdownLitElement) {
-                result += child.contentLength();
-            } /* else {
-              result += child.textContent?.length ?? 0; // What would that be??? what if not normalized? divs?
-            }*/
-        });
-        return result;
-    }
-    onChange() {
-        setTimeout(() => {
-            this.dispatchEvent(new CustomEvent("change")); // TODO, what should be the event details? also add other changes than inputs
-        }, 0);
-    }
-    setToolbar(toolbar) {
-        this.toolbar = toolbar;
-        this.toolbar.setMarkdownDocument(this);
-    }
-    firstUpdated() {
-        var _a, _b, _c, _d;
-        if (this.getAttribute("floating-toc") == "true") {
-            const toc = document.createElement("markdown-toc");
-            toc.classList.add("floating");
-            toc.markdownDocument = this;
-            (_b = (_a = this.shadowRoot) === null || _a === void 0 ? void 0 : _a.querySelector(".toc")) === null || _b === void 0 ? void 0 : _b.appendChild(toc);
-            // TODO: toc reacts to changes
-        }
-        if (this.getAttribute("toolbar") == "true") {
-            this.toolbar = document.createElement("markdown-toolbar");
-            (_d = (_c = this.shadowRoot) === null || _c === void 0 ? void 0 : _c.querySelector(".toolbar")) === null || _d === void 0 ? void 0 : _d.appendChild(this.toolbar);
-            // ??? this.toolbar.setMarkdownEditor(this);
-        }
-    }
-    updated(changedProperties) {
-        if (changedProperties.has('markdown') && this.markdown != null) {
-            this.renderMarkdown(this.markdown);
-        }
-        if (changedProperties.has('toolbar') && this.toolbar != null) {
-            this.toolbar.setMarkdownDocument(this);
-        }
-    }
-    renderMarkdown(markdown) {
-        // TODO: do not remove the toolbar!? Or maybe there should be
-        // a markdown-editor component above document?
-        this.innerHTML = this.parser(markdown);
-        this.normalizeContent();
-    }
-    getMarkdown() {
-        return Array.from(this.children).map((child) => {
-            if (isMarkdownElement(child)) {
-                return child.getMarkdown();
-            }
-            else {
-                return "";
-            }
-        }).join('');
-    }
-    getCurrentLeafBlock() {
-        let selection = this.getSelection();
-        const anchorNode = selection === null || selection === void 0 ? void 0 : selection.anchorNode;
-        // console.log('anchorNode');
-        // console.log(anchorNode);
-        if (anchorNode != null) {
-            let element = anchorNode;
-            while (element != null && element != document && !(element instanceof MarkdownDocument_1)) {
-                if (element instanceof LeafElement) {
-                    return element;
-                }
-                element = element === null || element === void 0 ? void 0 : element.parentNode;
-            }
-        }
-        return null;
-    }
-    getLastLeafBlock() {
-        var _a;
-        const anchorNode = (_a = this.lastSelection) === null || _a === void 0 ? void 0 : _a.anchorNode;
-        // console.log('anchorNode');
-        // console.log(anchorNode);
-        if (anchorNode != null) {
-            let element = anchorNode;
-            while (element != null && element != document && !(element instanceof MarkdownDocument_1)) {
-                if (element instanceof LeafElement) {
-                    return element;
-                }
-                element = element === null || element === void 0 ? void 0 : element.parentNode;
-            }
-        }
-        return null;
-    }
-    handleEnterKeyDown() {
-        document.execCommand('insertHTML', false, '&ZeroWidthSpace;<br/>&ZeroWidthSpace;');
-    }
-    makeBreak() {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
-        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
-        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
-        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
-        if (parent && anchorOffset && focusOffset) {
-            const replacementLeft = document.createElement('markdown-paragraph');
-            const replacementRight = document.createElement('markdown-paragraph');
-            const markdownBreak = document.createElement('markdown-break');
-            replacementLeft.innerHTML = (_e = parent === null || parent === void 0 ? void 0 : parent.innerHTML) === null || _e === void 0 ? void 0 : _e.slice(0, anchorOffset);
-            replacementRight.innerHTML = (_f = parent === null || parent === void 0 ? void 0 : parent.innerHTML) === null || _f === void 0 ? void 0 : _f.slice(focusOffset);
-            if (replacementLeft.innerHTML.length === 0) {
-                replacementLeft.innerHTML = "<br />";
-            }
-            if (replacementRight.innerHTML.length === 0) {
-                replacementRight.innerHTML = "<br />";
-            }
-            parent.replaceWith(replacementLeft);
-            replacementLeft.after(markdownBreak);
-            markdownBreak.after(replacementRight);
-            const range = document.createRange();
-            range.selectNodeContents(replacementRight);
-            range.collapse(true);
-            (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.removeAllRanges();
-            (_h = this.currentSelection) === null || _h === void 0 ? void 0 : _h.addRange(range);
-            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: markdownBreak }));
-            this.onChange();
-        }
-    }
-    handleBackspaceKeyDown(e) {
-        var _a, _b, _c, _d, _e, _f;
-        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
-        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
-        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
-        const sibling = (_f = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode) === null || _f === void 0 ? void 0 : _f.previousSibling;
-        if (parent && anchorOffset == 0 && focusOffset == 0 && parent instanceof MarkdownLitElement && sibling == null) {
-            e.preventDefault();
-            if (isMarkdownElementEscapeByBackspace(parent.parentElement)) {
-                parent.parentElement.escapeByBackspace(parent);
-            }
-            else {
-                parent.mergeWithPrevious(this.currentSelection);
-            }
-        }
-        else if (sibling && anchorOffset == 0 && focusOffset == 0 &&
-            sibling instanceof MarkdownLitElement && sibling.isDeletableAsAWhole()) {
-            e.preventDefault();
-            sibling.remove();
-        }
-    }
-    handleDeleteKeyDown(e) {
-        var _a, _b, _c;
-        const anchor = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode;
-        const anchorOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorOffset;
-        const focusOffset = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.focusOffset;
-        const parent = anchor === null || anchor === void 0 ? void 0 : anchor.parentElement;
-        //const sibling = anchor?.nextSibling;
-        if (parent && anchor instanceof Text && anchor.nextSibling == null &&
-            anchorOffset == anchor.length && focusOffset == anchor.length && parent instanceof MarkdownLitElement) {
-            // got to the end of the parent children -> merge next one in
-            e.preventDefault();
-            parent.mergeNextIn();
-        } /*else if (sibling && anchor instanceof Text &&
-              anchorOffset == anchor.length && focusOffset == anchor.length && sibling instanceof MarkdownLitElement &&
-              sibling.isDeletableAsAWhole()) {
-          e.preventDefault();
-          sibling.remove();
-        }*/
-    }
-    handleTabKeyDown(shift) {
-        var _a, _b;
-        let parent = (_b = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) === null || _b === void 0 ? void 0 : _b.parentElement;
-        let child = null;
-        while (parent && parent != this && !isMarkdownElementWithLevel(parent)) {
-            child = parent;
-            parent = parent.parentElement;
-        }
-        if (parent && isMarkdownElementWithLevel(parent)) {
-            if (shift)
-                parent.goUpOneLevel(child);
-            else
-                parent.goDownOneLevel(child);
-            this.onChange();
-        }
-    }
-    allRangeUnderInline(tagName) {
-        var _a;
-        if (this.currentSelection && this.currentSelection.rangeCount > 0) {
-            return allRangeUnderInline(tagName, (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0));
-        }
-        else {
-            return null;
-        }
-    }
-    affectToolbar() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9;
-        if (this.allRangeUnderInline("markdown-strong") == true) {
-            (_a = this.toolbar) === null || _a === void 0 ? void 0 : _a.highlightBoldButton();
-        }
-        else {
-            (_b = this.toolbar) === null || _b === void 0 ? void 0 : _b.removeBoldButtonHighlighting();
-        }
-        if (this.allRangeUnderInline("markdown-emphasis") == true) {
-            (_c = this.toolbar) === null || _c === void 0 ? void 0 : _c.highlightItalicButton();
-        }
-        else {
-            (_d = this.toolbar) === null || _d === void 0 ? void 0 : _d.removeItalicButtonHighlighting();
-        }
-        if (this.allRangeUnderInline("markdown-strike") == true) {
-            (_e = this.toolbar) === null || _e === void 0 ? void 0 : _e.highlightStrikeButton();
-        }
-        else {
-            (_f = this.toolbar) === null || _f === void 0 ? void 0 : _f.removeBoldStrikeHighlighting();
-        }
-        if (((_j = (_h = (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.anchorNode) === null || _h === void 0 ? void 0 : _h.parentElement) === null || _j === void 0 ? void 0 : _j.tagName) === "MARKDOWN-PARAGRAPH") {
-            (_k = this.toolbar) === null || _k === void 0 ? void 0 : _k.setDropdownTitle('Paragraph');
-        }
-        if (((_o = (_m = (_l = this.currentSelection) === null || _l === void 0 ? void 0 : _l.anchorNode) === null || _m === void 0 ? void 0 : _m.parentElement) === null || _o === void 0 ? void 0 : _o.tagName) === "MARKDOWN-HEADER-1") {
-            (_p = this.toolbar) === null || _p === void 0 ? void 0 : _p.setDropdownTitle('Heading 1');
-        }
-        if (((_s = (_r = (_q = this.currentSelection) === null || _q === void 0 ? void 0 : _q.anchorNode) === null || _r === void 0 ? void 0 : _r.parentElement) === null || _s === void 0 ? void 0 : _s.tagName) === "MARKDOWN-HEADER-2") {
-            (_t = this.toolbar) === null || _t === void 0 ? void 0 : _t.setDropdownTitle('Heading 2');
-        }
-        if (((_w = (_v = (_u = this.currentSelection) === null || _u === void 0 ? void 0 : _u.anchorNode) === null || _v === void 0 ? void 0 : _v.parentElement) === null || _w === void 0 ? void 0 : _w.tagName) === "MARKDOWN-HEADER-3") {
-            (_x = this.toolbar) === null || _x === void 0 ? void 0 : _x.setDropdownTitle('Heading 3');
-        }
-        if (((_0 = (_z = (_y = this.currentSelection) === null || _y === void 0 ? void 0 : _y.anchorNode) === null || _z === void 0 ? void 0 : _z.parentElement) === null || _0 === void 0 ? void 0 : _0.tagName) === "MARKDOWN-HEADER-4") {
-            (_1 = this.toolbar) === null || _1 === void 0 ? void 0 : _1.setDropdownTitle('Heading 4');
-        }
-        if (((_4 = (_3 = (_2 = this.currentSelection) === null || _2 === void 0 ? void 0 : _2.anchorNode) === null || _3 === void 0 ? void 0 : _3.parentElement) === null || _4 === void 0 ? void 0 : _4.tagName) === "MARKDOWN-HEADER-5") {
-            (_5 = this.toolbar) === null || _5 === void 0 ? void 0 : _5.setDropdownTitle('Heading 5');
-        }
-        if (((_8 = (_7 = (_6 = this.currentSelection) === null || _6 === void 0 ? void 0 : _6.anchorNode) === null || _7 === void 0 ? void 0 : _7.parentElement) === null || _8 === void 0 ? void 0 : _8.tagName) === "MARKDOWN-HEADER-6") {
-            (_9 = this.toolbar) === null || _9 === void 0 ? void 0 : _9.setDropdownTitle('Heading 6');
-        }
-    }
-    makeBold() {
-        this.domModificationOperation(() => {
-            var _a, _b;
-            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
-                surroundRangeIfNotYet('markdown-strong', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
-                this.normalizeDOM();
-            }
-        });
-        this.onChange();
-    }
-    removeBold() {
-        this.domModificationOperation(() => {
-            var _a, _b;
-            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
-                unsurroundRange('markdown-strong', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
-                this.normalizeDOM();
-            }
-        });
-        this.onChange();
-    }
-    wrapCurrentSelectionInNewElement(elementName) {
-        var _a, _b, _c, _d, _e, _f, _g;
-        const anchorOffset = (_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorOffset;
-        const focusOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.focusOffset;
-        const parent = (_d = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.anchorNode) === null || _d === void 0 ? void 0 : _d.parentElement;
-        if (parent != null && anchorOffset != null && focusOffset != null) {
-            const selectionLength = Math.abs(focusOffset - anchorOffset);
-            const text = (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.anchorNode;
-            const secondPart = text.splitText(Math.min(anchorOffset, focusOffset));
-            secondPart.splitText(selectionLength);
-            const replacement = document.createElement(elementName);
-            replacement.appendChild(document.createTextNode(secondPart.data));
-            secondPart.replaceWith(replacement);
-            const range = document.createRange();
-            range.selectNodeContents(replacement);
-            (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.removeAllRanges();
-            (_g = this.currentSelection) === null || _g === void 0 ? void 0 : _g.addRange(range);
-            this.onChange();
-            return replacement;
-        }
-        else {
-            return null;
-        }
-    }
-    makeItalic() {
-        this.domModificationOperation(() => {
-            var _a, _b;
-            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
-                surroundRangeIfNotYet('markdown-emphasis', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
-                this.normalizeDOM();
-            }
-        });
-        this.onChange();
-    }
-    removeItalic() {
-        this.domModificationOperation(() => {
-            var _a, _b;
-            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
-                unsurroundRange('markdown-emphasis', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
-                this.normalizeDOM();
-            }
-        });
-        this.onChange();
-    }
-    makeUnderline() {
-        //this.wrapCurrentSelectionInNewElement('u');
-    }
-    makeStrike() {
-        this.domModificationOperation(() => {
-            var _a, _b;
-            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
-                surroundRangeIfNotYet('markdown-strike', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
-                this.normalizeDOM();
-            }
-        });
-        this.onChange();
-    }
-    removeStrike() {
-        this.domModificationOperation(() => {
-            var _a, _b;
-            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
-                unsurroundRange('markdown-strike', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
-                this.normalizeDOM();
-            }
-        });
-        this.onChange();
-    }
-    makeCodeInline() {
-        this.domModificationOperation(() => {
-            var _a, _b;
-            if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.getRangeAt(0)) {
-                surroundRangeIfNotYet('markdown-code-span', (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.getRangeAt(0));
-                this.normalizeDOM();
-            }
-        });
-        this.onChange();
-    }
-    listBulletedClick() {
-        var _a, _b, _c, _d;
-        if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) {
-            const list = document.createElement('markdown-list');
-            const item = document.createElement('markdown-list-item');
-            item.innerHTML = "<br />";
-            list.appendChild(item);
-            const oldElement = this.getCurrentLeafBlock();
-            if (oldElement != null) {
-                item.innerHTML = oldElement.innerHTML;
-            }
-            ((_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorNode).replaceWith(list);
-            const range = document.createRange();
-            range.selectNodeContents(item);
-            range.collapse(true);
-            (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.removeAllRanges();
-            (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.addRange(range);
-            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: item }));
-            this.onChange();
-        }
-    }
-    listNumericClick() {
-        var _a, _b, _c, _d;
-        if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) {
-            const list = document.createElement('markdown-numeric-list');
-            const item = document.createElement('markdown-numeric-list-item');
-            item.innerHTML = "<br />";
-            list.appendChild(item);
-            const oldElement = this.getCurrentLeafBlock();
-            if (oldElement != null) {
-                item.innerHTML = oldElement.innerHTML;
-            }
-            ((_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorNode).replaceWith(list);
-            const range = document.createRange();
-            range.selectNodeContents(item);
-            range.collapse(true);
-            (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.removeAllRanges();
-            (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.addRange(range);
-            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: item }));
-            this.onChange();
-        }
-    }
-    insertPhoto(url, text) {
-        var _a, _b, _c, _d, _e, _f;
-        if ((_a = this.currentSelection) === null || _a === void 0 ? void 0 : _a.anchorNode) {
-            const image = document.createElement('markdown-image');
-            if (text)
-                image.title = text;
-            if (url != null) {
-                image.destination = url;
-            }
-            const anchorOffset = (_b = this.currentSelection) === null || _b === void 0 ? void 0 : _b.anchorOffset;
-            const focusOffset = (_c = this.currentSelection) === null || _c === void 0 ? void 0 : _c.focusOffset;
-            const parent = (_e = (_d = this.currentSelection) === null || _d === void 0 ? void 0 : _d.anchorNode) === null || _e === void 0 ? void 0 : _e.parentElement;
-            if (parent && anchorOffset != null && focusOffset != null) {
-                const text = (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.anchorNode;
-                text.splitText(anchorOffset);
-                text.after(image);
-                this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: image }));
-                this.onChange();
-            }
-        }
-    }
-    restoreStashedSelection() {
-        var _a, _b, _c, _d, _e, _f;
-        const range = document.createRange();
-        range.setStart((_a = this.stashedSelection) === null || _a === void 0 ? void 0 : _a.anchorNode, (_b = this.stashedSelection) === null || _b === void 0 ? void 0 : _b.anchorOffset);
-        range.setEnd((_c = this.stashedSelection) === null || _c === void 0 ? void 0 : _c.focusNode, (_d = this.stashedSelection) === null || _d === void 0 ? void 0 : _d.focusOffset);
-        (_e = this.currentSelection) === null || _e === void 0 ? void 0 : _e.removeAllRanges();
-        (_f = this.currentSelection) === null || _f === void 0 ? void 0 : _f.addRange(range);
-    }
-    insertLink() {
-        let link = this.wrapCurrentSelectionInNewElement('markdown-link');
-        if (link.textContent != null) {
-            if (link.textContent == '') {
-                link.textContent = 'http://';
-            }
-            link.destination = link.textContent;
-        }
-        link === null || link === void 0 ? void 0 : link.classList.add('fresh');
-        //this.restoreStashedSelection();
-        //let link = this.wrapCurrentSelectionInNewElement('markdown-link') as MarkdownLink;
-        //link.destination = url;
-        //link.innerHTML = text;
-        /*if (this.currentSelection?.anchorNode) {
-          const link = document.createElement('markdown-link') as MarkdownLink;
-          link.destination = url;
-          link.innerHTML = text;
-    
-          const anchorOffset = this.currentSelection?.anchorOffset;
-          const focusOffset = this.currentSelection?.focusOffset;
-          const parent = this.currentSelection?.anchorNode?.parentElement;
-      
-          if (parent && anchorOffset && focusOffset) {
-            const text = this.currentSelection?.anchorNode as Text;
-            const secondPart = text.splitText(anchorOffset);
-            secondPart;
-    
-            text.after(link);
-            this.onChange();
-          }
-        }*/
-    }
-    header1Element() {
-        const element = document.createElement('markdown-header-1');
-        const oldElement = this.getCurrentLeafBlock();
-        if (oldElement != null) {
-            element.innerHTML = oldElement.innerHTML;
-            oldElement.replaceWith(element);
-            this.onChange();
-        }
-    }
-    header2Element() {
-        const element = document.createElement('markdown-header-2');
-        const oldElement = this.getCurrentLeafBlock();
-        if (oldElement != null) {
-            element.innerHTML = oldElement.innerHTML;
-            oldElement.replaceWith(element);
-            this.onChange();
-        }
-    }
-    header3Element() {
-        const element = document.createElement('markdown-header-3');
-        const oldElement = this.getCurrentLeafBlock();
-        if (oldElement != null) {
-            element.innerHTML = oldElement.innerHTML;
-            oldElement.replaceWith(element);
-            this.onChange();
-        }
-    }
-    header4Element() {
-        const element = document.createElement('markdown-header-4');
-        const oldElement = this.getCurrentLeafBlock();
-        if (oldElement != null) {
-            element.innerHTML = oldElement.innerHTML;
-            oldElement.replaceWith(element);
-            this.onChange();
-        }
-    }
-    header5Element() {
-        const element = document.createElement('markdown-header-5');
-        const oldElement = this.getCurrentLeafBlock();
-        if (oldElement != null) {
-            element.innerHTML = oldElement.innerHTML;
-            oldElement.replaceWith(element);
-            this.onChange();
-        }
-    }
-    header6Element() {
-        const element = document.createElement('markdown-header-6');
-        const oldElement = this.getCurrentLeafBlock();
-        if (oldElement != null) {
-            element.innerHTML = oldElement.innerHTML;
-            oldElement.replaceWith(element);
-            this.onChange();
-        }
-    }
-    pararaphElement() {
-        const element = document.createElement('markdown-paragraph');
-        const oldElement = this.getCurrentLeafBlock();
-        if (oldElement != null) {
-            element.innerHTML = oldElement.innerHTML;
-            oldElement.replaceWith(element);
-            this.onChange();
-        }
-    }
-    makeCodeBlock() {
-        const element = document.createElement('markdown-code');
-        const oldElement = this.getCurrentLeafBlock();
-        if (oldElement != null) {
-            element.innerHTML = oldElement.innerHTML;
-            oldElement.replaceWith(element);
-            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: element }));
-            this.onChange();
-        }
-    }
-    makeQuoteBlock() {
-        const element = document.createElement('markdown-quote');
-        const p = document.createElement('markdown-paragraph');
-        element.append(p);
-        const oldElement = this.getCurrentLeafBlock();
-        if (oldElement != null) {
-            p.innerHTML = oldElement.innerHTML;
-            oldElement.replaceWith(element);
-            this.dispatchEvent(new CustomEvent('markdown-inserted', { detail: element }));
-            this.onChange();
-        }
-    }
-};
-exports.MarkdownDocument.styles = [
-    /*
-      TODO (borodanov):
-
-      I put global variables here, because
-      in this version of the editor, MarkdownDocument is the highest in the parent
-      hierarchy. Possibly better solutions to use CSS variables in Shadow and
-      Light DOM at the same time are existing but I didn't find after a lot of research.
-      Some people have already looked for the same issues:
-      https://stackoverflow.com/questions/48380267/css-variables-root-vs-host
-      https://github.com/WICG/webcomponents/issues/338
-      Importing :root { --my-var: ... } into a component is not working,
-      but that would be the best solution for particular styles importing
-      from separatly defined styles.
-
-      For now these global variables are using for the synchronization the same size of
-      markdown Headers and toolbar selectors of the current paragraph style
-      which should look like Headers but with some differences, for example
-      this selector should be without margins and paddings like in the
-      markdown document view.
-    */
-    globalVariables,
-    css$1 `
-      :host {
-        display: block;
-        border: solid 1px gray;
-        border-top: none;
-        padding: 16px;
-      }
-      .toolbar {
-        z-index: 3;
-        top: 0px;
-        position: fixed;
-        right: 30%;
-        background: white;
-      }
-      .toc {
-        position: absolute;
-        z-index: 3;
-        top: 0px;
-        right: 0%;
-      }
-      @media print {
-        :host {
-          border: none;
-        }
-      }
-    `,
-];
-__decorate$v([
-    property()
-], exports.MarkdownDocument.prototype, "parser", void 0);
-__decorate$v([
-    property()
-], exports.MarkdownDocument.prototype, "markdown", null);
-__decorate$v([
-    property({ attribute: false })
-], exports.MarkdownDocument.prototype, "toolbar", void 0);
-__decorate$v([
-    property()
-], exports.MarkdownDocument.prototype, "selectionRoot", void 0);
-__decorate$v([
-    property()
-], exports.MarkdownDocument.prototype, "onLinkClick", void 0);
-exports.MarkdownDocument = MarkdownDocument_1 = __decorate$v([
-    customElement('markdown-document')
-], exports.MarkdownDocument);
-function getWord(range) {
-    if (range.collapsed && range.commonAncestorContainer instanceof Text) {
-        let leftIndex = Math.max(0, range.commonAncestorContainer.textContent.substring(0, range.startOffset).lastIndexOf(' ')); // TODO this should include other whitespaces.
-        var rightIndex = range.commonAncestorContainer.textContent.substring(range.startOffset).indexOf(' ') + range.startOffset;
-        if (rightIndex <= range.startOffset)
-            rightIndex = range.commonAncestorContainer.textContent.length;
-        let result = new Range();
-        result.setStart(range.startContainer, leftIndex);
-        result.setEnd(range.startContainer, rightIndex);
-        return result;
-    }
-    return null;
-}
-function allRangeUnderInline(tagName, range) {
-    var _a, _b;
-    if (range.commonAncestorContainer instanceof Text) {
-        return ((_a = range.commonAncestorContainer.parentElement) === null || _a === void 0 ? void 0 : _a.closest(tagName)) != null;
-    }
-    else {
-        if (range.commonAncestorContainer instanceof Element && range.commonAncestorContainer.closest(tagName) != null) {
-            return true;
-        }
-    }
-    let walk = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, null);
-    var n;
-    var result = false;
-    while (n = walk.nextNode()) {
-        if (n instanceof Text && range.intersectsNode(n) && isMarkdownContentTextNode(n)) { // avoid dom spaces at the document level. only user content
-            if (((_b = n.parentElement) === null || _b === void 0 ? void 0 : _b.closest(tagName)) == null) {
-                return false;
-            }
-            else {
-                result = true;
-            }
-        }
-    }
-    return result;
-}
-function getAllTextNodesForRange(range) {
-    var _a;
-    let startNode = range.startContainer;
-    let endNode = range.endContainer;
-    let startOffset = range.startOffset;
-    var endOffset = range.endOffset;
-    // split up text nodes if necessary
-    if (startNode instanceof Text) {
-        if (startOffset > 0 && startOffset < startNode.textContent.length) {
-            // split the text node to have whole text nodes corresponding to range
-            let text = startNode.textContent;
-            (_a = startNode.parentElement) === null || _a === void 0 ? void 0 : _a.insertBefore(document.createTextNode(text.substring(0, startOffset)), startNode);
-            startNode.textContent = text.substring(startOffset);
-            range.setStart(startNode, 0);
-            if (startNode == endNode) {
-                endOffset = endOffset - startOffset;
-            }
-        }
-    }
-    if (endNode instanceof Text) {
-        if (endOffset < endNode.textContent.length) {
-            // split the text node to have whole text nodes corresponding to range
-            let text = endNode.textContent;
-            let after = document.createTextNode(text.substring(endOffset));
-            endNode.textContent = text.substring(0, endOffset);
-            endNode.after(after);
-        }
-    }
-    // get al the text nodes using commonAncestorContainer all text nodes that range intersectsNode
-    if (range.commonAncestorContainer instanceof Text) {
-        return [range.commonAncestorContainer];
-    }
-    else {
-        let result = [];
-        let walk = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, null);
-        var n;
-        while (n = walk.nextNode()) {
-            if (n instanceof Text && range.intersectsNode(n) && isMarkdownContentTextNode(n)) {
-                result.push(n);
-            }
-        }
-        return result;
-    }
-}
-function isMarkdownContentTextNode(node) {
-    return isMarkdownElement(node.parentNode) && node.parentNode instanceof MarkdownLitElement && node.parentNode.containsMarkdownTextContent();
-}
-function surroundRangeIfNotYet(tagName, range) {
-    if (range.collapsed) {
-        let wordRange = getWord(range);
-        if (wordRange != null) {
-            surroundRangeIfNotYet(tagName, wordRange);
-        }
-        else {
-            // split the text node and add 
-            /*let text = (range.commonAncestorContainer as Text).textContent;
-            (range.commonAncestorContainer as Text).textContent =
-            text?.substring(0, range.startOffset);*/
-            document.execCommand('insertHTML', false, '<' + tagName + '>&ZeroWidthSpace;</' + tagName + '>'); // TODO better do it oursleves besed on range (this is selection based
-        }
-        return;
-    }
-    let allTexts = getAllTextNodesForRange(range);
-    allTexts.forEach((t) => {
-        var _a;
-        if (((_a = t.parentElement) === null || _a === void 0 ? void 0 : _a.closest(tagName)) == null) {
-            var replaceLevel = t;
-            while (replaceLevel.parentElement instanceof TerminalInlineElement) { // terminal inline is the lowest level you cannot surround the text inside, but it can be surrounded
-                replaceLevel = replaceLevel.parentElement;
-            }
-            let enclosing = document.createElement(tagName);
-            replaceLevel.replaceWith(enclosing);
-            enclosing.append(replaceLevel);
-        }
-    });
-}
-function dispatchToChildren(element) {
-    let sibling = element.nextSibling;
-    let parent = element.parentElement;
-    element.remove();
-    Array.from(element.childNodes).forEach((ec) => {
-        let ne = element.cloneNode(false);
-        ne.appendChild(ec);
-        parent === null || parent === void 0 ? void 0 : parent.insertBefore(ne, sibling);
-    });
-}
-function unsurroundRange(tagName, range) {
-    if (range.collapsed) {
-        let wordRange = getWord(range);
-        if (wordRange != null) {
-            unsurroundRange(tagName, wordRange);
-        }
-        return;
-    }
-    let allTexts = getAllTextNodesForRange(range);
-    var surrounded = false;
-    do {
-        surrounded = false;
-        allTexts.forEach((t) => {
-            var _a, _b, _c, _d;
-            var enclosing = (_a = t.parentElement) === null || _a === void 0 ? void 0 : _a.closest(tagName);
-            if (enclosing != null) {
-                // if ancestor is there, dispatch it down one level
-                // we just push down the ancestor and fo on with the fixpoint
-                surrounded = true;
-                // bring down 
-                dispatchToChildren(enclosing);
-                // now if we are left with parent directly as the one to remove, remove that layer
-                if (((_c = (_b = t.parentElement) === null || _b === void 0 ? void 0 : _b.tagName) === null || _c === void 0 ? void 0 : _c.toLowerCase()) == tagName) {
-                    t.parentElement.replaceWith(t);
-                }
-                else {
-                    enclosing = (_d = t.parentElement) === null || _d === void 0 ? void 0 : _d.closest(tagName);
-                    // invert enclosing and its child
-                    let ec = enclosing.childNodes[0]; // we know there is only one from dispatchToChildren
-                    enclosing.replaceWith(ec);
-                    Array.from(ec.childNodes).forEach((ecc) => {
-                        ec.removeChild(ecc);
-                        enclosing === null || enclosing === void 0 ? void 0 : enclosing.append(ecc);
-                    });
-                    ec.appendChild(enclosing);
-                }
-            }
-        });
-    } while (surrounded);
-}
-
-var __decorate$u = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$8 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -48908,7 +52007,7 @@ exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
                 }
             }
             else {
-                if (this.normalizeChildContent(content)) {
+                if (normalizeChildContent(content)) {
                     return true;
                 }
             }
@@ -48990,20 +52089,20 @@ exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
         return true;
     }
 };
-exports.ListItem.styles = css$1 `
+exports.ListItem.styles = css `
     :host {
       position: relative;
       left: 20px;
     }
   `;
-__decorate$u([
+__decorate$8([
     property({ type: Boolean })
 ], exports.ListItem.prototype, "spread", void 0);
-exports.ListItem = ListItem_1 = __decorate$u([
+exports.ListItem = ListItem_1 = __decorate$8([
     customElement('markdown-list-item')
 ], exports.ListItem);
 
-var __decorate$t = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$9 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49015,7 +52114,7 @@ var __decorate$t = (undefined && undefined.__decorate) || function (decorators, 
 */
 exports.MarkdownParagraph = class MarkdownParagraph extends LeafElement {
     render() {
-        return html `<p><slot></slot></p>`;
+        return html `<slot></slot>`;
     }
     getMarkdown() {
         return Array.from(this.childNodes).map((child) => {
@@ -49037,6 +52136,11 @@ exports.MarkdownParagraph = class MarkdownParagraph extends LeafElement {
         return true;
     }
     normalizeContent() {
+        if (this.childNodes.length == 1 && this.childNodes[0] instanceof HTMLBRElement) {
+            this.childNodes[0].remove();
+            let p = document.createTextNode('\u200b');
+            this.append(p);
+        }
         if (this.lastChild instanceof MarkdownLitElement) {
             let p = document.createTextNode('\u200b');
             this.append(p);
@@ -49047,20 +52151,21 @@ exports.MarkdownParagraph = class MarkdownParagraph extends LeafElement {
         return this.getMarkdown() == '\n\n';
     }
 };
-exports.MarkdownParagraph.styles = css$1 `
+exports.MarkdownParagraph.styles = css `
     :host {
       position: relative;
-    }
-    p {
-      min-height: 1em;
-      /*white-space: pre-wrap;*/
+      display: block;
+      margin-block-start: 1em;
+      margin-block-end: 1em;
+      margin-inline-start: 0px;
+      margin-inline-end: 0px;
     }
   `;
-exports.MarkdownParagraph = __decorate$t([
+exports.MarkdownParagraph = __decorate$9([
     customElement('markdown-paragraph')
 ], exports.MarkdownParagraph);
 
-var __decorate$s = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$a = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49133,7 +52238,7 @@ exports.BlockQuote = class BlockQuote extends ContainerElement {
         this.goUpOneLevel(child);
     }
 };
-exports.BlockQuote.styles = css$1 `
+exports.BlockQuote.styles = css `
         :host {
           position: relative;
         }
@@ -49146,11 +52251,11 @@ exports.BlockQuote.styles = css$1 `
           content: '';
         }
   `;
-exports.BlockQuote = __decorate$s([
+exports.BlockQuote = __decorate$a([
     customElement('markdown-quote')
 ], exports.BlockQuote);
 
-var __decorate$r = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$b = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49170,16 +52275,16 @@ let MarkdownStrong = class MarkdownStrong extends InlineElement {
         return true;
     }
 };
-MarkdownStrong.styles = css$1 `
+MarkdownStrong.styles = css `
     :host {
       font-weight: bold;
     }
   `;
-MarkdownStrong = __decorate$r([
+MarkdownStrong = __decorate$b([
     customElement('markdown-strong')
 ], MarkdownStrong);
 
-var __decorate$q = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$c = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49196,11 +52301,11 @@ let MarkdownEmphasis = class MarkdownEmphasis extends InlineElement {
         return true;
     }
 };
-MarkdownEmphasis = __decorate$q([
+MarkdownEmphasis = __decorate$c([
     customElement('markdown-emphasis')
 ], MarkdownEmphasis);
 
-var __decorate$p = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$d = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49217,11 +52322,11 @@ let MarkdownStrike = class MarkdownStrike extends InlineElement {
         return true;
     }
 };
-MarkdownStrike = __decorate$p([
+MarkdownStrike = __decorate$d([
     customElement('markdown-strike')
 ], MarkdownStrike);
 
-var __decorate$o = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$e = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49248,17 +52353,17 @@ let TableRow = class TableRow extends ContainerElement {
         return false;
     }
 };
-TableRow.styles = css$1 `
+TableRow.styles = css `
     :host {
       display: table-row;
       border: lightgrey 1px solid;
     }
   `;
-TableRow = __decorate$o([
+TableRow = __decorate$e([
     customElement('markdown-table-row')
 ], TableRow);
 
-var __decorate$n = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$f = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49284,18 +52389,18 @@ exports.Table = class Table extends ContainerElement {
         return false;
     }
 };
-exports.Table.styles = css$1 `
+exports.Table.styles = css `
     :host {
       display: table;
       border-collapse: collapse;
       /*border: lightgrey 1px solid;*/
     }
   `;
-exports.Table = __decorate$n([
+exports.Table = __decorate$f([
     customElement('markdown-table')
 ], exports.Table);
 
-var __decorate$m = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$g = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49327,17 +52432,17 @@ exports.TableCell = class TableCell extends ContainerElement {
         return true;
     }
 };
-exports.TableCell.styles = css$1 `
+exports.TableCell.styles = css `
     :host {
       display: table-cell;
       border: lightgrey 1px solid;
     }
   `;
-exports.TableCell = __decorate$m([
+exports.TableCell = __decorate$g([
     customElement('markdown-table-cell')
 ], exports.TableCell);
 
-var __decorate$l = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$h = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49356,21 +52461,21 @@ var alignType;
 })(alignType || (alignType = {}));
 exports.TableHeaderCell = class TableHeaderCell extends exports.TableCell {
 };
-exports.TableHeaderCell.styles = css$1 `
+exports.TableHeaderCell.styles = css `
     :host {
       display: table-cell;
       border: lightgrey 1px solid;
       background-color: lightgray;
     }
   `;
-__decorate$l([
+__decorate$h([
     property()
 ], exports.TableHeaderCell.prototype, "align", void 0);
-exports.TableHeaderCell = __decorate$l([
+exports.TableHeaderCell = __decorate$h([
     customElement('markdown-table-header-cell')
 ], exports.TableHeaderCell);
 
-var __decorate$k = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$i = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49384,13 +52489,13 @@ exports.TableHeaderRow = class TableHeaderRow extends TableRow {
             '| ' + '--- |'.repeat(this.children.length);
     }
 };
-exports.TableHeaderRow.styles = css$1 `
+exports.TableHeaderRow.styles = css `
     :host {
       display: table-row;
       border: lightgrey 1px solid;
     }
   `;
-exports.TableHeaderRow = __decorate$k([
+exports.TableHeaderRow = __decorate$i([
     customElement('markdown-table-header-row')
 ], exports.TableHeaderRow);
 
@@ -49424,7 +52529,7 @@ exports.TaskListItem = class TaskListItem extends exports.ListItem {
     getTaskMarkdown() { return '[' + (this.checked ? 'x' : ' ') + '] '; }
 };
 // TODO reuse inherit from list item
-exports.TaskListItem.styles = css$1 `
+exports.TaskListItem.styles = css `
     :host {
       position: relative;
       left: 20px;
@@ -49477,7 +52582,7 @@ class Heading extends LeafElement {
     }
 }
 
-var __decorate$i = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$k = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49492,7 +52597,7 @@ exports.Header1 = class Header1 extends Heading {
         return html `<h1><slot></slot></h1>`;
     }
 };
-exports.Header1.styles = css$1 `
+exports.Header1.styles = css `
     :host {
       position: relative;
       min-height: 1em;
@@ -49501,11 +52606,11 @@ exports.Header1.styles = css$1 `
       font-size: (--header1-font-size);
     }
   `;
-exports.Header1 = __decorate$i([
+exports.Header1 = __decorate$k([
     customElement('markdown-header-1')
 ], exports.Header1);
 
-var __decorate$h = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$l = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49520,7 +52625,7 @@ exports.Header2 = class Header2 extends Heading {
         return html `<h2><slot></slot></h2>`;
     }
 };
-exports.Header2.styles = css$1 `
+exports.Header2.styles = css `
     :host {
       position: relative;
       min-height: 1em;
@@ -49529,11 +52634,11 @@ exports.Header2.styles = css$1 `
       font-size: (--header2-font-size);
     }
   `;
-exports.Header2 = __decorate$h([
+exports.Header2 = __decorate$l([
     customElement('markdown-header-2')
 ], exports.Header2);
 
-var __decorate$g = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$m = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49548,7 +52653,7 @@ exports.Header3 = class Header3 extends Heading {
         return html `<h3><slot></slot></h3>`;
     }
 };
-exports.Header3.styles = css$1 `
+exports.Header3.styles = css `
     :host {
       position: relative;
       min-height: 1em;
@@ -49557,11 +52662,11 @@ exports.Header3.styles = css$1 `
       font-size: (--header3-font-size);
     }
   `;
-exports.Header3 = __decorate$g([
+exports.Header3 = __decorate$m([
     customElement('markdown-header-3')
 ], exports.Header3);
 
-var __decorate$f = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$n = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49576,7 +52681,7 @@ exports.Header4 = class Header4 extends Heading {
         return html `<h4><slot></slot></h4>`;
     }
 };
-exports.Header4.styles = css$1 `
+exports.Header4.styles = css `
     :host {
       position: relative;
       min-height: 1em;
@@ -49585,11 +52690,11 @@ exports.Header4.styles = css$1 `
       font-size: (--header4-font-size);
     }
   `;
-exports.Header4 = __decorate$f([
+exports.Header4 = __decorate$n([
     customElement('markdown-header-4')
 ], exports.Header4);
 
-var __decorate$e = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$o = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49604,7 +52709,7 @@ exports.Header5 = class Header5 extends Heading {
         return html `<h5><slot></slot></h5>`;
     }
 };
-exports.Header5.styles = css$1 `
+exports.Header5.styles = css `
     :host {
       position: relative;
       min-height: 1em;
@@ -49613,11 +52718,11 @@ exports.Header5.styles = css$1 `
       font-size: (--header5-font-size);
     }
   `;
-exports.Header5 = __decorate$e([
+exports.Header5 = __decorate$o([
     customElement('markdown-header-5')
 ], exports.Header5);
 
-var __decorate$d = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$p = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49632,7 +52737,7 @@ exports.Header6 = class Header6 extends Heading {
         return html `<h6><slot></slot></h6>`;
     }
 };
-exports.Header6.styles = css$1 `
+exports.Header6.styles = css `
     :host {
       position: relative;
       min-height: 1em;
@@ -49641,11 +52746,11 @@ exports.Header6.styles = css$1 `
       font-size: (--header6-font-size);
     }
   `;
-exports.Header6 = __decorate$d([
+exports.Header6 = __decorate$p([
     customElement('markdown-header-6')
 ], exports.Header6);
 
-var __decorate$c = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$q = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49709,7 +52814,7 @@ exports.TableOfContent = class TableOfContent extends LitElement {
         return false;
     }
 };
-exports.TableOfContent.styles = css$1 `
+exports.TableOfContent.styles = css `
     :host {
       display: block;
     }
@@ -49742,14 +52847,14 @@ exports.TableOfContent.styles = css$1 `
       flex-direction: column;
     }
   `;
-__decorate$c([
+__decorate$q([
     property({ attribute: false })
 ], exports.TableOfContent.prototype, "markdownDocument", void 0);
-exports.TableOfContent = __decorate$c([
+exports.TableOfContent = __decorate$q([
     customElement('markdown-toc')
 ], exports.TableOfContent);
 
-var __decorate$b = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$r = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49792,24 +52897,24 @@ exports.NumericList = class NumericList extends ContainerElement {
         }
     }
 };
-exports.NumericList.styles = css$1 `
+exports.NumericList.styles = css `
     :host {
       list-style-type: decimal;
   `;
-__decorate$b([
+__decorate$r([
     property({ type: Boolean })
 ], exports.NumericList.prototype, "ordered", void 0);
-__decorate$b([
+__decorate$r([
     property({ type: Number })
 ], exports.NumericList.prototype, "start", void 0);
-__decorate$b([
+__decorate$r([
     property({ type: Boolean })
 ], exports.NumericList.prototype, "spread", void 0);
-exports.NumericList = __decorate$b([
+exports.NumericList = __decorate$r([
     customElement('markdown-numeric-list')
 ], exports.NumericList);
 
-var __decorate$a = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$s = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -49874,7 +52979,7 @@ exports.NumericListItem = NumericListItem_1 = class NumericListItem extends Cont
                 }
             }
             else {
-                if (this.normalizeChildContent(content)) {
+                if (normalizeChildContent(content)) {
                     return true;
                 }
             }
@@ -49947,17 +53052,17 @@ exports.NumericListItem = NumericListItem_1 = class NumericListItem extends Cont
         return true;
     }
 };
-exports.NumericListItem.styles = css$1 `
+exports.NumericListItem.styles = css `
     :host {
       position: relative;
       left: 20px;
       display: list-item;
     }
   `;
-__decorate$a([
+__decorate$s([
     property({ type: Boolean })
 ], exports.NumericListItem.prototype, "spread", void 0);
-exports.NumericListItem = NumericListItem_1 = __decorate$a([
+exports.NumericListItem = NumericListItem_1 = __decorate$s([
     customElement('markdown-numeric-list-item')
 ], exports.NumericListItem);
 
@@ -50068,7 +53173,7 @@ const classMap = directive((classInfo) => (part) => {
     }
 });
 
-var __decorate$9 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$t = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -50087,7 +53192,7 @@ exports.ToolbarButton = class ToolbarButton extends LitElement {
     `;
     }
 };
-exports.ToolbarButton.styles = css$1 `
+exports.ToolbarButton.styles = css `
     button {
       padding: 0;
       margin: 0;
@@ -50103,14 +53208,14 @@ exports.ToolbarButton.styles = css$1 `
       background-color: gray;
     }
   `;
-__decorate$9([
+__decorate$t([
     property({ type: Boolean })
 ], exports.ToolbarButton.prototype, "highlighted", void 0);
-exports.ToolbarButton = __decorate$9([
+exports.ToolbarButton = __decorate$t([
     customElement('toolbar-button')
 ], exports.ToolbarButton);
 
-var __decorate$8 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$u = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -50125,7 +53230,7 @@ exports.MaterialIcon = MaterialIcon_1 = class MaterialIcon extends LitElement {
     `;
     }
 };
-exports.MaterialIcon.styles = css$1 `
+exports.MaterialIcon.styles = css `
     .material-icons {
       font-family: 'Material Icons';
       font-weight: normal;
@@ -50143,11 +53248,11 @@ exports.MaterialIcon.styles = css$1 `
       -moz-osx-font-smoothing: grayscale;
     }
   `;
-exports.MaterialIcon = MaterialIcon_1 = __decorate$8([
+exports.MaterialIcon = MaterialIcon_1 = __decorate$u([
     customElement('material-icon')
 ], exports.MaterialIcon);
 
-var __decorate$7 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$v = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -50162,7 +53267,7 @@ exports.ToolbarSeparator = class ToolbarSeparator extends LitElement {
     firstUpdated() {
     }
 };
-exports.ToolbarSeparator.styles = css$1 `
+exports.ToolbarSeparator.styles = css `
     .separator {
       width: 1px;
       background-color: gray;
@@ -50170,11 +53275,11 @@ exports.ToolbarSeparator.styles = css$1 `
       margin: 0 4px 0 4px;
     }
   `;
-exports.ToolbarSeparator = __decorate$7([
+exports.ToolbarSeparator = __decorate$v([
     customElement('toolbar-separator')
 ], exports.ToolbarSeparator);
 
-var __decorate$6 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -50217,7 +53322,7 @@ exports.ToolbarDropdown = class ToolbarDropdown extends LitElement {
         }
     }
 };
-exports.ToolbarDropdown.styles = css$1 `
+exports.ToolbarDropdown.styles = css `
     :host {
       position: relative;
       z-index: 10;
@@ -50227,11 +53332,11 @@ exports.ToolbarDropdown.styles = css$1 `
       position: fixed;
     }
   `;
-exports.ToolbarDropdown = __decorate$6([
+exports.ToolbarDropdown = __decorate$w([
     customElement('toolbar-dropdown')
 ], exports.ToolbarDropdown);
 
-var __decorate$5 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$x = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -50554,7 +53659,7 @@ exports.Toolbar = class Toolbar extends LitElement {
         }
     }
 };
-exports.Toolbar.styles = css$1 `
+exports.Toolbar.styles = css `
     @font-face {
       font-family: 'Material Icons';
       font-style: normal;
@@ -50622,11 +53727,11 @@ exports.Toolbar.styles = css$1 `
         }
       }
   `;
-exports.Toolbar = __decorate$5([
+exports.Toolbar = __decorate$x([
     customElement('markdown-toolbar')
 ], exports.Toolbar);
 
-var __decorate$4 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$y = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -50650,14 +53755,14 @@ exports.MarkdownEditor = class MarkdownEditor extends exports.MarkdownDocument {
     }
 };
 exports.MarkdownEditor.styles = [
-    css$1 `
+    css `
     `
 ];
-exports.MarkdownEditor = __decorate$4([
+exports.MarkdownEditor = __decorate$y([
     customElement('markdown-editor')
 ], exports.MarkdownEditor);
 
-var __decorate$3 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$z = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -50674,17 +53779,17 @@ exports.DropdownElement = class DropdownElement extends LitElement {
     firstUpdated() {
     }
 };
-exports.DropdownElement.styles = css$1 `
+exports.DropdownElement.styles = css `
     .clickable:hover {
       background-color: lightblue;
       cursor: pointer;
     }
   `;
-exports.DropdownElement = __decorate$3([
+exports.DropdownElement = __decorate$z([
     customElement('dropdown-element')
 ], exports.DropdownElement);
 
-var __decorate$2 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$A = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -50699,7 +53804,7 @@ exports.DropdownElements = class DropdownElements extends LitElement {
     firstUpdated() {
     }
 };
-exports.DropdownElements.styles = css$1 `
+exports.DropdownElements.styles = css `
     :host {
       display: flex;
       flex-direction: column;
@@ -50709,11 +53814,11 @@ exports.DropdownElements.styles = css$1 `
       padding: 10px;
     }
   `;
-exports.DropdownElements = __decorate$2([
+exports.DropdownElements = __decorate$A([
     customElement('dropdown-elements')
 ], exports.DropdownElements);
 
-var __decorate$1 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$B = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -50732,16 +53837,16 @@ exports.BoldToolbarButton = class BoldToolbarButton extends LitElement {
     `;
     }
 };
-exports.BoldToolbarButton.styles = css$1 `
+exports.BoldToolbarButton.styles = css `
   `;
-__decorate$1([
+__decorate$B([
     property({ type: Boolean })
 ], exports.BoldToolbarButton.prototype, "highlighted", void 0);
-exports.BoldToolbarButton = __decorate$1([
+exports.BoldToolbarButton = __decorate$B([
     customElement('bold-toolbar-button')
 ], exports.BoldToolbarButton);
 
-var __decorate = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+var __decorate$C = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -50760,18 +53865,22 @@ exports.ToggleToolbarButton = class ToggleToolbarButton extends LitElement {
     `;
     }
 };
-exports.ToggleToolbarButton.styles = css$1 `
+exports.ToggleToolbarButton.styles = css `
   `;
-__decorate([
+__decorate$C([
     property({ type: Boolean })
 ], exports.ToggleToolbarButton.prototype, "highlighted", void 0);
-exports.ToggleToolbarButton = __decorate([
+exports.ToggleToolbarButton = __decorate$C([
     customElement('toggle-toolbar-button')
 ], exports.ToggleToolbarButton);
 
 exports.MarkdownEditableComponentsRenderer = MarkdownEditableComponentsRenderer;
+exports.getMarkdownWithTextForElement = getMarkdownWithTextForElement;
+exports.isMarkdownElement = isMarkdownElement;
 exports.isMarkdownElementEscapeByBackspace = isMarkdownElementEscapeByBackspace;
 exports.isMarkdownElementWithLevel = isMarkdownElementWithLevel;
+exports.normalizeChildContent = normalizeChildContent;
+exports.normalizeContent = normalizeContent;
 exports.parse = parse;
 exports.surroundRangeIfNotYet = surroundRangeIfNotYet;
 exports.unsurroundRange = unsurroundRange;

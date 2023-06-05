@@ -12,15 +12,16 @@ export class MarkdownParagraph extends LeafElement {
   static styles = css`
     :host {
       position: relative;
-    }
-    p {
-      min-height: 1em;
-      /*white-space: pre-wrap;*/
+      display: block;
+      margin-block-start: 1em;
+      margin-block-end: 1em;
+      margin-inline-start: 0px;
+      margin-inline-end: 0px;
     }
   `;
 
   render() {
-    return html`<p><slot></slot></p>`;
+    return html`<slot></slot>`;
   }
 
   getMarkdown(): string {
@@ -41,6 +42,11 @@ export class MarkdownParagraph extends LeafElement {
   }
 
   normalizeContent(): boolean {
+    if(this.childNodes.length == 1 && this.childNodes[0] instanceof HTMLBRElement) {
+      this.childNodes[0].remove();
+      let p = document.createTextNode('\u200b');
+      this.append(p);
+    }
     if(this.lastChild instanceof MarkdownLitElement) {
       let p = document.createTextNode('\u200b');
       this.append(p);

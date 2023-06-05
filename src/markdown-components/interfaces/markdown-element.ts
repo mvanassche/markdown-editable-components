@@ -1,4 +1,4 @@
-export interface MarkdownElement {
+export interface MarkdownElement extends Element {
   getMarkdown(): string
 }
 

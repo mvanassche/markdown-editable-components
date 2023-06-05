@@ -1,3 +1,4 @@
+import { normalizeChildContent } from "../../markdown-editor-components/markdown-document";
 import { getMarkdownWithTextForElement } from "../functions";
 import { MarkdownLitElement } from "./markdown-lit-element";
 
@@ -37,7 +38,7 @@ export abstract class InlineElement extends MarkdownLitElement {
           return this.normalizeContent();
         }
       } else {
-        if(this.normalizeChildContent(content)) {
+        if(normalizeChildContent(content)) {
           return true;
         }        
       }

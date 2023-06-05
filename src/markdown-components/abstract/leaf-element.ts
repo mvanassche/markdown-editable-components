@@ -1,3 +1,4 @@
+import { normalizeChildContent } from "../../markdown-editor-components/markdown-document";
 import { BlockElement } from "./block-element";
 import { ContainerElement } from "./container-element";
 import { MarkdownLitElement } from "./markdown-lit-element";
@@ -72,7 +73,7 @@ export abstract class LeafElement extends BlockElement {
           content.textContent = content.textContent!.replace('\u200b', '');
         }
       } else {
-        if(this.normalizeChildContent(content)) {
+        if(normalizeChildContent(content)) {
           return true;
         }
       }

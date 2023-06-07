@@ -194,6 +194,18 @@ export class MarkdownDocument extends LitElement {
       //event.stopPropagation();
     }, false);
 
+    this.addEventListener('paste', (event: ClipboardEvent) => {
+      let mdPasted = event.clipboardData?.getData('text/markdown');
+      if(mdPasted) {
+        this.getSelection()?.deleteFromDocument();
+        this.getSelection()?.collapseToEnd();
+        let pastedNode = this.getSelection()?.getRangeAt(0)?.createContextualFragment(this.parser(mdPasted));
+        if(pastedNode) this.getSelection()?.getRangeAt(0)?.insertNode(pastedNode);
+        event.preventDefault();
+        this.onChange();
+      }
+    });
+
   }
 
   disconnectedCallback() {

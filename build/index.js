@@ -4490,6 +4490,19 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             event.preventDefault();
             //event.stopPropagation();
         }, false);
+        this.addEventListener('paste', (event) => {
+            var _a, _b, _c, _d, _e, _f, _g;
+            let mdPasted = (_a = event.clipboardData) === null || _a === void 0 ? void 0 : _a.getData('text/markdown');
+            if (mdPasted) {
+                (_b = this.getSelection()) === null || _b === void 0 ? void 0 : _b.deleteFromDocument();
+                (_c = this.getSelection()) === null || _c === void 0 ? void 0 : _c.collapseToEnd();
+                let pastedNode = (_e = (_d = this.getSelection()) === null || _d === void 0 ? void 0 : _d.getRangeAt(0)) === null || _e === void 0 ? void 0 : _e.createContextualFragment(this.parser(mdPasted));
+                if (pastedNode)
+                    (_g = (_f = this.getSelection()) === null || _f === void 0 ? void 0 : _f.getRangeAt(0)) === null || _g === void 0 ? void 0 : _g.insertNode(pastedNode);
+                event.preventDefault();
+                this.onChange();
+            }
+        });
     }
     disconnectedCallback() {
         document.removeEventListener('selectionchange', this._selectionchange);

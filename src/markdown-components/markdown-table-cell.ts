@@ -4,6 +4,7 @@ import { isMarkdownElement } from './functions';
 
 @customElement('markdown-table-cell')
 export class TableCell extends ContainerElement {
+  mustBeDirectChildOfDocument = false;  
 
   static styles = css`
     :host {

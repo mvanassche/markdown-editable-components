@@ -197,12 +197,34 @@ export class MarkdownDocument extends LitElement {
     this.addEventListener('paste', (event: ClipboardEvent) => {
       let mdPasted = event.clipboardData?.getData('text/markdown');
       if(mdPasted) {
+        // TODO FIXME just paste it where it is, then normalize -> use mustBeDirectChildOfDocument to split and move up. then remove all the temporary fix after/before logic.
         this.getSelection()?.deleteFromDocument();
         this.getSelection()?.collapseToEnd();
         let pastedNode = this.getSelection()?.getRangeAt(0)?.createContextualFragment(this.parser(mdPasted));
-        if(pastedNode) this.getSelection()?.getRangeAt(0)?.insertNode(pastedNode);
-        event.preventDefault();
-        this.onChange();
+        if(pastedNode) {
+          // if paste a top level element, not an inline element, then it should be pasted at the root of the document.
+          if(pastedNode.childNodes.length == 1 && isMarkdownElement(pastedNode.firstChild) && pastedNode.firstChild.mustBeDirectChildOfDocument && this.getSelection()?.anchorNode != this) {
+            /// FIXME we might have to split up the elements all the way to the document
+            // for now, we just put it before or after, depending on the cursor
+            var documentChild = this.getSelection()?.anchorNode;
+            while(documentChild != null && documentChild.parentElement != this) documentChild = documentChild.parentElement;
+            if(documentChild != null && documentChild instanceof Element) {
+              let offset = this.getSelection()?.anchorOffset;
+              let length = this.getSelection()?.anchorNode?.textContent?.length
+              if(offset != null && length != null && offset > length / 2) {
+                documentChild.after(pastedNode);
+              } else {
+                documentChild.before(pastedNode);
+              }
+            } else {
+              this.getSelection()?.getRangeAt(0)?.insertNode(pastedNode);
+            }
+          } else {
+            this.getSelection()?.getRangeAt(0)?.insertNode(pastedNode);
+          }
+          event.preventDefault();
+          this.onChange();
+        }
       }
     });
 

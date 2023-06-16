@@ -3,6 +3,7 @@ import { TerminalInlineElement } from './abstract/inline-element';
 
 @customElement('markdown-image')
 export class MarkdownImage extends TerminalInlineElement {
+  mustBeDirectChildOfDocument = false;
   @property()
   destination: string = '';
 

@@ -1,5 +1,6 @@
 export interface MarkdownElement extends Element {
   getMarkdown(): string
+  mustBeDirectChildOfDocument: boolean // true for the elements that cannot be in other blocks, but must be a direct child of the markdown-document
 }
 
 /**

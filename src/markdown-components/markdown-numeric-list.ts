@@ -4,6 +4,8 @@ import { ContainerElement } from './abstract/container-element';
 
 @customElement('markdown-numeric-list')
 export class NumericList extends ContainerElement implements MarkdownElementWithLevel {
+  mustBeDirectChildOfDocument = true; // ???
+  
   @property({ type: Boolean })
   ordered?: boolean // change to different  widget???
 

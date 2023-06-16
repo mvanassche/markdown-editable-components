@@ -4,6 +4,7 @@ import { getMarkdownWithTextForElement } from './functions';
 
 @customElement('markdown-code-span')
 export class CodeSpan extends TerminalInlineElement {
+  mustBeDirectChildOfDocument = false;
 
   render() {
     return html`<code><slot></slot></code>`;

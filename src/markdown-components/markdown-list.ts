@@ -4,7 +4,9 @@ import { MarkdownElementWithLevel } from '../markdown-components';
 
 
 @customElement('markdown-list')
-export class List extends ContainerElement implements MarkdownElementWithLevel {
+export class List extends ContainerElement implements MarkdownElementWithLevel { 
+  mustBeDirectChildOfDocument = false; // ???
+  
   @property({ type: Boolean })
   ordered?: boolean // change to different  widget???
 

@@ -3,6 +3,7 @@ import { LeafElement } from './abstract/leaf-element';
 
 @customElement('markdown-html')
 export class HTML extends LeafElement {
+  mustBeDirectChildOfDocument = false;
   static styles = css`
   `;
 

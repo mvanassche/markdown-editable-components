@@ -7,6 +7,8 @@ import { MarkdownLitElement } from './abstract/markdown-lit-element';
 
 @customElement('markdown-numeric-list-item')
 export class NumericListItem extends ContainerElement {
+  mustBeDirectChildOfDocument = false;
+  
   static styles = css`
     :host {
       position: relative;

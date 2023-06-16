@@ -9,6 +9,8 @@ import { isMarkdownElement } from './functions';
 */
 @customElement('markdown-paragraph')
 export class MarkdownParagraph extends LeafElement {
+  mustBeDirectChildOfDocument = true;
+  
   static styles = css`
     :host {
       position: relative;

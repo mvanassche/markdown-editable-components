@@ -5,6 +5,8 @@ import { MarkdownElement } from './interfaces/markdown-element';
 
 @customElement('markdown-toc')
 export class TableOfContent extends LitElement implements MarkdownElement {
+  mustBeDirectChildOfDocument = false;
+
   @property({ attribute: false })
   markdownDocument: MarkdownDocument | null = null;
 

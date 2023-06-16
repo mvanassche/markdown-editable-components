@@ -6,6 +6,8 @@ import { isMarkdownElement } from './functions';
 
 @customElement('markdown-quote')
 export class BlockQuote extends ContainerElement implements MarkdownElementWithLevel, MarkdownElementEscapeByBackspace {
+  mustBeDirectChildOfDocument = true;
+  
   static styles = css`
         :host {
           position: relative;

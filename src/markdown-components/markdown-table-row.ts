@@ -4,7 +4,8 @@ import { isMarkdownElement } from './functions';
 
 @customElement('markdown-table-row')
 export class TableRow extends ContainerElement {
-
+  mustBeDirectChildOfDocument = false;
+  
   static styles = css`
     :host {
       display: table-row;

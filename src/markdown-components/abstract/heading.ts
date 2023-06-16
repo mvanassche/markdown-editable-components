@@ -3,6 +3,7 @@ import { LeafElement } from "./leaf-element";
 //import { unsafeHTML } from 'lit-html/directives/unsafe-html';
 
 export abstract class Heading extends LeafElement {
+  mustBeDirectChildOfDocument = true;
   abstract depth: number;
 
   // Why this does not work?

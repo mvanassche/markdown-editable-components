@@ -4,6 +4,8 @@ import { TerminalInlineElement } from './abstract/inline-element';
 
 @customElement('markdown-link')
 export class MarkdownLink extends TerminalInlineElement {
+  mustBeDirectChildOfDocument = false;
+  
   @property()
   destination: string = '';
 

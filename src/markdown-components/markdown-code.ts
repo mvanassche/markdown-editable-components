@@ -5,6 +5,8 @@ import { LeafElement } from './abstract/leaf-element';
 @customElement('markdown-code')
 export class CodeBlock extends LeafElement {
 
+  mustBeDirectChildOfDocument = true;
+
   // TODO language string as property/attribute
 
   static styles = css``;

@@ -4321,6 +4321,10 @@ const globalVariables = css `
 `;
 
 class InlineElement extends MarkdownLitElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = false;
+    }
     connectedCallback() {
         super.connectedCallback();
         //this.setAttribute("contenteditable", "true");
@@ -4491,16 +4495,41 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             //event.stopPropagation();
         }, false);
         this.addEventListener('paste', (event) => {
-            var _a, _b, _c, _d, _e, _f, _g;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
             let mdPasted = (_a = event.clipboardData) === null || _a === void 0 ? void 0 : _a.getData('text/markdown');
             if (mdPasted) {
+                // TODO FIXME just paste it where it is, then normalize -> use mustBeDirectChildOfDocument to split and move up. then remove all the temporary fix after/before logic.
                 (_b = this.getSelection()) === null || _b === void 0 ? void 0 : _b.deleteFromDocument();
                 (_c = this.getSelection()) === null || _c === void 0 ? void 0 : _c.collapseToEnd();
                 let pastedNode = (_e = (_d = this.getSelection()) === null || _d === void 0 ? void 0 : _d.getRangeAt(0)) === null || _e === void 0 ? void 0 : _e.createContextualFragment(this.parser(mdPasted));
-                if (pastedNode)
-                    (_g = (_f = this.getSelection()) === null || _f === void 0 ? void 0 : _f.getRangeAt(0)) === null || _g === void 0 ? void 0 : _g.insertNode(pastedNode);
-                event.preventDefault();
-                this.onChange();
+                if (pastedNode) {
+                    // if paste a top level element, not an inline element, then it should be pasted at the root of the document.
+                    if (pastedNode.childNodes.length == 1 && isMarkdownElement(pastedNode.firstChild) && pastedNode.firstChild.mustBeDirectChildOfDocument && ((_f = this.getSelection()) === null || _f === void 0 ? void 0 : _f.anchorNode) != this) {
+                        /// FIXME we might have to split up the elements all the way to the document
+                        // for now, we just put it before or after, depending on the cursor
+                        var documentChild = (_g = this.getSelection()) === null || _g === void 0 ? void 0 : _g.anchorNode;
+                        while (documentChild != null && documentChild.parentElement != this)
+                            documentChild = documentChild.parentElement;
+                        if (documentChild != null && documentChild instanceof Element) {
+                            let offset = (_h = this.getSelection()) === null || _h === void 0 ? void 0 : _h.anchorOffset;
+                            let length = (_l = (_k = (_j = this.getSelection()) === null || _j === void 0 ? void 0 : _j.anchorNode) === null || _k === void 0 ? void 0 : _k.textContent) === null || _l === void 0 ? void 0 : _l.length;
+                            if (offset != null && length != null && offset > length / 2) {
+                                documentChild.after(pastedNode);
+                            }
+                            else {
+                                documentChild.before(pastedNode);
+                            }
+                        }
+                        else {
+                            (_o = (_m = this.getSelection()) === null || _m === void 0 ? void 0 : _m.getRangeAt(0)) === null || _o === void 0 ? void 0 : _o.insertNode(pastedNode);
+                        }
+                    }
+                    else {
+                        (_q = (_p = this.getSelection()) === null || _p === void 0 ? void 0 : _p.getRangeAt(0)) === null || _q === void 0 ? void 0 : _q.insertNode(pastedNode);
+                    }
+                    event.preventDefault();
+                    this.onChange();
+                }
             }
         });
     }
@@ -5825,6 +5854,10 @@ var __decorate$1 = (undefined && undefined.__decorate) || function (decorators, 
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 exports.ThematicBreak = class ThematicBreak extends LeafElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = true;
+    }
     render() {
         return html `
       <hr />
@@ -51610,6 +51643,10 @@ var __decorate$2 = (undefined && undefined.__decorate) || function (decorators, 
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 exports.CodeBlock = class CodeBlock extends LeafElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = true;
+    }
     render() {
         return html `<pre><code><slot></slot></code></pre>`;
     }
@@ -51653,6 +51690,10 @@ var __decorate$3 = (undefined && undefined.__decorate) || function (decorators, 
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 exports.CodeSpan = class CodeSpan extends TerminalInlineElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = false;
+    }
     render() {
         return html `<code><slot></slot></code>`;
     }
@@ -51674,6 +51715,10 @@ var __decorate$4 = (undefined && undefined.__decorate) || function (decorators, 
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 exports.HTML = class HTML extends LeafElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = false;
+    }
     render() {
         return html `
       <slot></slot>
@@ -51704,6 +51749,7 @@ var __decorate$5 = (undefined && undefined.__decorate) || function (decorators, 
 exports.MarkdownImage = class MarkdownImage extends TerminalInlineElement {
     constructor() {
         super(...arguments);
+        this.mustBeDirectChildOfDocument = false;
         this.destination = '';
         this.title = ''; // TODO make it optional
     }
@@ -51766,6 +51812,7 @@ var __decorate$6 = (undefined && undefined.__decorate) || function (decorators, 
 exports.MarkdownLink = class MarkdownLink extends TerminalInlineElement {
     constructor() {
         super(...arguments);
+        this.mustBeDirectChildOfDocument = false;
         this.destination = '';
         this.title = ''; // TODO make it optional
     }
@@ -51886,6 +51933,10 @@ var __decorate$7 = (undefined && undefined.__decorate) || function (decorators, 
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 exports.List = class List extends ContainerElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = false; // ???
+    }
     render() {
         return html `<slot></slot>`;
     }
@@ -51963,6 +52014,10 @@ var __decorate$8 = (undefined && undefined.__decorate) || function (decorators, 
 };
 var ListItem_1;
 exports.ListItem = ListItem_1 = class ListItem extends ContainerElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = false;
+    }
     render() {
         return html `<div class='item-container'><slot></slot></div>`;
     }
@@ -52126,6 +52181,10 @@ var __decorate$9 = (undefined && undefined.__decorate) || function (decorators, 
   to prevent dissapearing of empty node
 */
 exports.MarkdownParagraph = class MarkdownParagraph extends LeafElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = true;
+    }
     render() {
         return html `<slot></slot>`;
     }
@@ -52186,6 +52245,10 @@ var __decorate$a = (undefined && undefined.__decorate) || function (decorators, 
 };
 //import { MarkdownParagraph } from './markdown-paragraph';
 exports.BlockQuote = class BlockQuote extends ContainerElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = true;
+    }
     render() {
         return html `
     <blockquote>
@@ -52346,6 +52409,10 @@ var __decorate$e = (undefined && undefined.__decorate) || function (decorators, 
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 let TableRow = class TableRow extends ContainerElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = false;
+    }
     render() {
         return html `
       <slot></slot>
@@ -52383,6 +52450,10 @@ var __decorate$f = (undefined && undefined.__decorate) || function (decorators, 
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 exports.Table = class Table extends ContainerElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = true; // ???
+    }
     render() {
         return html `
       <slot></slot>
@@ -52420,6 +52491,10 @@ var __decorate$g = (undefined && undefined.__decorate) || function (decorators, 
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 exports.TableCell = class TableCell extends ContainerElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = false;
+    }
     render() {
         return html `
       <slot></slot>
@@ -52574,6 +52649,10 @@ exports.TaskListItem = __decorate$j([
 
 //import { unsafeHTML } from 'lit-html/directives/unsafe-html';
 class Heading extends LeafElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = true;
+    }
     // Why this does not work?
     // render() {
     //   const template = `
@@ -52772,6 +52851,7 @@ var __decorate$q = (undefined && undefined.__decorate) || function (decorators, 
 exports.TableOfContent = class TableOfContent extends LitElement {
     constructor() {
         super(...arguments);
+        this.mustBeDirectChildOfDocument = false;
         this.markdownDocument = null;
     }
     render() {
@@ -52874,6 +52954,10 @@ var __decorate$r = (undefined && undefined.__decorate) || function (decorators, 
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 exports.NumericList = class NumericList extends ContainerElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = true; // ???
+    }
     render() {
         return html `<slot></slot>`;
     }
@@ -52935,6 +53019,10 @@ var __decorate$s = (undefined && undefined.__decorate) || function (decorators, 
 };
 var NumericListItem_1;
 exports.NumericListItem = NumericListItem_1 = class NumericListItem extends ContainerElement {
+    constructor() {
+        super(...arguments);
+        this.mustBeDirectChildOfDocument = false;
+    }
     render() {
         return html `<div class='item-container'><slot></slot></div>`;
     }

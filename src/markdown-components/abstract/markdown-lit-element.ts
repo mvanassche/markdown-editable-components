@@ -6,6 +6,7 @@ import { normalizeContent } from '../../markdown-editor-components/markdown-docu
 export abstract class MarkdownLitElement extends LitElement implements MarkdownElement {
 
   abstract containsMarkdownTextContent(): Boolean; // if true the element may contain text nodes as children that represent user content
+  abstract mustBeDirectChildOfDocument: boolean;
 
   isEditable(): boolean {
     return true;

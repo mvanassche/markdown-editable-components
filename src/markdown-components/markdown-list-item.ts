@@ -7,6 +7,8 @@ import { MarkdownLitElement } from './abstract/markdown-lit-element';
 
 @customElement('markdown-list-item')
 export class ListItem extends ContainerElement {
+  mustBeDirectChildOfDocument = false;
+  
   static styles = css`
     :host {
       position: relative;

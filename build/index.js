@@ -51757,7 +51757,7 @@ exports.MarkdownImage = class MarkdownImage extends TerminalInlineElement {
         // TODO the alt innertext is not working
         return html `
       <input class='upload' type="file" @change="${this.upload}" accept="image/*">
-      <img src="${this.destination}" title="${this.title}" alt="${this.innerText}"/>
+      <img src="${this.destination}" title="${this.title}" alt="${this.innerText}" @error="${this.error}"/>
       <slot style='display:none;'></slot>
     `;
     }
@@ -51769,6 +51769,9 @@ exports.MarkdownImage = class MarkdownImage extends TerminalInlineElement {
     }
     isDeletableAsAWhole() {
         return true;
+    }
+    error() {
+        this.dispatchEvent(new CustomEvent('error-image', { detail: this.destination, bubbles: true, cancelable: true }));
     }
     upload() {
         var _a, _b;
@@ -51782,6 +51785,12 @@ exports.MarkdownImage = class MarkdownImage extends TerminalInlineElement {
             };
             fr.readAsDataURL(file);
         }
+    }
+    setImageSrc(src) {
+        var _a;
+        let img = (_a = this.shadowRoot) === null || _a === void 0 ? void 0 : _a.querySelector('img');
+        if (img)
+            img.src = src;
     }
 };
 exports.MarkdownImage.styles = css `

@@ -24,7 +24,7 @@ export class MarkdownImage extends TerminalInlineElement {
     // TODO the alt innertext is not working
     return html`
       <input class='upload' type="file" @change="${this.upload}" accept="image/*">
-      <img src="${this.destination}" title="${this.title}" alt="${this.innerText}"/>
+      <img src="${this.destination}" title="${this.title}" alt="${this.innerText}" @error="${this.error}"/>
       <slot style='display:none;'></slot>
     `;
   }
@@ -39,6 +39,10 @@ export class MarkdownImage extends TerminalInlineElement {
     return true;
   }
 
+  error() {
+    this.dispatchEvent(new CustomEvent('error-image', { detail: this.destination, bubbles: true, cancelable: true }));
+  }
+
   upload() {
     let input = this.shadowRoot?.querySelector('.upload') as HTMLInputElement;
     let file = input?.files?.[0];
@@ -49,6 +53,11 @@ export class MarkdownImage extends TerminalInlineElement {
       };
       fr.readAsDataURL( file)
     }
+  }
+
+  setImageSrc(src: string) {
+    let img = this.shadowRoot?.querySelector('img')
+    if(img) img.src = src;
   }
   
 }

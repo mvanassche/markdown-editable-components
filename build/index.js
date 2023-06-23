@@ -3939,16 +3939,16 @@ class MarkdownEditableComponentsRenderer extends Renderer {
     toc() {
         return `<markdown-toc></markdown-toc>`;
     }
-    code(code, lang, escaped) {
+    code(code, lang, escaped, meta) {
         var _a;
         // TODO escaped?
         if (!escaped && this.options.escape) {
             code = (_a = this.options.escape) === null || _a === void 0 ? void 0 : _a.call(this, code);
             escaped = true;
         }
-        if (lang) {
+        if (meta) {
             let id;
-            [id, lang] = this.parseAnchor("code-" + (Date.now() + Math.random()), lang, false);
+            [id, lang] = this.parseAnchor("code-", meta, false);
             return this.codeWithAnchor(code, lang, id, escaped);
         }
         else {
@@ -4059,17 +4059,20 @@ class MarkdownEditableComponentsRenderer extends Renderer {
     // br(): string;
     // del(text: string): string;
     // text(text: string): string;
-    parseAnchor(idPrefix, text, useTextInId) {
+    parseAnchor(idPrefixForDefault, text, useTextInId) {
         const regexp = /\s*{([^}]+)}$/;
         const execArr = regexp.exec(text);
-        let id = idPrefix;
+        let id;
         if (execArr) {
             text = text.replace(regexp, '');
-            id += execArr[1];
+            id = execArr[1];
         }
         else {
             if (useTextInId) {
-                id += text.toLocaleLowerCase().replace(/[^\wа-яіїє]+/gi, '-');
+                id = idPrefixForDefault + text.toLocaleLowerCase().replace(/[^\wа-яіїє]+/gi, '-');
+            }
+            else {
+                id = idPrefixForDefault + (Date.now() + Math.random());
             }
         }
         return [id, text];

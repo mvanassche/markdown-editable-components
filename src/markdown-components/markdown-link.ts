@@ -47,7 +47,7 @@ export class MarkdownLink extends TerminalInlineElement {
   `;
 
   render() {
-    return html`<a href="${this.destination}" title="${this.title}"><slot></slot></a><span class='show-link' @click=${this.destinationShow}>✎</span><input placeholder='http://' class='destination-input' value="${this.destination}" @input='${this.destinationInput}' @blur='${this.destinationHide}' @keydown='${this.destinationKey}'/>`;
+    return html`<a href="${this.destination}" title="${this.title}" part="anchor"><slot></slot></a><span class='show-link' @click=${this.destinationShow}>✎</span><input placeholder='http://' class='destination-input' value="${this.destination}" @input='${this.destinationInput}' @blur='${this.destinationHide}' @keydown='${this.destinationKey}'/>`;
   }
 
   connectedCallback() {

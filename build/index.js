@@ -51760,7 +51760,7 @@ exports.MarkdownImage = class MarkdownImage extends TerminalInlineElement {
         // TODO the alt innertext is not working
         return html `
       <input class='upload' type="file" @change="${this.upload}" accept="image/*">
-      <img src="${this.destination}" title="${this.title}" alt="${this.innerText}" @error="${this.error}"/>
+      <img src="${this.destination}" title="${this.title}" alt="${this.innerText}" @error="${this.error}" part="image"/>
       <slot style='display:none;'></slot>
     `;
     }
@@ -51829,7 +51829,7 @@ exports.MarkdownLink = class MarkdownLink extends TerminalInlineElement {
         this.title = ''; // TODO make it optional
     }
     render() {
-        return html `<a href="${this.destination}" title="${this.title}"><slot></slot></a><span class='show-link' @click=${this.destinationShow}>✎</span><input placeholder='http://' class='destination-input' value="${this.destination}" @input='${this.destinationInput}' @blur='${this.destinationHide}' @keydown='${this.destinationKey}'/>`;
+        return html `<a href="${this.destination}" title="${this.title}" part="anchor"><slot></slot></a><span class='show-link' @click=${this.destinationShow}>✎</span><input placeholder='http://' class='destination-input' value="${this.destination}" @input='${this.destinationInput}' @blur='${this.destinationHide}' @keydown='${this.destinationKey}'/>`;
     }
     connectedCallback() {
         super.connectedCallback();

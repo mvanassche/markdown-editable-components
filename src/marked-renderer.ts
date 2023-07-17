@@ -13,7 +13,7 @@ export class MarkdownEditableComponentsRenderer extends Renderer {
     return `<markdown-toc></markdown-toc>`
   }
 
-  code(code: string, lang?: string, escaped?: boolean, meta?: string): string {
+  override code(code: string, lang?: string, escaped?: boolean, meta?: string): string {
     // TODO escaped?
     if (!escaped && this.options.escape) {
       code = this.options.escape?.call(this, code);
@@ -46,15 +46,15 @@ export class MarkdownEditableComponentsRenderer extends Renderer {
     return `<${tag}>${content}</${tag}>`;
   }
 
-  blockquote(quote: string): string {
+  override blockquote(quote: string): string {
     return `<markdown-quote>${quote}</markdown-quote>`;
   }
 
-  html(html: string): string {
+  override html(html: string): string {
     return `<markdown-html>${html}</markdown-html>`;
   }
 
-  heading(text: string, level: number, raw: string) {
+  override heading(text: string, level: number, raw: string) {
     let id: string;
     [id, text] = this.parseAnchor("heading-", text, true);
 
@@ -67,11 +67,11 @@ export class MarkdownEditableComponentsRenderer extends Renderer {
     return `<markdown-header-${level} ${idAttr}>${text}</markdown-header-${level}>`;
   }
 
-  list(body: string, ordered?: boolean): string {
+  override list(body: string, ordered?: boolean): string {
     return `<markdown-list ordered='${ordered}'>${body}</markdown-list>`;
   }
 
-  listitem(text: string): string {
+  override listitem(text: string): string {
     if (text.startsWith("<markdown-paragraph>[ ] ")) {
       // see https://github.com/ts-stack/markdown/issues/8
       return `<markdown-task-list-item>${text.replace("<markdown-paragraph>[ ] ", "<markdown-paragraph>")}</markdown-task-list-item>`;
@@ -87,40 +87,40 @@ export class MarkdownEditableComponentsRenderer extends Renderer {
     }
   }
 
-  paragraph(text: string): string {
+  override paragraph(text: string): string {
     text = text.replaceAll("${toc}", this.toc());
     return `<markdown-paragraph>${text}</markdown-paragraph>`;
   }
 
-  codespan(text: string): string {
+  override codespan(text: string): string {
     return `<markdown-code-span>${text}</markdown-code-span>`;
   }
 
-  hr(): string {
+  override hr(): string {
     return `<markdown-break></markdown-break>`;
   }
 
-  strong(text: string): string {
+  override strong(text: string): string {
     return `<markdown-strong>${text}</markdown-strong>`;
   }
 
-  em(text: string): string {
+  override em(text: string): string {
     return `<markdown-emphasis>${text}</markdown-emphasis>`;
   }
 
-  del(text: string): string {
+  override del(text: string): string {
     return `<markdown-strike>${text}</markdown-strike>`;
   }
 
-  table(header: string, body: string): string {
+  override table(header: string, body: string): string {
     return `<markdown-table>${header.replaceAll('markdown-table-row>', 'markdown-table-header-row>')}${body}</markdown-table>`;
   }
 
-  tablerow(content: string): string {
+  override tablerow(content: string): string {
     return `<markdown-table-row>${content}</markdown-table-row>`;
   }
 
-  tablecell(
+  override tablecell(
     content: string,
     flags: {
         header?: boolean;
@@ -132,7 +132,7 @@ export class MarkdownEditableComponentsRenderer extends Renderer {
     }
   }
 
-  link(href: string, title: string, text: string): string {
+  override link(href: string, title: string, text: string): string {
     if(title) {
       return `<markdown-link destination='${href}' title='${title}'>${text}</markdown-link>`;
     } else {
@@ -140,7 +140,7 @@ export class MarkdownEditableComponentsRenderer extends Renderer {
     }
   }
 
-  image(href: string, title: string, text: string): string {
+  override image(href: string, title: string, text: string): string {
     if(title) {
       return `<markdown-image destination='${href}' title='${title}'>${text}</markdown-image>`;
     } else {

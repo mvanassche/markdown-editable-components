@@ -7,7 +7,7 @@ export class ToolbarButton extends LitElement {
   @property({ type: Boolean })
   highlighted: boolean = false
 
-  static styles = css`
+  static override styles = css`
     button {
       padding: 0;
       margin: 0;
@@ -24,7 +24,7 @@ export class ToolbarButton extends LitElement {
     }
   `;
 
-  render() {
+  override render() {
     return html`
       <button class=${classMap({ highlighted: this.highlighted })}>
         <slot></slot>

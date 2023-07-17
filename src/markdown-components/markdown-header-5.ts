@@ -5,7 +5,7 @@ import { Heading } from './abstract/heading';
 export class Header5 extends Heading {
   depth = 5;
 
-  static styles = css`
+  static override styles = css`
     :host {
       position: relative;
       min-height: 1em;
@@ -15,7 +15,7 @@ export class Header5 extends Heading {
     }
   `;
 
-  render() {
+  override render() {
     return html`<h5><slot></slot></h5>`;
   }
 }

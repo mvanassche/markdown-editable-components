@@ -11,7 +11,7 @@ import { isMarkdownElement } from './functions';
 export class MarkdownParagraph extends LeafElement {
   mustBeDirectChildOfDocument = true;
   
-  static styles = css`
+  static override styles = css`
     :host {
       position: relative;
       display: block;
@@ -22,11 +22,11 @@ export class MarkdownParagraph extends LeafElement {
     }
   `;
 
-  render() {
+  override render() {
     return html`<slot></slot>`;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return Array.from(this.childNodes).map((child) => {
       if (isMarkdownElement(child)) {
         return child.getMarkdown();
@@ -39,11 +39,11 @@ export class MarkdownParagraph extends LeafElement {
       }
     }).join('').replaceAll('\u200b', '') + '\n\n';
   }
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return true;
   }
 
-  normalizeContent(): boolean {
+  override normalizeContent(): boolean {
     if(this.childNodes.length == 1 && this.childNodes[0] instanceof HTMLBRElement) {
       this.childNodes[0].remove();
       let p = document.createTextNode('\u200b');

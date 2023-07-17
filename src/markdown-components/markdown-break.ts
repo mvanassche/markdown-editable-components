@@ -4,17 +4,17 @@ import { LeafElement } from './abstract/leaf-element';
 @customElement('markdown-break')
 export class ThematicBreak extends LeafElement {
   mustBeDirectChildOfDocument = true;
-  render() {
+  override render() {
     return html`
       <hr />
     `;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return "-----------------------\n";
   }
   
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return false;
   }
 }

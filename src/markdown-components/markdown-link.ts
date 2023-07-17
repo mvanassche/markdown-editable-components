@@ -10,9 +10,9 @@ export class MarkdownLink extends TerminalInlineElement {
   destination: string = '';
 
   @property()
-  title: string = ''; // TODO make it optional
+  override title: string = ''; // TODO make it optional
 
-  static styles = css`
+  static override styles = css`
         :host {
           position: relative;
         }
@@ -46,16 +46,16 @@ export class MarkdownLink extends TerminalInlineElement {
         }
   `;
 
-  render() {
+  override render() {
     return html`<a href="${this.destination}" title="${this.title}" part="anchor"><slot></slot></a><span class='show-link' @click=${this.destinationShow}>✎</span><input placeholder='http://' class='destination-input' value="${this.destination}" @input='${this.destinationInput}' @blur='${this.destinationHide}' @keydown='${this.destinationKey}'/>`;
   }
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
     setTimeout(() => this.classList.remove('fresh'), 5000);
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     this.updateLinkTarget();
   }
 
@@ -103,12 +103,12 @@ export class MarkdownLink extends TerminalInlineElement {
     }
   }
 
-  newEmptyElementNameAfterBreak() {
+  override newEmptyElementNameAfterBreak() {
     // after a link, we typically want a paragraph!
     return null;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     if(this.title) {
       return `[${this.innerText}](${this.destination} "${this.title}")`;
     } else {

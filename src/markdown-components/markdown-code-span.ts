@@ -6,14 +6,14 @@ import { getMarkdownWithTextForElement } from './functions';
 export class CodeSpan extends TerminalInlineElement {
   mustBeDirectChildOfDocument = false;
 
-  render() {
+  override render() {
     return html`<code><slot></slot></code>`;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return '`' + getMarkdownWithTextForElement(this) + '`';
   }
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return true;
   }
 }

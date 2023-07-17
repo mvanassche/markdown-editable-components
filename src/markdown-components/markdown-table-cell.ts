@@ -6,20 +6,20 @@ import { isMarkdownElement } from './functions';
 export class TableCell extends ContainerElement {
   mustBeDirectChildOfDocument = false;  
 
-  static styles = css`
+  static override styles = css`
     :host {
       display: table-cell;
       border: lightgrey 1px solid;
     }
   `;
 
-  render() {
+  override render() {
     return html`
       <slot></slot>
     `;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return Array.from(this.childNodes).map((child) => {
       if (isMarkdownElement(child)) {
         return child.getMarkdown();
@@ -32,7 +32,7 @@ export class TableCell extends ContainerElement {
       }
     }).join('');
   }
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return true;
   }
 }

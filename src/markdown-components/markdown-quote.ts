@@ -8,7 +8,7 @@ import { isMarkdownElement } from './functions';
 export class BlockQuote extends ContainerElement implements MarkdownElementWithLevel, MarkdownElementEscapeByBackspace {
   mustBeDirectChildOfDocument = true;
   
-  static styles = css`
+  static override styles = css`
         :host {
           position: relative;
         }
@@ -21,7 +21,7 @@ export class BlockQuote extends ContainerElement implements MarkdownElementWithL
           content: '';
         }
   `;
-  render() {
+  override render() {
     return html`
     <blockquote>
       <slot></slot>
@@ -29,7 +29,7 @@ export class BlockQuote extends ContainerElement implements MarkdownElementWithL
   `;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return Array.from(this.childNodes).map((child) => {
       // FIXME THIS IS WRONG? SHOULD BE EVERY LINE, not every child
       if (isMarkdownElement(child)) {
@@ -39,12 +39,12 @@ export class BlockQuote extends ContainerElement implements MarkdownElementWithL
       }
     }).join('');
   }
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return true;
   }
 
 
-  mergeWithPrevious(_currentSelection: Selection | null) {
+  override mergeWithPrevious(_currentSelection: Selection | null) {
     if(this.firstChild) {
       this.before(this.firstChild);
     }

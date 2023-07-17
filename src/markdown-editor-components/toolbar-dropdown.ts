@@ -3,7 +3,7 @@ import { LitElement, html, customElement, css } from 'lit-element';
 @customElement('toolbar-dropdown')
 export class ToolbarDropdown extends LitElement {
 
-  static styles = css`
+  static override styles = css`
     :host {
       position: relative;
       z-index: 10;
@@ -14,7 +14,7 @@ export class ToolbarDropdown extends LitElement {
     }
   `;
 
-  render() {
+  override render() {
     return html`
       <toolbar-button @mousedown=${this.showDropdown}>
         <slot></slot>
@@ -37,14 +37,14 @@ export class ToolbarDropdown extends LitElement {
 
   _mouseDownListener?: EventListener | null = null;
 
-  firstUpdated() {
+  override firstUpdated() {
     this._mouseDownListener = () => {
       this.hideDropdown();
     };
     document.addEventListener('mousedown', this._mouseDownListener, false);
   }
 
-  disconnectedCallback(): void {
+  override disconnectedCallback(): void {
     super.disconnectedCallback();
     if(this._mouseDownListener != null) {
       document.removeEventListener('mousedown', this._mouseDownListener, false);

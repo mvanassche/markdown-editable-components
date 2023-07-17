@@ -4,11 +4,11 @@ import { InlineElement } from './abstract/inline-element';
 @customElement('markdown-strike')
 export class MarkdownStrike extends InlineElement {
 
-  render() {
+  override render() {
     return html`<del><slot></slot></del>`;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return '~~' + super.getMarkdown().trim() + '~~';
   }
   containsMarkdownTextContent(): Boolean {

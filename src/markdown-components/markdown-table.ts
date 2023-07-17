@@ -6,7 +6,7 @@ import { TableRow } from './markdown-table-row';
 export class Table extends ContainerElement {
   mustBeDirectChildOfDocument = true; // ???
   
-  static styles = css`
+  static override styles = css`
     :host {
       display: table;
       border-collapse: collapse;
@@ -14,13 +14,13 @@ export class Table extends ContainerElement {
     }
   `;
 
-  render() {
+  override render() {
     return html`
       <slot></slot>
   `;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return '\n' + Array.from(this.children).map((child) => {
       if (child instanceof TableRow) {
         return child.getMarkdown();
@@ -29,7 +29,7 @@ export class Table extends ContainerElement {
       }
     }).join('\n') + '\n';
   }
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return false;
   }
 }

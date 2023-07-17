@@ -198,6 +198,7 @@ export class MarkdownDocument extends LitElement {
       let mdPasted = event.clipboardData?.getData('text/markdown');
       if(mdPasted) {
         // TODO FIXME just paste it where it is, then normalize -> use mustBeDirectChildOfDocument to split and move up. then remove all the temporary fix after/before logic.
+        // FIXME actually, it is the opposite we need to do? we need a grammar... paragraph accepts ... h1 accepts ...
         this.getSelection()?.deleteFromDocument();
         this.getSelection()?.collapseToEnd();
         let pastedNode = this.getSelection()?.getRangeAt(0)?.createContextualFragment(this.parser(mdPasted));

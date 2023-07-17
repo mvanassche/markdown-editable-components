@@ -3,7 +3,7 @@ import { MarkdownLitElement } from "./markdown-lit-element";
 export abstract class ContainerElement extends MarkdownLitElement {
 
 
-    contentLength(): number {
+    override contentLength(): number {
         var result = 0;
         Array.from(this.childNodes).forEach((child) => {
           if(child instanceof MarkdownLitElement) {
@@ -13,7 +13,7 @@ export abstract class ContainerElement extends MarkdownLitElement {
         return result + this.endOfLineEquivalentLength();
       }
     
-      contentLengthUntil(child: ChildNode): number {
+      override contentLengthUntil(child: ChildNode): number {
         const childNodes = Array.from(this.childNodes);
         const indexOfChild = childNodes.indexOf(child);
         var result = 0;
@@ -28,7 +28,7 @@ export abstract class ContainerElement extends MarkdownLitElement {
       }
     
 
-    elementEndWithEndOfLineEquivalent(): boolean {
+    override elementEndWithEndOfLineEquivalent(): boolean {
         return (this.children.length > 0);
       }
 

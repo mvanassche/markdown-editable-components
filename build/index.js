@@ -4502,6 +4502,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends L
             let mdPasted = (_a = event.clipboardData) === null || _a === void 0 ? void 0 : _a.getData('text/markdown');
             if (mdPasted) {
                 // TODO FIXME just paste it where it is, then normalize -> use mustBeDirectChildOfDocument to split and move up. then remove all the temporary fix after/before logic.
+                // FIXME actually, it is the opposite we need to do? we need a grammar... paragraph accepts ... h1 accepts ...
                 (_b = this.getSelection()) === null || _b === void 0 ? void 0 : _b.deleteFromDocument();
                 (_c = this.getSelection()) === null || _c === void 0 ? void 0 : _c.collapseToEnd();
                 let pastedNode = (_e = (_d = this.getSelection()) === null || _d === void 0 ? void 0 : _d.getRangeAt(0)) === null || _e === void 0 ? void 0 : _e.createContextualFragment(this.parser(mdPasted));

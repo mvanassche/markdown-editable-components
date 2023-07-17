@@ -4,24 +4,24 @@ import { InlineElement } from './abstract/inline-element';
 @customElement('markdown-strong')
 export class MarkdownStrong extends InlineElement {
 
-  static styles = css`
+  static override styles = css`
     :host {
       font-weight: bold;
     }
   `;
 
-  render() {
+  override render() {
     return html`<slot></slot>`;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return '**' + super.getMarkdown().trim() + '**';
   }
 
-  mergeSameSiblings() {
+  override mergeSameSiblings() {
     return true;
   }
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return true;
   }
 }

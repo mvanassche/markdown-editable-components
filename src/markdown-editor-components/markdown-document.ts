@@ -13,7 +13,7 @@ import { MarkdownElement, isMarkdownElementEscapeByBackspace, isMarkdownElementW
 
 @customElement('markdown-document')
 export class MarkdownDocument extends LitElement {
-  static styles = [
+  static override styles = [
     /*
       TODO (borodanov):
 
@@ -93,7 +93,7 @@ export class MarkdownDocument extends LitElement {
   isChrome = !!(window as any).chrome;
 
 
-  render() {
+  override render() {
     return html`
       <div>
         <div class="toolbar">
@@ -107,7 +107,7 @@ export class MarkdownDocument extends LitElement {
     `;
   }
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
 
     this.setAttribute("contenteditable", "true");
@@ -231,7 +231,7 @@ export class MarkdownDocument extends LitElement {
 
   }
 
-  disconnectedCallback() {
+  override disconnectedCallback() {
     document.removeEventListener('selectionchange', this._selectionchange);
     document.removeEventListener('selectstart', this._selectstart);
     //document.removeEventListener('mouseup', this._mouseup);
@@ -638,7 +638,7 @@ export class MarkdownDocument extends LitElement {
     this.toolbar.setMarkdownDocument(this);
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     if (this.getAttribute("floating-toc") == "true") {
       const toc = document.createElement("markdown-toc") as TableOfContent;
       toc.classList.add("floating");
@@ -656,7 +656,7 @@ export class MarkdownDocument extends LitElement {
     }
   }
 
-  updated(changedProperties: Map<string, string>) { 
+  override updated(changedProperties: Map<string, string>) { 
     if (changedProperties.has('markdown') && this.markdown != null) {
       this.renderMarkdown(this.markdown);
     }

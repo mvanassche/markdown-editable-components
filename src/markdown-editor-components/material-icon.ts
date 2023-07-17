@@ -2,7 +2,7 @@ import { LitElement, html, customElement, css } from 'lit-element';
 
 @customElement('material-icon')
 export class MaterialIcon extends LitElement {
-  static styles = css`
+  static override styles = css`
     .material-icons {
       font-family: 'Material Icons';
       font-weight: normal;
@@ -21,7 +21,7 @@ export class MaterialIcon extends LitElement {
     }
   `;
 
-  render() {
+  override render() {
     return html`
       <style>${MaterialIcon.styles}</style>
       <i class="material-icons"><slot></slot></i>

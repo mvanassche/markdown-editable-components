@@ -8,9 +8,9 @@ export class MarkdownImage extends TerminalInlineElement {
   destination: string = '';
 
   @property()
-  title: string = ''; // TODO make it optional
+  override title: string = ''; // TODO make it optional
 
-  static styles = css`
+  static override styles = css`
     :host([destination]) .upload {
       display: none;
     }
@@ -20,7 +20,7 @@ export class MarkdownImage extends TerminalInlineElement {
     }
   `;
 
-  render() {
+  override render() {
     // TODO the alt innertext is not working
     return html`
       <input class='upload' type="file" @change="${this.upload}" accept="image/*">
@@ -29,13 +29,13 @@ export class MarkdownImage extends TerminalInlineElement {
     `;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return `![${this.innerText}](${this.destination} "${this.title}")`;
   }
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return false;
   }
-  isDeletableAsAWhole(): boolean {
+  override isDeletableAsAWhole(): boolean {
     return true;
   }
 

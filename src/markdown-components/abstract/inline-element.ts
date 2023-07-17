@@ -6,7 +6,7 @@ export abstract class InlineElement extends MarkdownLitElement {
 
   mustBeDirectChildOfDocument = false;
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
     //this.setAttribute("contenteditable", "true");
   }
@@ -23,7 +23,7 @@ export abstract class InlineElement extends MarkdownLitElement {
 
     It is up to the parent to deal with the <br> at this point.
   */
-  normalizeContent(): boolean {
+  override normalizeContent(): boolean {
     if(this.mergeSameSiblings() && this.nextSibling instanceof InlineElement && this.tagName == this.nextSibling.tagName) {
       Array.from(this.nextSibling.childNodes).forEach((e) => this.appendChild(e));
       this.parentNode?.removeChild(this.nextSibling);
@@ -53,17 +53,17 @@ export abstract class InlineElement extends MarkdownLitElement {
     return false;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return getMarkdownWithTextForElement(this);
   }
 
-  mergeWithPrevious(currentSelection: Selection | null) {
+  override mergeWithPrevious(currentSelection: Selection | null) {
     if(this.parentNode instanceof MarkdownLitElement) {
       this.parentNode.mergeWithPrevious(currentSelection);
     }
   }
 
-  mergeNextIn() {
+  override mergeNextIn() {
     if(this.parentNode instanceof MarkdownLitElement) {
       this.parentNode.mergeNextIn();
     }

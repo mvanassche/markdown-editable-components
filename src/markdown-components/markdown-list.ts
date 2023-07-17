@@ -16,7 +16,7 @@ export class List extends ContainerElement implements MarkdownElementWithLevel {
   @property({ type: Boolean })
   spread?: boolean
 
-  static styles = css`
+  static override styles = css`
     :host {
       counter-reset: section;
     }
@@ -37,17 +37,17 @@ export class List extends ContainerElement implements MarkdownElementWithLevel {
     }
   `;
 
-  render() {
+  override render() {
     return html`<slot></slot>`;
   }
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
   }
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return super.getMarkdown() + '\n';
   }
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return true;
   }
 

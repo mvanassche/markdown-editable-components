@@ -6,7 +6,7 @@ import { MarkdownLitElement } from "./markdown-lit-element";
 export abstract class LeafElement extends BlockElement {
 
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
 
     //this.setAttribute("contenteditable", "true");
@@ -32,10 +32,10 @@ export abstract class LeafElement extends BlockElement {
   // }
 
 
-  firstUpdated() {
+  override firstUpdated() {
   }
 
-  disconnectedCallback() {
+  override disconnectedCallback() {
   }
 
 
@@ -48,7 +48,7 @@ export abstract class LeafElement extends BlockElement {
         becomes
     <parent>content1 <leaf>content2 </leaf><leaf> content3</leaf> content4</parent>
   */
-  normalizeContent(): boolean {
+  override normalizeContent(): boolean {
     this.normalize();
     if(this.childNodes.length == 0) {
       //this.fillEmptyElement();
@@ -82,7 +82,7 @@ export abstract class LeafElement extends BlockElement {
   }
 
 
-  mergeWithPrevious(currentSelection: Selection | null) {
+  override mergeWithPrevious(currentSelection: Selection | null) {
     // go previous, then potentially down if container
     this.mergeWith(currentSelection, this.previousElementSibling);
   }
@@ -107,7 +107,7 @@ export abstract class LeafElement extends BlockElement {
     }
   }
 
-  mergeNextIn() {
+  override mergeNextIn() {
     if(this.nextElementSibling instanceof LeafElement) {
       Array.from(this.nextElementSibling.childNodes).forEach((child) => {
         this.appendChild(child);
@@ -116,7 +116,7 @@ export abstract class LeafElement extends BlockElement {
     }
   }
 
-  elementEndWithEndOfLineEquivalent(): boolean {
+  override elementEndWithEndOfLineEquivalent(): boolean {
     return ((this.textContent && this.textContent?.length > 0) || this.children.length > 0);
   }
 

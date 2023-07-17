@@ -10,7 +10,7 @@ export class TableOfContent extends LitElement implements MarkdownElement {
   @property({ attribute: false })
   markdownDocument: MarkdownDocument | null = null;
 
-  static styles = css`
+  static override styles = css`
     :host {
       display: block;
     }
@@ -44,12 +44,12 @@ export class TableOfContent extends LitElement implements MarkdownElement {
     }
   `;
 
-  render() {
+  override render() {
     return html`
     `;
   }
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
     if (!this.markdownDocument) {
       this.markdownDocument = this.closest('markdown-document');
@@ -57,7 +57,7 @@ export class TableOfContent extends LitElement implements MarkdownElement {
     }
   }
 
-  updated(changedProperties: Map<string, string>) { 
+  override updated(changedProperties: Map<string, string>) { 
     if (changedProperties.has('markdownDocument')) {
       this.refresh();
     }

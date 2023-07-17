@@ -17,7 +17,7 @@ export class TableHeaderCell extends TableCell {
   @property()
   align?: alignType
 
-  static styles = css`
+  static override styles = css`
     :host {
       display: table-cell;
       border: lightgrey 1px solid;

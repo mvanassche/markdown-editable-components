@@ -9,7 +9,7 @@ import { MarkdownLitElement } from './abstract/markdown-lit-element';
 export class ListItem extends ContainerElement {
   mustBeDirectChildOfDocument = false;
   
-  static styles = css`
+  static override styles = css`
     :host {
       position: relative;
       left: 20px;
@@ -19,7 +19,7 @@ export class ListItem extends ContainerElement {
   @property({ type: Boolean })
   spread?: boolean
 
-  render() {
+  override render() {
     return html`<div class='item-container'><slot></slot></div>`;
   }
 
@@ -38,7 +38,7 @@ export class ListItem extends ContainerElement {
     return depth;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return '  '.repeat(this.getDepth()) + '- ' + this.getTaskMarkdown() + this.getMarkdownWithTextForElement(); // + '\n';
   }
 
@@ -54,7 +54,7 @@ export class ListItem extends ContainerElement {
     }).join('');
   }
 
-  normalizeContent(): boolean {
+  override normalizeContent(): boolean {
     this.normalize();
     if(this.childNodes.length == 0) {
       //this.fillEmptyElement();
@@ -88,7 +88,7 @@ export class ListItem extends ContainerElement {
   }
 
 
-  contentLength(): number {
+  override contentLength(): number {
     var result = 0;
     Array.from(this.childNodes).forEach((child) => {
       if(child instanceof MarkdownLitElement) {
@@ -103,7 +103,7 @@ export class ListItem extends ContainerElement {
     return result + this.endOfLineEquivalentLength();
   }
 
-  contentLengthUntil(child: ChildNode): number {
+  override contentLengthUntil(child: ChildNode): number {
     const childNodes = Array.from(this.childNodes);
     const indexOfChild = childNodes.indexOf(child);
     var result = 0;
@@ -122,7 +122,7 @@ export class ListItem extends ContainerElement {
   }
 
   
-  mergeWithPrevious(currentSelection: Selection | null) {
+  override mergeWithPrevious(currentSelection: Selection | null) {
     if(this.previousElementSibling instanceof ListItem) {
       // TODO modularize in top element
       if(currentSelection?.containsNode(this, true)) {
@@ -145,7 +145,7 @@ export class ListItem extends ContainerElement {
 
 
 
-  mergeNextIn() {
+  override mergeNextIn() {
     if(this.nextElementSibling instanceof ListItem) {
       Array.from(this.nextElementSibling.childNodes).forEach((child) => {
         this.appendChild(child);
@@ -155,11 +155,11 @@ export class ListItem extends ContainerElement {
   }
 
 
-  elementEndWithEndOfLineEquivalent(): boolean {
+  override elementEndWithEndOfLineEquivalent(): boolean {
     return (this.textContent && this.textContent?.length > 0) || this.children.length > 0;
   }
 
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return true;
   }
 

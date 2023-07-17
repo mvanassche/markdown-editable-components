@@ -9,13 +9,13 @@ export class CodeBlock extends LeafElement {
 
   // TODO language string as property/attribute
 
-  static styles = css``;
+  static override styles = css``;
 
-  render() {
+  override render() {
     return html`<pre><code><slot></slot></code></pre>`;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     const lang = this.getAttribute("lang");
     const id = this.getAttribute("id");
 
@@ -26,7 +26,7 @@ export class CodeBlock extends LeafElement {
     }
   }
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
 
     this.highlight();
@@ -43,7 +43,7 @@ export class CodeBlock extends LeafElement {
       this.innerHTML = hljs.highlight(lang, this.textContent).value;
     }
   }
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return true;
   }
 }

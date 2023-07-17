@@ -15,22 +15,22 @@ export class NumericList extends ContainerElement implements MarkdownElementWith
   @property({ type: Boolean })
   spread?: boolean
 
-  static styles = css`
+  static override styles = css`
     :host {
       list-style-type: decimal;
   `;
 
-  render() {
+  override render() {
     return html`<slot></slot>`;
   }
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
   }
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return super.getMarkdown() + '\n';
   }
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return false;
   }
   goDownOneLevel(child: Element | null): void {

@@ -3,7 +3,7 @@ import { LitElement, html, customElement, css } from 'lit-element';
 @customElement('toolbar-separator')
 export class ToolbarSeparator extends LitElement {
 
-  static styles = css`
+  static override styles = css`
     .separator {
       width: 1px;
       background-color: gray;
@@ -12,12 +12,12 @@ export class ToolbarSeparator extends LitElement {
     }
   `;
 
-  render() {
+  override render() {
     return html`
       <div class='separator'></div>
     `;
   }
 
-  firstUpdated() {
+  override firstUpdated() {
   }
 }

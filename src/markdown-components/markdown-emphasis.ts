@@ -4,15 +4,15 @@ import { InlineElement } from './abstract/inline-element';
 @customElement('markdown-emphasis')
 export class MarkdownEmphasis extends InlineElement {
 
-  render() {
+  override render() {
     return html`<i><slot></slot></i>`;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return '*' + super.getMarkdown().trim() + '*';
   }
 
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return true;
   }
 

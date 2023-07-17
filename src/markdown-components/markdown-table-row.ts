@@ -6,20 +6,20 @@ import { isMarkdownElement } from './functions';
 export class TableRow extends ContainerElement {
   mustBeDirectChildOfDocument = false;
   
-  static styles = css`
+  static override styles = css`
     :host {
       display: table-row;
       border: lightgrey 1px solid;
     }
   `;
 
-  render() {
+  override render() {
     return html`
       <slot></slot>
   `;
   }
 
-  public getMarkdown(): string {
+  public override getMarkdown(): string {
     // TODO prettier output! use longest size etc.
     return '| ' + Array.from(this.children).map((child) => {
       if (isMarkdownElement(child)) {
@@ -29,7 +29,7 @@ export class TableRow extends ContainerElement {
       }
     }).join(' | ') + ' |';
   }
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return false;
   }
 }

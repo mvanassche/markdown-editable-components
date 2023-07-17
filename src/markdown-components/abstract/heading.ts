@@ -16,16 +16,16 @@ export abstract class Heading extends LeafElement {
   //   html`${unsafeHTML(template)}`;
   // }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return '#'.repeat(this.depth) + ' ' + getMarkdownWithTextForElement(this) + '\n';
   }
 
-  newEmptyElementNameAfterBreak() {
+  override newEmptyElementNameAfterBreak() {
     // after a title, we typically want a paragraph!
     return 'markdown-paragraph';
   }
 
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return true;
   }
 

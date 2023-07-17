@@ -11,7 +11,7 @@ export class Toolbar extends LitElement {
   strikeButton: ToggleToolbarButton | null = null;
   dropdownTitle: Element | null = null;
 
-  static styles = css`
+  static override styles = css`
     @font-face {
       font-family: 'Material Icons';
       font-style: normal;
@@ -80,7 +80,7 @@ export class Toolbar extends LitElement {
       }
   `;
 
-  render() {
+  override render() {
     return html`
       <div>
         <div class="toolbar">
@@ -216,7 +216,7 @@ export class Toolbar extends LitElement {
     `;
   }
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
 
     this.addEventListener('mousedown', (e) => {
@@ -240,7 +240,7 @@ export class Toolbar extends LitElement {
     this.markdownDocument?.insertLink(); //linkURLInput.value, linkTextInput.value);
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     this.shadowRoot?.querySelector('dropdown-elements#insert-link')?.addEventListener('mousedown', (e) => {
       e.stopPropagation();
       // e.preventDefault();

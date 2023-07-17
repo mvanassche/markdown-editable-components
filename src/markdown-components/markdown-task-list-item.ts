@@ -13,7 +13,7 @@ export class TaskListItem extends ListItem {
   checked: Boolean = false
 
   // TODO reuse inherit from list item
-  static styles = css`
+  static override styles = css`
     :host {
       position: relative;
       left: 20px;
@@ -31,7 +31,7 @@ export class TaskListItem extends ListItem {
     }
   `;
 
-  render() {
+  override render() {
     return html`
       <div class='task-and-container'>
         <input type='checkbox' @change=${this._selection}/>
@@ -44,11 +44,11 @@ export class TaskListItem extends ListItem {
     this.setAttribute('checked', (e.target as HTMLInputElement).checked + '');
   }
 
-  firstUpdated(changedProperties: Map<string, string>) { 
+  override firstUpdated(changedProperties: Map<string, string>) { 
     if (changedProperties.has('checked')) {
       (this.shadowRoot!.querySelector('input') as HTMLInputElement).checked = this.checked.valueOf();
     }
    }
 
-  getTaskMarkdown(): string { return '[' + (this.checked ? 'x' : ' ') + '] ' }
+  override getTaskMarkdown(): string { return '[' + (this.checked ? 'x' : ' ') + '] ' }
 }

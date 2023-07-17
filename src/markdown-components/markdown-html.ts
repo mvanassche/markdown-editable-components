@@ -4,23 +4,23 @@ import { LeafElement } from './abstract/leaf-element';
 @customElement('markdown-html')
 export class HTML extends LeafElement {
   mustBeDirectChildOfDocument = false;
-  static styles = css`
+  static override styles = css`
   `;
 
-  render() {
+  override render() {
     return html`
       <slot></slot>
     `;
   }
 
-  isEditable(): boolean {
+  override isEditable(): boolean {
     return false;
   }
 
-  getMarkdown(): string {
+  override getMarkdown(): string {
     return this.innerHTML.trimLeft().trimRight() + '\n\n';
   }
-  containsMarkdownTextContent(): Boolean {
+  override containsMarkdownTextContent(): Boolean {
     return true;
   }
 

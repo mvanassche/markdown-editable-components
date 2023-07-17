@@ -5,11 +5,11 @@ import { Toolbar } from './markdown-toolbar';
 @customElement('markdown-editor')
 export class MarkdownEditor extends MarkdownDocument {
 
-  toolbar: Toolbar | null = null
+  override toolbar: Toolbar | null = null
   markdownDocument: MarkdownDocument  | null = null
-  currentSelection: Selection | null = null
+  override currentSelection: Selection | null = null
 
-  static styles = [
+  static override styles = [
     css`
     `
   ];
@@ -18,14 +18,14 @@ export class MarkdownEditor extends MarkdownDocument {
     super();
   }
 
-  render() {
+  override render() {
     return html`
       <markdown-toolbar></markdown-toolbar>
       <slot></slot>
     `;
   }
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
   }
 

@@ -3,7 +3,7 @@ import { LitElement, html, customElement, css } from 'lit-element';
 @customElement('dropdown-elements')
 export class DropdownElements extends LitElement {
 
-  static styles = css`
+  static override styles = css`
     :host {
       display: flex;
       flex-direction: column;
@@ -14,12 +14,12 @@ export class DropdownElements extends LitElement {
     }
   `;
 
-  render() {
+  override render() {
     return html`
       <slot></slot>
     `;
   }
 
-  firstUpdated() {
+  override firstUpdated() {
   }
 }

@@ -226,6 +226,38 @@ export class MarkdownDocument extends LitElement {
           event.preventDefault();
           this.onChange();
         }
+      } else {
+        let htmlPasted = event.clipboardData?.getData('text/html');
+        if(htmlPasted) {
+          // TODO decide on paste as html or not
+          this.getSelection()?.deleteFromDocument();
+          this.getSelection()?.collapseToEnd();
+          let pastedNode = this.getSelection()?.getRangeAt(0)?.createContextualFragment('<markdown-html>' + htmlPasted + '</markdown-html>');
+          if(pastedNode) {
+            // if paste a top level element, not an inline element, then it should be pasted at the root of the document.
+            if(pastedNode.childNodes.length == 1 && isMarkdownElement(pastedNode.firstChild) && pastedNode.firstChild.mustBeDirectChildOfDocument && this.getSelection()?.anchorNode != this) {
+              /// FIXME we might have to split up the elements all the way to the document
+              // for now, we just put it before or after, depending on the cursor
+              var documentChild = this.getSelection()?.anchorNode;
+              while(documentChild != null && documentChild.parentElement != this) documentChild = documentChild.parentElement;
+              if(documentChild != null && documentChild instanceof Element) {
+                let offset = this.getSelection()?.anchorOffset;
+                let length = this.getSelection()?.anchorNode?.textContent?.length
+                if(offset != null && length != null && offset > length / 2) {
+                  documentChild.after(pastedNode);
+                } else {
+                  documentChild.before(pastedNode);
+                }
+              } else {
+                this.getSelection()?.getRangeAt(0)?.insertNode(pastedNode);
+              }
+            } else {
+              this.getSelection()?.getRangeAt(0)?.insertNode(pastedNode);
+            }
+            event.preventDefault();
+            this.onChange();
+          }  
+        }
       }
     });
 

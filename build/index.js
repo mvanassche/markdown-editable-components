@@ -1836,7 +1836,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends s
             //event.stopPropagation();
         }, false);
         this.addEventListener('paste', (event) => {
-            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
             let mdPasted = (_a = event.clipboardData) === null || _a === void 0 ? void 0 : _a.getData('text/markdown');
             if (mdPasted) {
                 // TODO FIXME just paste it where it is, then normalize -> use mustBeDirectChildOfDocument to split and move up. then remove all the temporary fix after/before logic.
@@ -1871,43 +1871,6 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends s
                     }
                     event.preventDefault();
                     this.onChange();
-                }
-            }
-            else {
-                let htmlPasted = (_r = event.clipboardData) === null || _r === void 0 ? void 0 : _r.getData('text/html');
-                if (htmlPasted) {
-                    // TODO decide on paste as html or not
-                    (_s = this.getSelection()) === null || _s === void 0 ? void 0 : _s.deleteFromDocument();
-                    (_t = this.getSelection()) === null || _t === void 0 ? void 0 : _t.collapseToEnd();
-                    let pastedNode = (_v = (_u = this.getSelection()) === null || _u === void 0 ? void 0 : _u.getRangeAt(0)) === null || _v === void 0 ? void 0 : _v.createContextualFragment('<markdown-html>' + htmlPasted + '</markdown-html>');
-                    if (pastedNode) {
-                        // if paste a top level element, not an inline element, then it should be pasted at the root of the document.
-                        if (pastedNode.childNodes.length == 1 && isMarkdownElement(pastedNode.firstChild) && pastedNode.firstChild.mustBeDirectChildOfDocument && ((_w = this.getSelection()) === null || _w === void 0 ? void 0 : _w.anchorNode) != this) {
-                            /// FIXME we might have to split up the elements all the way to the document
-                            // for now, we just put it before or after, depending on the cursor
-                            var documentChild = (_x = this.getSelection()) === null || _x === void 0 ? void 0 : _x.anchorNode;
-                            while (documentChild != null && documentChild.parentElement != this)
-                                documentChild = documentChild.parentElement;
-                            if (documentChild != null && documentChild instanceof Element) {
-                                let offset = (_y = this.getSelection()) === null || _y === void 0 ? void 0 : _y.anchorOffset;
-                                let length = (_1 = (_0 = (_z = this.getSelection()) === null || _z === void 0 ? void 0 : _z.anchorNode) === null || _0 === void 0 ? void 0 : _0.textContent) === null || _1 === void 0 ? void 0 : _1.length;
-                                if (offset != null && length != null && offset > length / 2) {
-                                    documentChild.after(pastedNode);
-                                }
-                                else {
-                                    documentChild.before(pastedNode);
-                                }
-                            }
-                            else {
-                                (_3 = (_2 = this.getSelection()) === null || _2 === void 0 ? void 0 : _2.getRangeAt(0)) === null || _3 === void 0 ? void 0 : _3.insertNode(pastedNode);
-                            }
-                        }
-                        else {
-                            (_5 = (_4 = this.getSelection()) === null || _4 === void 0 ? void 0 : _4.getRangeAt(0)) === null || _5 === void 0 ? void 0 : _5.insertNode(pastedNode);
-                        }
-                        event.preventDefault();
-                        this.onChange();
-                    }
                 }
             }
         });
@@ -2287,6 +2250,12 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends s
                 p.textContent = child.textContent;
                 child.replaceWith(p);
                 p.normalizeContent();
+            }
+            else {
+                // if we do not know what it is, put it in a markdown html
+                let html = document.createElement('markdown-html');
+                child.replaceWith(html);
+                html.append(child);
             }
         }
         if (this.lastElementChild == null || this.lastElementChild.tagName.toLowerCase() != 'markdown-paragraph') {

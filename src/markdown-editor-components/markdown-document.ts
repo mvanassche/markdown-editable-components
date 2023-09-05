@@ -227,7 +227,8 @@ export class MarkdownDocument extends LitElement {
           this.onChange();
         }
       } else {
-        let htmlPasted = event.clipboardData?.getData('text/html');
+        // not a good idea: most clipboards have html in them, and this prevents defaults. It just steals the paste of other sub-components.
+        /*let htmlPasted = event.clipboardData?.getData('text/html');
         if(htmlPasted) {
           // TODO decide on paste as html or not
           this.getSelection()?.deleteFromDocument();
@@ -257,7 +258,7 @@ export class MarkdownDocument extends LitElement {
             event.preventDefault();
             this.onChange();
           }  
-        }
+        }*/
       }
     });
 
@@ -637,6 +638,11 @@ export class MarkdownDocument extends LitElement {
         p.textContent = child.textContent;
         child.replaceWith(p);
         p.normalizeContent();
+      } else {
+        // if we do not know what it is, put it in a markdown html
+        let html = document.createElement('markdown-html') as MarkdownImage;
+        child.replaceWith(html);
+        html.append(child);
       }
     }
     if(this.lastElementChild == null || this.lastElementChild.tagName.toLowerCase() != 'markdown-paragraph') {

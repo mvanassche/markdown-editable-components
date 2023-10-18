@@ -61,6 +61,10 @@ export abstract class LeafElement extends BlockElement {
       if (content instanceof HTMLBRElement) {
         this.pushNodesAfterBreakToParent(content);
         this.removeChild(content);
+        if(this.childNodes.length == 0) {
+          // after removing the br, if there is nothing left, add a ZWSP otherwise the whole thing may get removed.
+          this.append(document.createTextNode('\u200b'));
+        }
         return true;
       } else if(content instanceof MarkdownLitElement) {
         if(content.normalizeContent()) {

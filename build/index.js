@@ -3132,6 +3132,18 @@ class LeafElement extends BlockElement {
             this.remove();
             return true;
         }
+        // remove double br: for some reason, sometimes two br are added by the browser (or one browser, one us)
+        var br = false;
+        for (let i = 0; i < this.childNodes.length; i++) {
+            const content = this.childNodes[i];
+            if (content instanceof HTMLBRElement) {
+                if (br) {
+                    this.removeChild(content);
+                    break;
+                }
+                br = true;
+            }
+        }
         for (let i = 0; i < this.childNodes.length; i++) {
             const content = this.childNodes[i];
             if (content instanceof HTMLBRElement) {

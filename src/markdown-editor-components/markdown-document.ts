@@ -110,7 +110,11 @@ export class MarkdownDocument extends LitElement {
   override connectedCallback() {
     super.connectedCallback();
 
-    this.setAttribute("contenteditable", "true");
+    if(this.getAttribute("readonly") == "true") {
+      this.setAttribute("contenteditable", "false");
+    } else {
+      this.setAttribute("contenteditable", "true");
+    }
 
     if (this.getAttribute("spellcheck") == null) {
       this.setAttribute("spellcheck", "false");
@@ -282,14 +286,18 @@ export class MarkdownDocument extends LitElement {
 
   onMouseSelection() {
   // see https://bugs.chromium.org/p/chromium/issues/detail?id=1162730
-  if(this.isChrome) {
+  if(this.isChrome && this.getAttribute("contenteditable") == "true") {
     this.setAttribute("contenteditable", "false");
     }
   }
   onEndMouseSelection() {
     if(this.isChrome && this.getAttribute("contenteditable") == "false") {
-      this.setAttribute("contenteditable", "true");
-      this.focus();
+      if(this.getAttribute("readonly") == "true") {
+        this.setAttribute("contenteditable", "false");
+      } else {
+        this.setAttribute("contenteditable", "true");
+      }
+        this.focus();
     }
   }
 

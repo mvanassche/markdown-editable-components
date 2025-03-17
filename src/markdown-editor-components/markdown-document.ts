@@ -135,8 +135,16 @@ export class MarkdownDocument extends LitElement {
     this.addEventListener('keydown', (e: KeyboardEvent) => {
       if(this.editable) {
         if (e.code === 'Enter') {
-          //e.preventDefault();
-          //this.handleEnterKeyDown();
+          // due to changes in Chromium, the input is not triggered anymore and content is lost. But somehow doing insertLineBreak makes it work again
+          e.preventDefault();
+          document.execCommand('insertLineBreak');
+
+            //e.preventDefault();
+          /*setTimeout(() => {
+            this.normalizeContent();
+            this.onChange();  
+            }, 0);*/
+
           //document.execCommand('insertHTML', false, '#');
           //document.execCommand('insertHTML', false, '&ZeroWidthSpace;&ZeroWidthSpace;');
           //document.execCommand('insertLineBreak');
@@ -154,6 +162,7 @@ export class MarkdownDocument extends LitElement {
           this.handleTabKeyDown(e.shiftKey);
         }
         if(e.defaultPrevented) {
+          console.log("input==");
           // if default prevented, chances are that input is not triggered.
           this.normalizeContent();
           this.onChange();  
@@ -772,10 +781,6 @@ export class MarkdownDocument extends LitElement {
     return null;
   }
 
-  
-  handleEnterKeyDown() {
-    document.execCommand('insertHTML', false, '&ZeroWidthSpace;<br/>&ZeroWidthSpace;');
-  }
 
   makeBreak() {
     const anchorOffset = this.currentSelection?.anchorOffset;

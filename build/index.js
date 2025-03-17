@@ -1789,7 +1789,24 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends s
         document.addEventListener('selectionchange', this._selectionchange);
         this.addEventListener('keydown', (e) => {
             if (this.editable) {
-                if (e.code === 'Enter') ;
+                if (e.code === 'Enter') {
+                    // due to changes in Chromium, the input is not triggered anymore and content is lost. But somehow doing insertLineBreak makes it work again
+                    e.preventDefault();
+                    document.execCommand('insertLineBreak');
+                    //e.preventDefault();
+                    /*setTimeout(() => {
+                      this.normalizeContent();
+                      this.onChange();
+                      }, 0);*/
+                    //document.execCommand('insertHTML', false, '#');
+                    //document.execCommand('insertHTML', false, '&ZeroWidthSpace;&ZeroWidthSpace;');
+                    //document.execCommand('insertLineBreak');
+                    /*let n = this.currentSelection?.anchorNode;
+                    let i = this.currentSelection?.anchorOffset;
+                    if(n != null && i != null && n instanceof Text) {
+                      n.data = n.data.substring(0, i) + '\u200b' + n.data.substring(i)
+                    }*/
+                }
                 else if (e.code === 'Backspace') {
                     this.handleBackspaceKeyDown(e);
                 }
@@ -1801,6 +1818,7 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends s
                     this.handleTabKeyDown(e.shiftKey);
                 }
                 if (e.defaultPrevented) {
+                    console.log("input==");
                     // if default prevented, chances are that input is not triggered.
                     this.normalizeContent();
                     this.onChange();
@@ -2364,9 +2382,6 @@ exports.MarkdownDocument = MarkdownDocument_1 = class MarkdownDocument extends s
             }
         }
         return null;
-    }
-    handleEnterKeyDown() {
-        document.execCommand('insertHTML', false, '&ZeroWidthSpace;<br/>&ZeroWidthSpace;');
     }
     makeBreak() {
         var _a, _b, _c, _d, _e, _f, _g, _h;
@@ -3106,6 +3121,9 @@ class ContainerElement extends MarkdownLitElement {
 class LeafElement extends BlockElement {
     connectedCallback() {
         super.connectedCallback();
+        this.addEventListener("keydown", () => {
+            console.log("XXXXX");
+        });
         //this.setAttribute("contenteditable", "true");
         /*this.addEventListener("input", () => {
           this.normalizeChildren()
